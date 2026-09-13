@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /** 通用接口信封，与后端 common.ApiSuccess 一致。 */
 export interface ApiResponse<T = unknown> {
   success: boolean
@@ -88,6 +87,31 @@ export interface CustomerCodeIssuePayload {
   /** 0 或不传 = 不过期 */
   expired_at?: number
   remark?: string
+}
+
+/**
+ * 「我的客户」里的一行：挂在当前经销商名下的一位客户此刻的台账。
+ *
+ * `plan_id` / `plan_name` / `plan_discount` 是这位客户此刻真正生效的那套价
+ * （来源见 `binding_source`），`priced_by_me` 表示这套价是经销商自己定的——
+ * 界面上据此决定「撤销我的定价」这个选项出不出现。
+ */
+export interface AgentCustomer {
+  user_id: number
+  username: string
+  display_name: string
+  /** 取值同 USER_STATUS：1 启用 / 2 禁用，-1 已删除。 */
+  status: number
+  created_at: number
+  quota: number
+  used_quota: number
+  /** 0 表示没有生效方案（按官方标价） */
+  plan_id: number
+  plan_name: string
+  plan_discount: string
+  /** manual / agent / subscription / customer_code / migration / default，空表示没有生效方案 */
+  binding_source: string
+  priced_by_me: boolean
 }
 
 /** 货架上的一个折扣方案：经销商挑给客户用哪套价。 */

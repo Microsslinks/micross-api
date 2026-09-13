@@ -116,6 +116,14 @@ const (
 	MsgCustomerBelongsToOtherAgent = "customer_code.belongs_to_other_agent"
 	MsgCustomerCodePlanUnavailable = "customer_code.plan_unavailable"
 
+	// 我的客户（经销商看名下客户、给他们改价和发额度）
+	MsgAgentCustomerNotFound        = "agent_customer.not_found"
+	MsgAgentCustomerPricedByPlat    = "agent_customer.priced_by_platform"
+	MsgAgentCustomerPlanNotSellable = "agent_customer.plan_not_sellable"
+	MsgAgentCustomerQuotaDisabled   = "agent_customer.quota_issuing_disabled"
+	MsgAgentCustomerQuotaNotEnough  = "agent_customer.quota_not_enough"
+	MsgAgentCustomerQuotaInvalid    = "agent_customer.quota_invalid"
+
 	MsgUserAdminCannotPromote      = "user.admin_cannot_promote"
 	MsgUserOriginalPasswordError   = "user.original_password_error"
 	MsgUserInviteQuotaInsufficient = "user.invite_quota_insufficient"

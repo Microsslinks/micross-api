@@ -27,8 +27,10 @@ const (
 	DiscountBillingSubscription = "subscription"
 	DiscountBillingFree         = "free"
 
-	// 绑定来源；同一主体存在多条绑定时按 manual > subscription > migration 取用
+	// 绑定来源；同一主体存在多条绑定时按
+	// manual > agent > subscription > customer_code > migration 取用
 	DiscountSourceManual       = "manual"
+	DiscountSourceAgent        = "agent"
 	DiscountSourceSubscription = "subscription"
 	DiscountSourceCustomerCode = "customer_code"
 	DiscountSourceMigration    = "migration"
@@ -430,14 +432,18 @@ func discountSourceRank(source string) int {
 	switch source {
 	case DiscountSourceManual:
 		return 0
-	case DiscountSourceSubscription:
+	case DiscountSourceAgent:
+		// 经销商给下属客户定的价：比平台手工定价低一档（平台能改回来），
+		// 比套餐和客户号高一档（他明确指定过的那份算数）。
 		return 1
-	case DiscountSourceCustomerCode:
+	case DiscountSourceSubscription:
 		return 2
-	case DiscountSourceMigration:
+	case DiscountSourceCustomerCode:
 		return 3
-	default:
+	case DiscountSourceMigration:
 		return 4
+	default:
+		return 5
 	}
 }
 

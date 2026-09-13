@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 
 import type {
+  AgentCustomer,
   AgentLedger,
   ApiResponse,
   CustomerCode,
@@ -52,7 +53,9 @@ export async function getSelfCustomerCodes(
   }>
 > {
   const res = await api.get('/api/user/self/agent/codes', {
-    params: { page, page_size: pageSize },
+    // 页码参数名是 p：后端 common.GetPageQuery 读的是 p / ps / size，
+    // 写成 page 会被忽略，翻到第二页时拿回来的还是第一页。
+    params: { p: page, page_size: pageSize },
   })
   return res.data
 }
@@ -85,5 +88,55 @@ export async function getSelfSellablePlans(): Promise<
   ApiResponse<DealerPlanList>
 > {
   const res = await api.get('/api/user/self/agent/plans')
+  return res.data
+}
+
+/**
+ * 经销商看自己名下的客户（谁绑了他的号，就归到他名下）。
+ */
+export async function getSelfAgentCustomers(
+  page = 1,
+  pageSize = 20
+): Promise<
+  ApiResponse<{
+    items: AgentCustomer[]
+    total: number
+    page: number
+    page_size: number
+  }>
+> {
+  const res = await api.get('/api/user/self/agent/customers', {
+    params: { p: page, page_size: pageSize },
+  })
+  return res.data
+}
+
+/**
+ * 给一位下属客户定价；传 0 撤掉自己定的价，让他回到客户号或平台给的价。
+ * 成功后返回那位客户最新的台账行。
+ */
+export async function setSelfAgentCustomerDiscount(
+  customerId: number,
+  planId: number
+): Promise<ApiResponse<AgentCustomer>> {
+  const res = await api.put(
+    `/api/user/self/agent/customers/${customerId}/discount`,
+    { plan_id: planId }
+  )
+  return res.data
+}
+
+/**
+ * 给一位下属客户发额度：钱从经销商自己的余额里转过去。
+ * 成功后返回那位客户最新的台账行。
+ */
+export async function issueSelfAgentCustomerQuota(
+  customerId: number,
+  quota: number
+): Promise<ApiResponse<AgentCustomer>> {
+  const res = await api.post(
+    `/api/user/self/agent/customers/${customerId}/quota`,
+    { quota }
+  )
   return res.data
 }

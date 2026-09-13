@@ -65,6 +65,7 @@ export const DISCOUNT_SUBJECT = {
 /** 绑定来源；对应 `model.DiscountSource*`。 */
 export const DISCOUNT_BINDING_SOURCE = {
   MANUAL: 'manual',
+  AGENT: 'agent',
   SUBSCRIPTION: 'subscription',
   CUSTOMER_CODE: 'customer_code',
   MIGRATION: 'migration',

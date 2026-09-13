@@ -29,6 +29,7 @@ import {
   Settings,
   TrendingUp,
   User,
+  Users,
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -58,13 +59,19 @@ export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
 
   // 经销商是叠在用户身上的业务身份（users.subject_type = 'agent'），不是权限等级：
-  // 他自己那几个客户侧菜单照旧，只是多出「台账」这一项，普通客户看不到它。
+  // 他自己那几个客户侧菜单照旧，只是多出「台账」和「我的客户」这两项，
+  // 普通客户看不到它们。
   const isDealer =
     useAuthStore((state) => state.auth.user?.subject_type) ===
     CUSTOMER_TYPE.AGENT
 
-  const dealerBillingItems: NavItem[] = isDealer
+  const dealerItems: NavItem[] = isDealer
     ? [
+        {
+          title: t('My Customers'),
+          url: '/customers',
+          icon: Users,
+        },
         {
           title: t('Dealer Billing'),
           url: '/billing',
@@ -132,7 +139,7 @@ export function useSidebarData(): SidebarData {
             url: '/earnings',
             icon: TrendingUp,
           },
-          ...dealerBillingItems,
+          ...dealerItems,
           {
             title: t('Profile'),
             url: '/profile',

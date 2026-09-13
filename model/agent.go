@@ -210,8 +210,13 @@ func promoteUserToAgent(userId int, markupRatio string, wholesaleDiscount string
 	}
 	profile.NormalizeDefaults()
 	return DB.Transaction(func(tx *gorm.DB) error {
+		// 顺带把归属清掉：经销商直属平台。不清的话，一个绑过客户号的人被设成经销商后，
+		// 还会留在原来那位经销商的「我的客户」名单里——他已经是同行的对手了。
 		if err := tx.Model(&User{}).Where("id = ?", userId).
-			Update("subject_type", SubjectTypeAgent).Error; err != nil {
+			Updates(map[string]interface{}{
+				"subject_type":    SubjectTypeAgent,
+				"parent_agent_id": 0,
+			}).Error; err != nil {
 			return err
 		}
 		return tx.Where("user_id = ?", userId).

@@ -140,6 +140,7 @@ export const DISCOUNT_BILLING_MODE_LABEL_KEYS: Record<string, string> = {
 /** 绑定来源 → i18n 键 */
 export const DISCOUNT_BINDING_SOURCE_LABEL_KEYS: Record<string, string> = {
   [DISCOUNT_BINDING_SOURCE.MANUAL]: 'Manual',
+  [DISCOUNT_BINDING_SOURCE.AGENT]: 'Dealer price',
   [DISCOUNT_BINDING_SOURCE.SUBSCRIPTION]: 'Subscription',
   [DISCOUNT_BINDING_SOURCE.CUSTOMER_CODE]: 'Customer code',
   [DISCOUNT_BINDING_SOURCE.MIGRATION]: 'Migration',

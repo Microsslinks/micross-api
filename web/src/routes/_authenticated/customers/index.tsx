@@ -16,25 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export interface ApiResponse<T = unknown> {
-  success: boolean
-  message?: string
-  data?: T
-}
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/**
- * 我此刻挂在谁名下、按什么价算。
- *
- * parent_agent_id 为 0 表示直属平台（没有归属经销商）；plan_id 为 0 表示此刻没有
- * 生效的折扣方案——两种零值都是正常状态，不是没加载出来。
- */
-export interface CustomerBinding {
-  parent_agent_id: number
-  agent_name: string
-  plan_id: number
-  plan_name: string
-  /** 方案基准折扣（个别模型可能另有专门折扣） */
-  plan_discount: string
-  /** 折扣的来源：manual / subscription / customer_code 之一 */
-  binding_source: string
-}
+import { DealerCustomers } from '@/features/dealer/customers'
+import { CUSTOMER_TYPE } from '@/features/users/constants'
+import { useAuthStore } from '@/stores/auth-store'
+
+export const Route = createFileRoute('/_authenticated/customers/')({
+  beforeLoad: () => {
+    const { auth } = useAuthStore.getState()
+
+    // 「我的客户」只给经销商看。菜单里本来就不会出现，这里挡住的是手敲地址进来的：
+    // 普通客户没有下属，看到这张表只会是空的，也容易误会自己有客户。
+    if (auth.user?.subject_type !== CUSTOMER_TYPE.AGENT) {
+      throw redirect({ to: '/403' })
+    }
+  },
+  component: DealerCustomers,
+})

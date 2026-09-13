@@ -98,6 +98,10 @@ func SetApiRouter(router *gin.Engine) {
 				// 客户这一侧：看自己挂在谁名下，以及用一张客户号把归属与折扣绑上
 				selfRoute.GET("/self/agent/binding", controller.GetMyAgentBinding)
 				selfRoute.POST("/self/agent/bind", middleware.CriticalRateLimit(), controller.BindCustomerCode)
+				// 我的客户：他名下有哪些人，以及给某一位改价、发额度
+				selfRoute.GET("/self/agent/customers", controller.GetSelfAgentCustomers)
+				selfRoute.PUT("/self/agent/customers/:customerId/discount", controller.SetSelfAgentCustomerDiscount)
+				selfRoute.POST("/self/agent/customers/:customerId/quota", middleware.CriticalRateLimit(), controller.IssueSelfAgentCustomerQuota)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
