@@ -28,6 +28,26 @@ type channelCostBatchRequest struct {
 	CostRatio string `json:"cost_ratio"`
 }
 
+// validateChannelCostRatio 校验进货折扣的取值：空串表示「没录 / 清空」，合法；
+// 非空必须是大于 0 的数，且不超过 maxChannelCostRatio。
+//
+// 单条录入（controller/channel.go 的 validateChannel）和批量录入（BatchSetChannelCost）
+// 共用这一处口径。此前批量拦了、单条不拦，同一张表存两种值，界面上看不出哪个可信。
+func validateChannelCostRatio(costRatio string) error {
+	raw := strings.TrimSpace(costRatio)
+	if raw == "" {
+		return nil
+	}
+	value, err := decimal.NewFromString(raw)
+	if err != nil || value.LessThanOrEqual(decimal.Zero) {
+		return fmt.Errorf("进货折扣要填一个大于 0 的数，例如 0.27 表示按平台标价的 27%% 进货")
+	}
+	if value.GreaterThan(decimal.NewFromInt(maxChannelCostRatio)) {
+		return fmt.Errorf("进货折扣不能超过 %d，请确认没有把 0.27 误填成 27", maxChannelCostRatio)
+	}
+	return nil
+}
+
 // BatchSetChannelCost 批量给选中的线路录同一个进货折扣。cost_ratio 传空串表示清空。
 func BatchSetChannelCost(c *gin.Context) {
 	request := channelCostBatchRequest{}
@@ -44,22 +64,12 @@ func BatchSetChannelCost(c *gin.Context) {
 	}
 
 	costRatio := strings.TrimSpace(request.CostRatio)
-	if costRatio != "" {
-		value, err := decimal.NewFromString(costRatio)
-		if err != nil || value.LessThanOrEqual(decimal.Zero) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "进货折扣要填一个大于 0 的数，例如 0.27 表示按平台标价的 27% 进货",
-			})
-			return
-		}
-		if value.GreaterThan(decimal.NewFromInt(maxChannelCostRatio)) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": fmt.Sprintf("进货折扣不能超过 %d，请确认没有把 0.27 误填成 27", maxChannelCostRatio),
-			})
-			return
-		}
+	if err := validateChannelCostRatio(costRatio); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
 	}
 
 	updated, err := model.BatchUpdateChannelCost(request.Ids, costRatio)

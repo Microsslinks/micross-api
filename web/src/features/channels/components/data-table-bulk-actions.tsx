@@ -47,6 +47,9 @@ import {
   handleBatchEnable,
   handleBatchSetCost,
   handleBatchSetTag,
+  isCostRatioInputAllowed,
+  isCostRatioWithinMax,
+  MAX_COST_RATIO,
 } from '../lib'
 import type { Channel } from '../types'
 
@@ -109,6 +112,13 @@ export function DataTableBulkActions<TData>({
       handleClearSelection()
     })
   }
+
+  // 与后端 validateChannelCostRatio 同一口径：空=没录，非空必须是 0 到 100 之间的正数。
+  const costRatioTooHigh =
+    isCostRatioInputAllowed(costRatioValue) &&
+    !isCostRatioWithinMax(costRatioValue)
+  const costRatioInputValid =
+    isCostRatioInputAllowed(costRatioValue) && !costRatioTooHigh
 
   const handleSetCost = () => {
     handleBatchSetCost(selectedIds, costRatioValue.trim(), queryClient, () => {
@@ -325,7 +335,9 @@ export function DataTableBulkActions<TData>({
             >
               {t('Cancel')}
             </Button>
-            <Button onClick={handleSetCost}>{t('Save')}</Button>
+            <Button onClick={handleSetCost} disabled={!costRatioInputValid}>
+              {t('Save')}
+            </Button>
           </>
         }
       >
@@ -336,6 +348,7 @@ export function DataTableBulkActions<TData>({
               id='cost-ratio'
               type='number'
               min='0'
+              max={String(MAX_COST_RATIO)}
               step='0.01'
               placeholder={t('Not set')}
               value={costRatioValue}
@@ -347,6 +360,20 @@ export function DataTableBulkActions<TData>({
             {costRatioValue.trim() === '' && (
               <p className='text-muted-foreground text-xs'>
                 {t('Saving an empty value clears the cost ratio.')}
+              </p>
+            )}
+            {!isCostRatioInputAllowed(costRatioValue) && (
+              <p className='text-destructive text-xs'>
+                {t(
+                  'Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)'
+                )}
+              </p>
+            )}
+            {costRatioTooHigh && (
+              <p className='text-destructive text-xs'>
+                {t(
+                  'Cost ratio cannot exceed 100 (check that 0.27 was not typed as 27)'
+                )}
               </p>
             )}
           </div>

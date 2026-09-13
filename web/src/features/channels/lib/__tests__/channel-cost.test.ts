@@ -20,10 +20,13 @@ import { describe, expect, test } from 'vitest'
 
 import {
   COST_STALE_DAYS,
+  MAX_COST_RATIO,
   formatCostRatio,
   formatCostRatioPercent,
   isCostRatioConfigured,
+  isCostRatioInputAllowed,
   isCostRatioStale,
+  isCostRatioWithinMax,
 } from '../channel-cost'
 
 const ONE_DAY_SECONDS = 24 * 60 * 60
@@ -46,6 +49,24 @@ describe('channel cost ratio', () => {
 
     expect(isCostRatioConfigured('0.27')).toBe(true)
     expect(isCostRatioConfigured(' 0.27 ')).toBe(true)
+  })
+
+  test('treats an empty input as "not recorded yet" instead of a mistake', () => {
+    expect(isCostRatioInputAllowed('')).toBe(true)
+    expect(isCostRatioInputAllowed('   ')).toBe(true)
+    expect(isCostRatioInputAllowed(undefined)).toBe(true)
+    expect(isCostRatioInputAllowed('0.27')).toBe(true)
+    expect(isCostRatioInputAllowed('0')).toBe(false)
+    expect(isCostRatioInputAllowed('-0.1')).toBe(false)
+    expect(isCostRatioInputAllowed('abc')).toBe(false)
+  })
+
+  test('caps the input at the same upper bound the backend enforces', () => {
+    expect(MAX_COST_RATIO).toBe(100)
+    expect(isCostRatioWithinMax('')).toBe(true)
+    expect(isCostRatioWithinMax('2.5')).toBe(true)
+    expect(isCostRatioWithinMax('100')).toBe(true)
+    expect(isCostRatioWithinMax('100.000001')).toBe(false)
   })
 
   test('folds trailing zeros so the list matches what was typed in', () => {

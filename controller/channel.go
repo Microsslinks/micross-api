@@ -481,6 +481,14 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 		return fmt.Errorf("渠道额外设置[channel setting] 格式错误：%s", err.Error())
 	}
 
+	// 进货折扣：nil 表示这次请求没带这个字段（保持库里原值，不做判断），
+	// 带了就按与批量录入同一处口径校验——不允许把负数、零或 27 这种值写进单条渠道。
+	if channel.CostRatio != nil {
+		if err := validateChannelCostRatio(*channel.CostRatio); err != nil {
+			return err
+		}
+	}
+
 	if channel.Type == constant.ChannelTypeNewAPI && strings.TrimSpace(channel.GetBaseURL()) == "" {
 		return fmt.Errorf("New API channel base URL cannot be empty")
 	}

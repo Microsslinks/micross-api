@@ -29,9 +29,16 @@ import { channelsQueryKeys } from './channel-actions'
  */
 export const COST_STALE_DAYS = 30
 
+/**
+ * 进货折扣的上限，与后端 controller/channel_cost.go 的 maxChannelCostRatio 对齐。
+ * 进价高于标价是可能的（亏本引流），但不设上限的话「2.7 折」很容易被写成「27」。
+ */
+export const MAX_COST_RATIO = 100
+
 export const channelCostQueryKeys = {
   all: ['channel-cost'] as const,
-  stale: (days: number) => [...channelCostQueryKeys.all, 'stale', days] as const,
+  stale: (days: number) =>
+    [...channelCostQueryKeys.all, 'stale', days] as const,
 }
 
 /**
@@ -43,6 +50,24 @@ export function isCostRatioConfigured(costRatio?: null | string): boolean {
 
   const parsed = Number(raw)
   return Number.isFinite(parsed) && parsed > 0
+}
+
+/**
+ * 表单输入框里的值能不能用。跟上面那个的区别是「空」在这里是合法的——
+ * 空表示还没录，不是填错了。与后端 validateChannelCostRatio 同一口径。
+ */
+export function isCostRatioInputAllowed(costRatio?: null | string): boolean {
+  const raw = (costRatio ?? '').trim()
+  if (!raw) return true
+
+  return isCostRatioConfigured(raw)
+}
+
+/** 填了值就不能超过上限，否则就是「0.27 写成 27」那种手滑。 */
+export function isCostRatioWithinMax(costRatio?: null | string): boolean {
+  if (!isCostRatioConfigured(costRatio)) return true
+
+  return Number((costRatio ?? '').trim()) <= MAX_COST_RATIO
 }
 
 /**

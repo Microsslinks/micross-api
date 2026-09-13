@@ -371,7 +371,7 @@ export const FIELD_DESCRIPTIONS = {
   PRIORITY: 'Higher priority channels are selected first',
   WEIGHT: 'Used for load balancing. Higher weight = more requests',
   COST_RATIO:
-    'What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list). Leave empty if not yet known.',
+    'What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list, up to 100). Leave empty if not yet known.',
   TEST_MODEL: 'Model to use when testing channel connectivity',
   AUTO_BAN: 'Automatically disable channel on repeated failures',
   STATUS_CODE_MAPPING: 'Map response status codes (JSON format)',

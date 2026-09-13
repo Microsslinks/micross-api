@@ -167,6 +167,7 @@ import {
   extractRedirectModels,
   extractMappingSourceModels,
   COST_STALE_DAYS,
+  MAX_COST_RATIO,
   hasModelConfigChanged,
   findMissingModelsInMapping,
   validateModelMappingJson,
@@ -3725,7 +3726,7 @@ export function ChannelMutateDrawer({
                                       <Input
                                         type='number'
                                         min='0'
-                                        max='1'
+                                        max={String(MAX_COST_RATIO)}
                                         step='0.000001'
                                         placeholder={t('Not set')}
                                         {...field}

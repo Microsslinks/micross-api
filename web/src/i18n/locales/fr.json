@@ -5640,5 +5640,8 @@
     "A model name or a vendor name, e.g. claude-3-5-sonnet or anthropic": "A model name or a vendor name, e.g. claude-3-5-sonnet or anthropic",
     "The first matching rule wins; the highest priority is checked first.": "The first matching rule wins; the highest priority is checked first.",
     "Create a discount plan to give one customer a different price than the official one.": "Create a discount plan to give one customer a different price than the official one."
-  }
+  },
+  "What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list, up to 100). Leave empty if not yet known.": "What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list, up to 100). Leave empty if not yet known.",
+  "Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)": "Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)",
+  "Cost ratio cannot exceed 100 (check that 0.27 was not typed as 27)": "Cost ratio cannot exceed 100 (check that 0.27 was not typed as 27)"
 }

@@ -36,6 +36,7 @@ import {
   stringifyAdvancedCustomConfig,
   validateAdvancedCustomConfig,
 } from './advanced-custom'
+import { isCostRatioInputAllowed, isCostRatioWithinMax } from './channel-cost'
 
 // ============================================================================
 // Form Validation Schema
@@ -214,7 +215,17 @@ export const channelFormSchema = z
       ),
     priority: z.number().optional(),
     weight: z.number().optional(),
-    cost_ratio: z.string().optional(),
+    cost_ratio: z
+      .string()
+      .optional()
+      .refine(
+        isCostRatioInputAllowed,
+        'Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)'
+      )
+      .refine(
+        isCostRatioWithinMax,
+        'Cost ratio cannot exceed 100 (check that 0.27 was not typed as 27)'
+      ),
     test_model: z.string().optional(),
     auto_ban: z.number().optional(),
     status: z.number(),
