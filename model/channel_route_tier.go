@@ -22,7 +22,36 @@ type channelRouteTier struct {
 	channels  []int
 }
 
+// sameRouteTier 判断一条线路能否并进当前这一层。
+//
+// 上游优先级永远参与判断；进货折扣与"成本是否已知"**只在毛利优先时**参与——稳定优先
+// （以及根本没有折扣的老客户，过滤器为 nil）下，同一个优先级就是一层、层内按权重随机，
+// 与改造前完全一致（口径见 buildChannelRouteTiers 的说明与 02-work-queue.md §八 L4）。
+//
+// 注意：稳定优先时 tier.costRatio／costKnown 只是层里第一条线路带出来的值，不构成分层键，
+// 不要拿它当"这一层的成本"用。
+func sameRouteTier(tier channelRouteTier, priority int64, costRatio decimal.Decimal, costKnown bool, prioritizeMargin bool) bool {
+	if tier.priority != priority {
+		return false
+	}
+	if !prioritizeMargin {
+		return true
+	}
+	if tier.costKnown != costKnown {
+		return false
+	}
+	return !costKnown || tier.costRatio.Equal(costRatio)
+}
+
 // buildChannelRouteTiers 把候选线路切成有序的若干层。返回的层序就是重试顺序。
+//
+// 分层键跟着策略走：**毛利优先**时是（进货折扣, 上游优先级）两级键；**稳定优先**时只有
+// 优先级一级键——后者等同于改造前的行为。
+//
+// 因此**非「毛利优先」时绝不能按进货折扣拆层**：那会把"同一个优先级按权重分摊"变成
+// "固定只走排在前面的那一条"（流量压偏，一条挂掉就是一批请求失败）；更要紧的是，
+// **根本没有折扣的老客户**（costFilter 为 nil）也走这条路径，拆层就等于改了老客户的行为，
+// 破坏"未绑方案的用户行为与改造前逐笔一致"这条底线（详见 02-work-queue.md §八 L4）。
 //
 // 调用方必须持有 channelSyncLock（读锁）：本函数只读 channelsIDM，不做任何数据库访问。
 // 传入的 channels 切片不会被改动（排序在副本上做）。
@@ -70,8 +99,7 @@ func buildChannelRouteTiers(channels []int, costFilter *ChannelCostFilter) ([]ch
 	tiers := make([]channelRouteTier, 0, len(candidates))
 	for _, c := range candidates {
 		last := len(tiers) - 1
-		if last >= 0 && tiers[last].priority == c.priority && tiers[last].costKnown == c.costKnown &&
-			(!c.costKnown || tiers[last].costRatio.Equal(c.costRatio)) {
+		if last >= 0 && sameRouteTier(tiers[last], c.priority, c.costRatio, c.costKnown, prioritizeMargin) {
 			tiers[last].channels = append(tiers[last].channels, c.channel.Id)
 			continue
 		}

@@ -86,18 +86,54 @@ func TestBuildChannelRouteTiersKeepsSameKeyChannelsInOneTier(t *testing.T) {
 	assert.ElementsMatch(t, []int{301, 302}, tiers[0].channels)
 }
 
-// 按客户切成「稳定优先」后只看上游供应商优先级，不再看毛利。
+// 按客户切成「稳定优先」后只看上游供应商优先级，不再看毛利：同一个优先级里的线路算一层、
+// 层内按权重随机分摊，进货折扣不同也不拆层（见 L4——原先那版把这个拆分当成了期望行为）。
 func TestBuildChannelRouteTiersPriorityStrategy(t *testing.T) {
 	seedRouteTierChannels(t)
 
 	tiers, err := buildChannelRouteTiers([]int{201, 202, 203, 204}, &ChannelCostFilter{SellRatio: 0.30, PrioritizeMargin: false})
 	require.NoError(t, err)
-	require.Len(t, tiers, 4)
+	require.Len(t, tiers, 3)
 
-	assert.Equal(t, []int{203}, tiers[0].channels, "稳定优先只看优先级：203/204 同级，先到先排")
-	assert.Equal(t, []int{204}, tiers[1].channels, "204 是同一优先级但成本未知，另立一层")
-	assert.Equal(t, []int{201}, tiers[2].channels, "毛利最高的 201 在稳定优先下反而靠后")
-	assert.Equal(t, []int{202}, tiers[3].channels)
+	assert.ElementsMatch(t, []int{203, 204}, tiers[0].channels, "稳定优先只看优先级：203/204 同为最高优先级，算一层")
+	assert.Equal(t, []int{201}, tiers[1].channels, "毛利最高的 201 在稳定优先下反而靠后")
+	assert.Equal(t, []int{202}, tiers[2].channels)
+}
+
+// L4 回归底线：同一个上游优先级里的线路必须算一层、层内按权重随机分摊，
+// 这件事**不能跟着"毛利优先/稳定优先"开关走**。
+//
+// 理由：分层按（进货折扣, 优先级）两级键是"毛利优先"的专利。一旦在"稳定优先"下
+// 也按进货折扣拆层，两个后果都不可接受——① 本该按权重分摊的同级线路，变成固定走排在前面的那一条
+// （流量压偏）；② 更严重的是，**根本没有折扣的老客户**（过滤器为 nil）也走这条路径，
+// 于是"未绑方案的用户行为与改造前逐笔一致"这条承诺被破坏（第 8 件反复承诺过，见 04-cost-aware-routing.md）。
+func TestBuildChannelRouteTiersKeepsSamePriorityInOneTierWithoutMarginFirst(t *testing.T) {
+	previousChannels := channelsIDM
+	t.Cleanup(func() { channelsIDM = previousChannels })
+
+	priority := int64(99)
+	weight := uint(10)
+	channelsIDM = map[int]*Channel{
+		601: {Id: 601, Priority: &priority, Weight: &weight, CostRatio: common.GetPointer("0.25")},
+		602: {Id: 602, Priority: &priority, Weight: &weight, CostRatio: common.GetPointer("0.29")},
+	}
+
+	tiers, err := buildChannelRouteTiers([]int{601, 602}, nil)
+	require.NoError(t, err)
+	require.Len(t, tiers, 1, "老客户没有折扣（过滤器为 nil），同一个上游优先级必须还是一层")
+	assert.ElementsMatch(t, []int{601, 602}, tiers[0].channels)
+
+	tiers, err = buildChannelRouteTiers([]int{601, 602}, &ChannelCostFilter{SellRatio: 0.50, PrioritizeMargin: false})
+	require.NoError(t, err)
+	require.Len(t, tiers, 1, "稳定优先下只看上游优先级，进货折扣不同不该拆层")
+	assert.ElementsMatch(t, []int{601, 602}, tiers[0].channels)
+
+	// 毛利优先（默认）时才按进货折扣拆层——这是设计如此，不是回归。
+	tiers, err = buildChannelRouteTiers([]int{601, 602}, &ChannelCostFilter{SellRatio: 0.50, PrioritizeMargin: true})
+	require.NoError(t, err)
+	require.Len(t, tiers, 2, "毛利优先下进货折扣不同本来就要分层")
+	assert.Equal(t, []int{601}, tiers[0].channels, "毛利高的先走")
+	assert.Equal(t, []int{602}, tiers[1].channels)
 }
 
 // 「没有不亏本线路」的报错必须一次说清三件事：为什么失败、还有哪条线路能走、
