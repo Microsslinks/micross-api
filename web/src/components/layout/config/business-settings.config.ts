@@ -85,17 +85,24 @@ function getBusinessSettingsNavGroups(t: TFunction): NavGroup[] {
               url: '/subscriptions',
               icon: CalendarDays,
             },
+          ],
+        },
+        {
+          // "What we charge whom" lives here: group pricing sets the rate for
+          // a whole group of users, discount plans set it for one customer or
+          // dealer. Keeping both under one group is why this registry-driven
+          // group also carries a top-level route (`/discounts`) that predates
+          // it — same as the user management group above.
+          title: t('Billing & Pricing'),
+          icon: CreditCard,
+          items: [
+            ...getBillingSectionNavItems(t),
             {
               title: t('Discount Plans'),
               url: '/discounts',
               icon: Percent,
             },
           ],
-        },
-        {
-          title: t('Billing & Pricing'),
-          icon: CreditCard,
-          items: getBillingSectionNavItems(t),
         },
         {
           title: t('Site & Appearance'),
@@ -126,7 +133,8 @@ function getBusinessSettingsNavGroups(t: TFunction): NavGroup[] {
  *
  * The workspace is not mounted under a single URL prefix: user management
  * and upstream supply predate it and still live on top-level routes
- * (`/users`, `/redemption-codes`, `/subscriptions`, `/channels`, `/models`).
+ * (`/users`, `/redemption-codes`, `/subscriptions`, `/discounts`, `/channels`,
+ * `/models`).
  * Those paths must be matched here as well, otherwise opening one of them
  * renders its page while the sidebar falls back to the root navigation.
  * Their own route guards keep requiring the `admin` role, which is the same
