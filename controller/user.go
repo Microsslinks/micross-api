@@ -212,12 +212,15 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserPasswordRegisterDisabled)
 		return
 	}
-	var user model.User
-	err := common.DecodeJson(c.Request.Body, &user)
+	// 解析进 registerRequest（= model.User + 可选 customer_code），
+	// 校验仍按 model.User 走，注册这一趟多认的那一个字段不改变既有校验口径。
+	var req registerRequest
+	err := common.DecodeJson(c.Request.Body, &req)
 	if err != nil {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
+	user := req.User
 	user.Username = strings.TrimSpace(user.Username)
 	user.Email = model.NormalizeEmail(user.Email)
 	if user.Username == "" {
@@ -272,6 +275,11 @@ func Register(c *gin.Context) {
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
+	// 带客户号注册的先验号：号不能用就当场拒绝，一个账号都不建。
+	// 放这里而不是更早，是为了先让「用户名已存在」这类更基本的问题先报出来。
+	if rejectUnusableCustomerCode(c, req.CustomerCode) {
+		return
+	}
 	if err := cleanUser.Insert(inviterId); err != nil {
 		if errors.Is(err, model.ErrEmailAlreadyTaken) {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
@@ -287,6 +295,8 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserRegisterFailed)
 		return
 	}
+	// 账号已经在了，把这趟带的客户号落到归属与折扣上（没带号时返回 nil）。
+	customerCodeData := applyCustomerCodeOnRegister(c, insertedUser.Id, req.CustomerCode)
 	// 生成默认令牌
 	if constant.GenerateDefaultToken {
 		key, err := common.GenerateKey()
@@ -316,10 +326,16 @@ func Register(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"success": true,
 		"message": "",
-	})
+	}
+	// 带号注册时把「号有没有真的生效」一并回给界面：生效了照常提示注册成功，
+	// 万一没生效（预检放行之后号刚好被用满），客户要能立刻知道，而不是以为自己有折扣。
+	if customerCodeData != nil {
+		response["data"] = customerCodeData
+	}
+	c.JSON(http.StatusOK, response)
 	return
 }
 

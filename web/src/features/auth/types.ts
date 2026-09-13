@@ -39,6 +39,8 @@ export interface RegisterPayload {
   email?: string
   verification_code?: string
   aff_code?: string
+  // 经销商给的客户号（选填）：填了就在注册这一趟落归属与折扣
+  customer_code?: string
   turnstile?: string
 }
 
@@ -83,6 +85,18 @@ export interface ApiResponse<T = unknown> {
   success: boolean
   message: string
   data?: T
+}
+
+/**
+ * 注册响应里多带回来的那一小块：带客户号注册时，号有没有真的生效。
+ *
+ * 号不能用会在建账号之前就被拒（整个请求失败，走 message），
+ * 所以这里 applied 为 false 表示的是另一种情形——账号已经建好了、号却没落上
+ * （预检放行之后号刚好被别人用满）。客户得知道这件事，否则他会以为自己有折扣。
+ */
+export interface RegisterResult {
+  customer_code_applied: boolean
+  customer_code_error: string
 }
 
 // ============================================================================

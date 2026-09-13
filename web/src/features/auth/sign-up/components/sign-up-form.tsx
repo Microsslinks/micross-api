@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -94,6 +95,7 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      customerCode: '',
     },
   })
 
@@ -166,11 +168,24 @@ export function SignUpForm({
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
+        customer_code: data.customerCode?.trim() || undefined,
         turnstile: turnstileToken,
       })
 
+      const registerResult = res?.data
       if (res?.success) {
-        toast.success(t('Account created! Please sign in'))
+        // 号不能用会在注册前就被拒（走上面的 message 分支）；走到这里还没生效，
+        // 说明账号建好了、号没落上，得让客户知道，别让他以为自己有折扣。
+        if (registerResult && registerResult.customer_code_applied === false) {
+          const reason = registerResult.customer_code_error
+          toast.warning(
+            reason
+              ? `${t('Account created, but the customer code did not apply')}: ${reason}`
+              : t('Account created, but the customer code did not apply')
+          )
+        } else {
+          toast.success(t('Account created! Please sign in'))
+        }
         redirectToLogin()
       } else {
         toast.error(res?.message || t('Failed to create account'))
@@ -290,6 +305,34 @@ export function SignUpForm({
               <FormControl>
                 <PasswordInput placeholder={t('Confirm password')} {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Customer Code Field（选填）：经销商把号给客户，客户在这里填上就归到他名下 */}
+        <FormField
+          control={form.control}
+          name='customerCode'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Customer code (optional)')}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={t('The code your dealer gave you')}
+                  autoComplete='off'
+                  {...field}
+                  // 库里存的是大写，客户手抄常常是小写，输入时就统一，省得提交后被判不存在
+                  onChange={(event) =>
+                    field.onChange(event.target.value.toUpperCase())
+                  }
+                />
+              </FormControl>
+              <FormDescription>
+                {t(
+                  'With a dealer-issued code, your account is billed at the price on that code.'
+                )}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -127,14 +127,9 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 			return err
 		}
 		now := common.GetTimestamp()
-		if record.Status != CustomerCodeStatusEnabled {
-			return ErrCustomerCodeRevoked
-		}
-		if record.ExpiredAt > 0 && now > record.ExpiredAt {
-			return ErrCustomerCodeExpired
-		}
-		if record.MaxUses > 0 && record.UsedCount >= record.MaxUses {
-			return ErrCustomerCodeExhausted
+		// 号的自身状态（作废/过期/次数用满）与注册前的预检共用同一份判断，避免两处口径走散。
+		if err := customerCodeRejectReason(&record, now); err != nil {
+			return err
 		}
 		if record.AgentId == customerId {
 			return ErrCustomerCodeSelfUse

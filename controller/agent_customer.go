@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"errors"
-
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
@@ -43,26 +41,10 @@ func BindCustomerCode(c *gin.Context) {
 
 	binding, err := model.BindCustomerCode(c.GetInt("id"), req.Code)
 	if err != nil {
-		switch {
-		case errors.Is(err, model.ErrCustomerCodeNotFound):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeNotFound)
-		case errors.Is(err, model.ErrCustomerCodeRevoked):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeRevoked)
-		case errors.Is(err, model.ErrCustomerCodeExpired):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeExpired)
-		case errors.Is(err, model.ErrCustomerCodeExhausted):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeExhausted)
-		case errors.Is(err, model.ErrCustomerCodeAlreadyBound):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeAlreadyBound)
-		case errors.Is(err, model.ErrCustomerCodeSelfUse):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeSelfUse)
-		case errors.Is(err, model.ErrCustomerCodeOwnedByAgent):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodeOwnedByAgent)
-		case errors.Is(err, model.ErrCustomerBelongsToOtherAgent):
-			common.ApiErrorI18n(c, i18n.MsgCustomerBelongsToOtherAgent)
-		case errors.Is(err, model.ErrCustomerCodePlanUnavailable):
-			common.ApiErrorI18n(c, i18n.MsgCustomerCodePlanUnavailable)
-		default:
+		// 拒绝理由与注册时验号共用同一份翻译（customer_code_error.go）。
+		if key := customerCodeErrorMessageKey(err); key != "" {
+			common.ApiErrorI18n(c, key)
+		} else {
 			common.ApiError(c, err)
 		}
 		return
