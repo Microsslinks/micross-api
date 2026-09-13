@@ -152,6 +152,11 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/users': { section: 'business', module: 'users' },
   '/redemption-codes': { section: 'business', module: 'users' },
   '/subscriptions': { section: 'business', module: 'users' },
+  // Discount plans price a single customer, so they sit with the rest of the
+  // pricing surface (`billing`) rather than with user administration.
+  // Leaving this route unregistered hides its sidebar entry entirely: the
+  // map below is a whitelist, not a labelling aid.
+  '/discounts': { section: 'business', module: 'billing' },
   '/channels': { section: 'business', module: 'channels' },
   '/models': { section: 'business', module: 'models' },
   '/models/metadata': { section: 'business', module: 'models' },

@@ -113,6 +113,8 @@
 - 使用 TanStack Router，路由文件位于 `src/routes/`，通过 `createFileRoute` 定义；搜索参数用 Zod schema + `validateSearch` 校验。
 - 在 `beforeLoad` 中做认证与重定向，避免不必要的请求；嵌套结构用布局路由与 `_authenticated` 等前缀，子路由通过 `<Outlet />` 渲染。
 - 导航使用 `useNavigate` 或 `Link`，保持类型安全，避免直接操作 `window.location`。
+- **新增侧边栏入口必须登记三处，缺一处就等于没做**：① 路由文件（`src/routes/`）；② 菜单项（`src/components/layout/config/business-settings.config.ts` 或 `system-settings.config.ts`），顶层路由还要进 `pathPattern` 正则，否则侧边栏会掉回根导航；③ **`src/hooks/use-sidebar-config.ts` 的 `URL_TO_CONFIG_MAP`**。
+- 第 ③ 处最容易漏，而且**漏了不报错、不留日志、界面上什么也看不见**：`URL_TO_CONFIG_MAP` 是白名单，`isModuleEnabled()` 对未登记的 URL 一律返回 `false`，该菜单项直接不渲染（`/discounts` 曾因此被静默隐藏，排查花了很久）。新增或改动任何菜单项的 URL 之后，第一件事就是确认它在这张表里，并顺手确认 `module` 落在哪个分区键上——那决定了它被哪个总开关控制。
 
 ### 3.9 错误处理
 
