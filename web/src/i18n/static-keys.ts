@@ -117,6 +117,10 @@ export const STATIC_I18N_KEYS = [
   'Failed to delete user',
   'No user selected',
 
+  // Customer codes（状态标签是查表后传给 t 的，正则抓不到）
+  'Available',
+  'Revoked',
+
   // Redemption codes
   'Unused',
   'Disabled',

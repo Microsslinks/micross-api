@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Activity, BarChart3, Key, Percent, WalletCards } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
@@ -41,15 +41,8 @@ import {
   formatTimestamp,
 } from '@/lib/format'
 
-import {
-  getAgentLedger,
-  getSelfCustomerCodes,
-  getSelfSellablePlans,
-  issueSelfCustomerCodes,
-  revokeSelfCustomerCode,
-} from './api'
-import { CustomerCodesPanel } from './components/customer-codes-panel'
-import type { AgentLedger, DealerPlanOption } from './types'
+import { getAgentLedger } from './api'
+import type { AgentLedger } from './types'
 
 /**
  * 经销商台账 —— 只给经销商看。
@@ -58,6 +51,9 @@ import type { AgentLedger, DealerPlanOption } from './types'
  * 「花了多少」是平台按拿货价从他钱包里扣掉的额度，不是他卖给客户收了多少钱——
  * 那件事平台不参与也不知道，所以这一页没有那个数。
  *
+ * 客户号不在这里：那件事是"把客户拉进来"，跟客户名单连在一起放在「我的客户」页。
+ * 这一页只谈钱。
+ *
  * 数据来自 GET /api/user/self/agent/ledger（自己看自己，不用管理员权限）；
  * 菜单项由 use-sidebar-data.ts 按 subject_type 决定是否出现，路由上还挡了一道。
  */
@@ -65,7 +61,6 @@ export function DealerBilling() {
   const { t } = useTranslation()
   const [ledger, setLedger] = useState<AgentLedger | null>(null)
   const [loading, setLoading] = useState(true)
-  const [plans, setPlans] = useState<DealerPlanOption[]>([])
 
   const fetchLedger = useCallback(async () => {
     try {
@@ -78,48 +73,9 @@ export function DealerBilling() {
     }
   }, [])
 
-  // 货架（能给他客户用的折扣方案）跟台账一起拉：下号时就要挑方案，
-  // 分两次加载会让面板先空一下再跳出来。
-  const fetchPlans = useCallback(async () => {
-    try {
-      const response = await getSelfSellablePlans()
-      setPlans(response.success ? (response.data?.items ?? []) : [])
-    } catch {
-      setPlans([])
-    }
-  }, [])
-
   useEffect(() => {
     void fetchLedger()
-    void fetchPlans()
-  }, [fetchLedger, fetchPlans])
-
-  // 客户号那三个动作：经销商动的是自己，所以走自助路径，不需要管理员权限。
-  const codesSource = useMemo(
-    () => ({
-      list: async (page: number) => {
-        const result = await getSelfCustomerCodes(page)
-        return {
-          items: result.data?.items ?? [],
-          total: result.data?.total ?? 0,
-        }
-      },
-      create: async (payload: Parameters<typeof issueSelfCustomerCodes>[0]) => {
-        const result = await issueSelfCustomerCodes(payload)
-        return {
-          success: result.success,
-          message: result.message,
-          items: result.data?.items,
-        }
-      },
-      revoke: async (codeId: number) => {
-        const result = await revokeSelfCustomerCode(codeId)
-        return { success: result.success, message: result.message }
-      },
-      plans,
-    }),
-    [plans]
-  )
+  }, [fetchLedger])
 
   // 加价率是乘数（1.1 = 在他拿货价上加 10%），换成百分数才看得懂。
   // 值缺了或不是数字时 formatPercent 会给 '-'。
@@ -161,11 +117,9 @@ export function DealerBilling() {
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Dealer Billing')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
-        {loading ? (
-          <LoadingState size='lg' />
-        ) : !ledger ? (
-          <EmptyState size='lg' />
-        ) : (
+        {loading && <LoadingState size='lg' />}
+        {!loading && !ledger && <EmptyState size='lg' />}
+        {!loading && ledger && (
           <div className='flex w-full flex-col gap-4'>
             <p className='text-muted-foreground text-sm'>
               {t(
@@ -245,19 +199,19 @@ export function DealerBilling() {
                             {item.name || `#${item.token_id}`}
                           </TableCell>
                           <TableCell>
-                            {item.removed ? (
+                            {item.removed && (
                               <StatusBadge
                                 label={t('This key was removed')}
                                 variant='neutral'
                               />
-                            ) : status ? (
+                            )}
+                            {!item.removed && status && (
                               <StatusBadge
                                 label={t(status.label)}
                                 variant={status.variant}
                               />
-                            ) : (
-                              '-'
                             )}
+                            {!item.removed && !status && '-'}
                           </TableCell>
                           <TableCell className='text-right font-mono tabular-nums'>
                             {formatQuota(item.used_quota)}
@@ -278,8 +232,6 @@ export function DealerBilling() {
                 </Table>
               </div>
             )}
-
-            <CustomerCodesPanel source={codesSource} />
           </div>
         )}
       </SectionPageLayout.Content>

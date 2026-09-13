@@ -164,8 +164,13 @@ export function AgentProfileDialog({
   const codesSource = useMemo(() => {
     const agentId = user?.id ?? 0
     return {
-      list: async (page: number) => {
-        const result = await getAgentCustomerCodes(agentId, page)
+      list: async (page: number, onlyUsable: boolean) => {
+        const result = await getAgentCustomerCodes(
+          agentId,
+          page,
+          20,
+          onlyUsable
+        )
         return {
           items: result.data?.items ?? [],
           total: result.data?.total ?? 0,

@@ -59,15 +59,23 @@ export interface AgentLedger {
  *
  * 一码同时写着两件事——归属哪个经销商、按哪套折扣方案计价——客户绑一下，
  * 这两件事就在他的账号上生效。`plan_id` 为 0 表示这张号只落归属、不带折扣。
+ *
+ * 一张号只拉一位客户，用完即废；谁用掉的记在 `bound_user_id` 上，归属一旦落下就
+ * 跟着客户走，但"这位客户当初是谁带来的"只有这张号说得清。
  */
 export interface CustomerCode {
   id: number
   code: string
   agent_id: number
   plan_id: number
-  /** 0 表示不限次数 */
+  /** 恒为 1：一张号只拉一位客户（后端 CustomerCodeMaxUsesPerCode） */
   max_uses: number
   used_count: number
+  /** 用掉这张号的人，0 表示还没人用 */
+  bound_user_id: number
+  /** 下面两个由后端按 bound_user_id 查出来，不落库 */
+  bound_username: string
+  bound_display_name: string
   /** 0 表示不过期 */
   expired_at: number
   /** 1 可用 / 0 已作废 */
@@ -82,8 +90,6 @@ export interface CustomerCodeIssuePayload {
   count: number
   /** 0 或不传 = 不绑折扣，只落归属 */
   plan_id?: number
-  /** 0 或不传 = 不限次数 */
-  max_uses?: number
   /** 0 或不传 = 不过期 */
   expired_at?: number
   remark?: string

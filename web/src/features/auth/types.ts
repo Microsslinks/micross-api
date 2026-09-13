@@ -39,7 +39,8 @@ export interface RegisterPayload {
   email?: string
   verification_code?: string
   aff_code?: string
-  // 经销商给的客户号（选填）：填了就在注册这一趟落归属与折扣
+  // 经销商发的邀请链接里带来的客户号（不填不给）：带上它就在注册这一趟落归属与折扣。
+  // 与推广码 aff_code 同一条链：前端从 URL 抓到 localStorage，注册时再取出来提交。
   customer_code?: string
   turnstile?: string
 }

@@ -103,18 +103,27 @@ func (p *AgentProfile) EffectiveMarkupRatio() string {
 
 // CustomerCode 是经销商发给客户的兑换式客户号：一码同时承载
 // 「归属哪个经销商」与「按哪个折扣方案计价」，客户注册时带号或在登录后绑号。
+//
+// 一张号只拉一位客户（MaxUses 恒为 CustomerCodeMaxUsesPerCode）：它是"把这个人拉进来"
+// 的一次性凭证，不是可以到处转发的邀请码。谁用掉的记在 BoundUserId 上——归属一旦落下就
+// 跟着客户走，但"这位客户当初是谁带来的"只有这张号说得清，所以这条记录要一直留着。
 type CustomerCode struct {
 	Id        int    `json:"id"`
 	Code      string `json:"code" gorm:"type:varchar(32);not null;uniqueIndex:uk_customer_code"`
 	AgentId   int    `json:"agent_id" gorm:"type:int;not null;index:idx_customer_code_agent"` // 经销商用户 id
 	PlanId    int    `json:"plan_id" gorm:"type:int;not null;default:0"`                      // 客户用此号后绑定的折扣方案
-	MaxUses   int    `json:"max_uses" gorm:"type:int;not null;default:0"`                     // 0 表示不限次数
+	MaxUses   int    `json:"max_uses" gorm:"type:int;not null;default:1"`                     // 恒为 1；这一列留着是为了兼容早于「一张号一位客户」的旧数据
 	UsedCount int    `json:"used_count" gorm:"type:int;not null;default:0"`
-	ExpiredAt int64  `json:"expired_at" gorm:"type:bigint;not null;default:0"` // 0 表示不过期
-	Status    int    `json:"status" gorm:"type:int;not null;default:1"`
-	Remark    string `json:"remark" gorm:"type:varchar(255);default:''"`
-	CreatedAt int64  `json:"created_at" gorm:"bigint"`
-	UpdatedAt int64  `json:"updated_at" gorm:"bigint"`
+	// BoundUserId 是用掉这张号的人，0 表示还没人用。一张号只给一位客户，一个字段就够。
+	BoundUserId int `json:"bound_user_id" gorm:"type:int;not null;default:0;index:idx_customer_code_bound"`
+	// BoundUsername / BoundDisplayName 只在列表回显时按 BoundUserId 补上，不落库。
+	BoundUsername    string `json:"bound_username" gorm:"-"`
+	BoundDisplayName string `json:"bound_display_name" gorm:"-"`
+	ExpiredAt        int64  `json:"expired_at" gorm:"type:bigint;not null;default:0"` // 0 表示不过期
+	Status           int    `json:"status" gorm:"type:int;not null;default:1"`
+	Remark           string `json:"remark" gorm:"type:varchar(255);default:''"`
+	CreatedAt        int64  `json:"created_at" gorm:"bigint"`
+	UpdatedAt        int64  `json:"updated_at" gorm:"bigint"`
 }
 
 func (CustomerCode) TableName() string {

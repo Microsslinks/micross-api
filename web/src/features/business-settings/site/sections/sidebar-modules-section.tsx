@@ -136,6 +136,12 @@ export function SidebarModulesSection({
         title: t('Earnings'),
         description: t('Referral Program'),
       },
+      customers: {
+        title: t('My Customers'),
+        description: t(
+          'The customers under your name, and what each of them is priced at.'
+        ),
+      },
       billing: {
         title: t('Dealer Billing'),
         description: t(

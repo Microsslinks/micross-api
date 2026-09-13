@@ -11,11 +11,11 @@ import (
 // 客户绑号：客户拿着经销商发给他的号，把自己归到那位经销商名下，并按号上的方案计价。
 //
 // 签发只是造了张凭证，绑定才是号真正生效的地方：它在 users.parent_agent_id 上落下归属，
-// 在 discount_bindings 上落下折扣（来源 customer_code）。归属、折扣绑定、号上用量 +1
-// 三件事必须在同一个事务里，少一件就会出现「归属落了但价没变」，或者一张号被反复用。
+// 在 discount_bindings 上落下折扣（来源 customer_code），在号上记下用量与"是谁用掉的"。
+// 这几件事必须在同一个事务里，少一件就会出现「归属落了但价没变」，或者一张号被反复用。
 //
-// 客户号不记「谁用了它」：归属落在客户自己身上，经销商名下的客户就是 parent_agent_id
-// 指向他的人。所以同一张号可以发好几个人（受 MaxUses 约束），也可以只发一个人。
+// 归属落在客户自己身上，所以经销商名下的客户就是 parent_agent_id 指向他的人；号这边只留
+// 一条「谁用掉的」备查（见 CustomerCode.BoundUserId）。一张号对应一位客户，用完即废。
 
 var (
 	// ErrCustomerCodeRevoked 号已被经销商作废。
@@ -127,16 +127,8 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 			return err
 		}
 		now := common.GetTimestamp()
-		// 号的自身状态（作废/过期/次数用满）与注册前的预检共用同一份判断，避免两处口径走散。
-		if err := customerCodeRejectReason(&record, now); err != nil {
-			return err
-		}
 		if record.AgentId == customerId {
 			return ErrCustomerCodeSelfUse
-		}
-		// 号上带的方案必须还能用：方案停用后客户绑上去只会以为自己有折扣。
-		if err := ensureCustomerCodePlanUsable(record.PlanId); err != nil {
-			return err
 		}
 
 		var customer User
@@ -153,6 +145,10 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 
 		// 这个人是不是已经有这个方案了（不管当初是平台给的还是上一张号给的）。
 		// 已有即视为重复绑定：不重复建绑定、也不再扣一次用量，只把话说清楚。
+		//
+		// 这一步必须排在「号自身状态」之前。一张号只给一位客户，客户自己用掉之后再绑一次
+		// （手滑，或者忘了自己已经绑过），号上就已经是"用满"了——先看号的状态会告诉他
+		// "使用次数已用完"，可他正是用掉这张号的人，该听到的是"你已经是这位经销商的客户了"。
 		var planBound int64
 		if record.PlanId > 0 {
 			if err := tx.Model(&DiscountBinding{}).
@@ -164,6 +160,16 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 		}
 		if customer.ParentAgentId == record.AgentId && (record.PlanId == 0 || planBound > 0) {
 			return ErrCustomerCodeAlreadyBound
+		}
+
+		// 到这里才谈得上"号本身还能不能用"：号的状态（作废/过期/次数用满）与注册前的
+		// 预检共用同一份判断，避免两处口径走散。
+		if err := customerCodeRejectReason(&record, now); err != nil {
+			return err
+		}
+		// 号上带的方案必须还能用：方案停用后客户绑上去只会以为自己有折扣。
+		if err := ensureCustomerCodePlanUsable(record.PlanId); err != nil {
+			return err
 		}
 
 		if err := tx.Model(&User{}).Where("id = ?", customerId).
@@ -187,10 +193,13 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 				return err
 			}
 		}
+		// 用量 +1，同时记下"这张号是谁用掉的"：号用完即废，但这条记录要一直留着——
+		// 归属落在客户身上，将来只有这里能回答"这位客户当初是谁带来的"。
 		return tx.Model(&CustomerCode{}).Where("id = ?", record.Id).
 			Updates(map[string]interface{}{
-				"used_count": record.UsedCount + 1,
-				"updated_at": now,
+				"used_count":    record.UsedCount + 1,
+				"bound_user_id": customerId,
+				"updated_at":    now,
 			}).Error
 	})
 	if err != nil {

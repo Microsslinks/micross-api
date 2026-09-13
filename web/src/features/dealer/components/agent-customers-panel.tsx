@@ -131,14 +131,20 @@ export function AgentCustomersPanel({ plans }: Props) {
 
   if (customers.length === 0) {
     return (
-      <EmptyState
-        icon={Users}
-        title={t('No customers yet')}
-        description={t(
-          'Hand a customer code to a customer; they show up here once they bind it.'
-        )}
-        size='md'
-      />
+      <div className='space-y-3'>
+        <div className='flex items-center gap-2'>
+          <Users className='text-muted-foreground size-4' />
+          <span className='text-sm font-medium'>{t('Customers')}</span>
+        </div>
+        <EmptyState
+          icon={Users}
+          title={t('No customers yet')}
+          description={t(
+            'Hand a customer code to a customer; they show up here once they register or bind it.'
+          )}
+          size='md'
+        />
+      </div>
     )
   }
 
@@ -146,7 +152,7 @@ export function AgentCustomersPanel({ plans }: Props) {
     <div className='space-y-3'>
       <div className='flex items-center gap-2'>
         <Users className='text-muted-foreground size-4' />
-        <span className='text-sm font-medium'>{t('My Customers')}</span>
+        <span className='text-sm font-medium'>{t('Customers')}</span>
         <span className='text-muted-foreground text-xs tabular-nums'>
           {total}
         </span>

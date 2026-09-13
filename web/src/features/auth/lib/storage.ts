@@ -26,6 +26,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 const STORAGE_KEYS = {
   AFFILIATE: 'aff',
+  CUSTOMER_CODE: 'customer_code',
   STATUS: 'status',
 } as const
 
@@ -57,5 +58,36 @@ export function saveAffiliateCode(code: string): void {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save affiliate code:', error)
+  }
+}
+
+// ============================================================================
+// Customer Code Storage
+// ============================================================================
+
+/**
+ * Get the dealer-issued customer code from localStorage
+ */
+export function getCustomerCode(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.CUSTOMER_CODE) ?? ''
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to get customer code:', error)
+    return ''
+  }
+}
+
+/**
+ * Save the dealer-issued customer code to localStorage
+ */
+export function saveCustomerCode(code: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.CUSTOMER_CODE, code)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to save customer code:', error)
   }
 }

@@ -71,6 +71,7 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     topup: true,
     plans: true,
     earnings: true,
+    customers: true,
     billing: true,
     personal: true,
   },

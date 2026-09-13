@@ -15,8 +15,9 @@ import (
 // 客户号是经销商把「归属」和「折扣」一次交给客户的办法：一码同时写着归属哪个经销商、
 // 按哪套折扣方案计价。客户拿到号之后，绑一下这两件事就自动生效（绑号见 agent_customer.go）。
 //
-// 号本身只是一张凭证：它不记客户是谁，绑定那一刻才在 users.parent_agent_id 上落归属，
-// 所以同一张号可以发给好几个人（MaxUses 决定能发几次），也可以只发一个人（MaxUses = 1）。
+// 一张号对应一位客户：归属落在客户的 users.parent_agent_id 上，号这边只记下"谁用掉的"
+// （见 CustomerCode.BoundUserId）。号用完即废，但记录一直留着——将来要回溯某位客户是谁
+// 带来的，只有这张号说得清。
 
 const (
 	// CustomerCodePrefix 写在号前面，让它在聊天窗口里一眼能看出是客户号而不是随机串。
@@ -26,8 +27,10 @@ const (
 	CustomerCodeRandomLength = 10
 	// CustomerCodeMaxBatch 一次最多签多少个：发号是给人拿去分发的，一次上百个既不实用也容易点错。
 	CustomerCodeMaxBatch = 50
-	// CustomerCodeMaxUsesCap 单个号最多能用几次。0 表示不限，这里只挡住明显填错的数。
-	CustomerCodeMaxUsesCap = 1000
+	// CustomerCodeMaxUsesPerCode 一张号能让几位客户用：恒为 1。
+	// 号是"把某个人拉进来"的一次性凭证，不是可以转发的邀请码——放开这个数等于造出一张
+	// 谁拿到都能绑的公开号，泄露一次就收不住。所以它不做成可配的。
+	CustomerCodeMaxUsesPerCode = 1
 )
 
 var (
@@ -38,11 +41,12 @@ var (
 )
 
 // CustomerCodeIssue 是签一批客户号之前要定下来的几件事。
+// 这里没有"使用次数"：一张号只拉一位客户，是写死的规则，不给调用方留旋钮——
+// 留了就会有人填 0（不限次数），那等于发出去一张谁拿到都能绑的公开号。
 type CustomerCodeIssue struct {
 	AgentId   int
 	PlanId    int
 	Count     int
-	MaxUses   int
 	ExpiredAt int64
 	Remark    string
 }
@@ -61,12 +65,6 @@ func NormalizeCustomerCodeIssue(issue CustomerCodeIssue) (CustomerCodeIssue, err
 	}
 	if issue.PlanId < 0 {
 		return issue, errors.New("折扣方案不正确")
-	}
-	if issue.MaxUses < 0 {
-		return issue, errors.New("使用次数不能为负数")
-	}
-	if issue.MaxUses > CustomerCodeMaxUsesCap {
-		return issue, fmt.Errorf("单个客户号最多使用 %d 次", CustomerCodeMaxUsesCap)
 	}
 	if issue.ExpiredAt < 0 {
 		return issue, errors.New("有效期不正确")
@@ -102,6 +100,9 @@ func IsUserAgent(userId int) (bool, error) {
 //
 // 签发人必须是经销商：客户号的全部意义就是「把客户归到这个人名下」，
 // 一个不是经销商的人签出来的号绑上去只会得到一个指向普通客户的归属。
+//
+// 每一张都写死 MaxUses = CustomerCodeMaxUsesPerCode：调用方没有地方能改这个数，
+// 所以"签出一张能绑多次的号"从入参这一层就不成立。
 func CreateCustomerCodes(issue CustomerCodeIssue) ([]*CustomerCode, error) {
 	normalized, err := NormalizeCustomerCodeIssue(issue)
 	if err != nil {
@@ -129,7 +130,7 @@ func CreateCustomerCodes(issue CustomerCodeIssue) ([]*CustomerCode, error) {
 				Code:      code,
 				AgentId:   normalized.AgentId,
 				PlanId:    normalized.PlanId,
-				MaxUses:   normalized.MaxUses,
+				MaxUses:   CustomerCodeMaxUsesPerCode,
 				ExpiredAt: normalized.ExpiredAt,
 				Status:    CustomerCodeStatusEnabled,
 				Remark:    normalized.Remark,
@@ -148,11 +149,25 @@ func CreateCustomerCodes(issue CustomerCodeIssue) ([]*CustomerCode, error) {
 }
 
 // ListCustomerCodes 列出某位经销商签出去的号，最新的在前。
-func ListCustomerCodes(agentId int, offset int, limit int) ([]*CustomerCode, int64, error) {
+//
+// onlyUsable 为 true 时只给"还能用的号"：经销商打开这一页，想先看的是"手上还有哪些号
+// 能发出去"，而不是一屏旧号。用完的、作废的、过期的都还在库里，切回全部就能翻到。
+//
+// 顺手把「用掉这张号的人」补上：那两列不落库（见 CustomerCode 的 BoundUsername），
+// 只有在列表这一趟查得出来。
+func ListCustomerCodes(agentId int, offset int, limit int, onlyUsable bool) ([]*CustomerCode, int64, error) {
 	if agentId <= 0 {
 		return nil, 0, errors.New("无效的经销商 ID")
 	}
 	query := DB.Model(&CustomerCode{}).Where("agent_id = ?", agentId)
+	if onlyUsable {
+		// 口径与 customerCodeRejectReason 一致：没作废、没过期、没被用掉。
+		// MaxUses 为 0 是早于「一张号一位客户」的旧数据，仍按不限次数算。
+		now := common.GetTimestamp()
+		query = query.Where("status = ?", CustomerCodeStatusEnabled).
+			Where("(expired_at = 0 OR expired_at > ?)", now).
+			Where("(max_uses = 0 OR used_count < max_uses)")
+	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -161,7 +176,45 @@ func ListCustomerCodes(agentId int, offset int, limit int) ([]*CustomerCode, int
 	if err := query.Order("id DESC").Offset(offset).Limit(limit).Find(&codes).Error; err != nil {
 		return nil, 0, err
 	}
+	if err := fillCustomerCodeBoundUsers(codes); err != nil {
+		return nil, 0, err
+	}
 	return codes, total, nil
+}
+
+// fillCustomerCodeBoundUsers 给列表里的号补上"用掉它的人"的名字。
+//
+// 用 Unscoped 跳过软删除过滤：那个人后来可能被禁用、注销，但"这个号给了谁"是已经发生的
+// 事，查得出来比查不出来重要。真查不到（行都没了）就留空，不让整个列表跟着失败。
+func fillCustomerCodeBoundUsers(codes []*CustomerCode) error {
+	ids := make([]int, 0, len(codes))
+	seen := make(map[int]bool, len(codes))
+	for _, code := range codes {
+		if code.BoundUserId > 0 && !seen[code.BoundUserId] {
+			seen[code.BoundUserId] = true
+			ids = append(ids, code.BoundUserId)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	users := make([]User, 0, len(ids))
+	if err := DB.Unscoped().Select("id", "username", "display_name").
+		Where("id IN ?", ids).Find(&users).Error; err != nil {
+		return err
+	}
+	byId := make(map[int]User, len(users))
+	for _, user := range users {
+		byId[user.Id] = user
+	}
+	for _, code := range codes {
+		if user, ok := byId[code.BoundUserId]; ok {
+			code.BoundUsername = user.Username
+			code.BoundDisplayName = user.DisplayName
+		}
+	}
+	return nil
 }
 
 // RevokeCustomerCode 作废一个号。

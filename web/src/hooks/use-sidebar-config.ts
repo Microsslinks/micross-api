@@ -66,6 +66,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     topup: true,
     plans: true,
     earnings: true,
+    customers: true,
     billing: true,
     personal: true,
   },
@@ -141,6 +142,9 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/wallet': { section: 'personal', module: 'topup' },
   '/plans': { section: 'personal', module: 'plans' },
   '/earnings': { section: 'personal', module: 'earnings' },
+  // 「我的客户」是经销商自己的客户名单，跟台账（钱）是两件事，
+  // 所以单独占一个开关，管理员可以只关名单、不影响台账。
+  '/customers': { section: 'personal', module: 'customers' },
   '/billing': { section: 'personal', module: 'billing' },
   '/profile': { section: 'personal', module: 'personal' },
   // Business management

@@ -17,10 +17,11 @@ import (
 // 差别只在「动谁的号」：平台走路径上的 :id，经销商走会话里的自己。
 // 所以这里只有三个薄薄的解析壳，真正的判断都在模型层。
 
+// customerCodeIssueRequest 是签号入参。这里没有"使用次数"：一张号只拉一位客户，
+// 是模型层写死的规则，不由调用方决定——留了这个字段，早晚有人填 0 造出公开号。
 type customerCodeIssueRequest struct {
 	PlanId    int    `json:"plan_id"`
 	Count     int    `json:"count"`
-	MaxUses   int    `json:"max_uses"`
 	ExpiredAt int64  `json:"expired_at"`
 	Remark    string `json:"remark"`
 }
@@ -86,7 +87,9 @@ func listCustomerCodesFor(c *gin.Context, agentId int) {
 	}
 
 	pageInfo := common.GetPageQuery(c)
-	codes, total, err := model.ListCustomerCodes(agentId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	// usable=1 只看还能用的号（界面默认这一档）；不给就看全部，留着翻历史。
+	onlyUsable := c.Query("usable") == "1"
+	codes, total, err := model.ListCustomerCodes(agentId, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), onlyUsable)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -109,7 +112,6 @@ func issueCustomerCodesFor(c *gin.Context, agentId int) {
 		AgentId:   agentId,
 		PlanId:    req.PlanId,
 		Count:     req.Count,
-		MaxUses:   req.MaxUses,
 		ExpiredAt: req.ExpiredAt,
 		Remark:    req.Remark,
 	}

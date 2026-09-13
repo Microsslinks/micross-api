@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Check, Copy } from 'lucide-react'
-import { type ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -29,16 +29,24 @@ import {
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { cn } from '@/lib/utils'
 
-interface CopyButtonProps {
+/**
+ * 自己的属性之外的属性一律透传给底层按钮。
+ *
+ * 这个按钮常被当作 TooltipTrigger 的 render 目标：Base UI 会把 onMouseEnter、
+ * onFocus、ref、id 这些注到元素上（useRenderElement 内部是 cloneElement 合并 props）。
+ * 组件若只认自己声明的属性、不往外透，鼠标停上去就不会有任何提示。
+ */
+type CopyButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  'value' | 'onClick' | 'children'
+> & {
   value: string
   children?: ReactNode
-  className?: string
   iconClassName?: string
   variant?: 'ghost' | 'outline' | 'default' | 'secondary' | 'destructive'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   tooltip?: string
   successTooltip?: string
-  'aria-label'?: string
 }
 
 export function CopyButton({
@@ -51,6 +59,7 @@ export function CopyButton({
   tooltip,
   successTooltip,
   'aria-label': ariaLabel,
+  ...rest
 }: CopyButtonProps) {
   const { t } = useTranslation()
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
@@ -62,6 +71,7 @@ export function CopyButton({
 
   const button = (
     <Button
+      {...rest}
       variant={variant}
       size={size}
       className={cn('shrink-0', className)}

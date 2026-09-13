@@ -203,11 +203,14 @@ export async function updateAgentProfile(
 
 /**
  * List the customer codes this dealer has issued.
+ *
+ * `onlyUsable` keeps just the codes that can still be handed out.
  */
 export async function getAgentCustomerCodes(
   id: number,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  onlyUsable = false
 ): Promise<
   ApiResponse<{
     items: CustomerCode[]
@@ -217,7 +220,13 @@ export async function getAgentCustomerCodes(
   }>
 > {
   const res = await api.get(`/api/user/${id}/agent/codes`, {
-    params: { page, page_size: pageSize },
+    // 页码参数名是 p：后端 common.GetPageQuery 读的是 p / ps / size，
+    // 写成 page 会被忽略，翻页时拿回来的还是第一页。
+    params: {
+      p: page,
+      page_size: pageSize,
+      ...(onlyUsable ? { usable: 1 } : {}),
+    },
   })
   return res.data
 }

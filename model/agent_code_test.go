@@ -119,7 +119,6 @@ func TestCreateCustomerCodesGeneratesUsableBatch(t *testing.T) {
 		AgentId:   agent.Id,
 		PlanId:    plan.Id,
 		Count:     3,
-		MaxUses:   2,
 		ExpiredAt: common.GetTimestamp() + 86400,
 		Remark:    "  给张老板  ",
 	})
@@ -134,13 +133,13 @@ func TestCreateCustomerCodesGeneratesUsableBatch(t *testing.T) {
 		seen[code.Code] = true
 		assert.Equal(t, agent.Id, code.AgentId)
 		assert.Equal(t, plan.Id, code.PlanId)
-		assert.Equal(t, 2, code.MaxUses)
+		assert.Equal(t, CustomerCodeMaxUsesPerCode, code.MaxUses, "一张号只拉一位客户")
 		assert.Equal(t, "给张老板", code.Remark, "备注要去掉首尾空白")
 		assert.Equal(t, CustomerCodeStatusEnabled, code.Status)
 		assert.True(t, code.IsUsable(now))
 	}
 
-	listed, total, err := ListCustomerCodes(agent.Id, 0, 10)
+	listed, total, err := ListCustomerCodes(agent.Id, 0, 10, false)
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), total)
 	require.Len(t, listed, 3)
@@ -167,7 +166,8 @@ func TestRevokeCustomerCodeOnlyOwnCodes(t *testing.T) {
 	assert.False(t, reloaded.IsUsable(common.GetTimestamp()))
 }
 
-// 入参校验：数量上下限、有效期不能是过去时、备注长度、使用次数上限。
+// 入参校验：数量上下限、有效期不能是过去时、备注长度。
+// 没有"使用次数"这一项可校验：它已经不参与入参了（见 CustomerCodeMaxUsesPerCode）。
 func TestNormalizeCustomerCodeIssue(t *testing.T) {
 	future := common.GetTimestamp() + 3600
 	cases := []struct {
@@ -175,13 +175,11 @@ func TestNormalizeCustomerCodeIssue(t *testing.T) {
 		issue CustomerCodeIssue
 		ok    bool
 	}{
-		{"正常", CustomerCodeIssue{AgentId: 1, Count: 1, MaxUses: 1, ExpiredAt: future}, true},
-		{"不限次数不限有效期", CustomerCodeIssue{AgentId: 1, Count: 50}, true},
+		{"正常", CustomerCodeIssue{AgentId: 1, Count: 1, ExpiredAt: future}, true},
+		{"不限有效期", CustomerCodeIssue{AgentId: 1, Count: 50}, true},
 		{"没给经销商", CustomerCodeIssue{AgentId: 0, Count: 1}, false},
 		{"数量为 0", CustomerCodeIssue{AgentId: 1, Count: 0}, false},
 		{"超过一次上限", CustomerCodeIssue{AgentId: 1, Count: CustomerCodeMaxBatch + 1}, false},
-		{"使用次数为负", CustomerCodeIssue{AgentId: 1, Count: 1, MaxUses: -1}, false},
-		{"使用次数过大", CustomerCodeIssue{AgentId: 1, Count: 1, MaxUses: CustomerCodeMaxUsesCap + 1}, false},
 		{"有效期是过去时", CustomerCodeIssue{AgentId: 1, Count: 1, ExpiredAt: common.GetTimestamp() - 1}, false},
 		{"备注过长", CustomerCodeIssue{AgentId: 1, Count: 1, Remark: strings.Repeat("字", 256)}, false},
 	}

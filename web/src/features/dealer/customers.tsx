@@ -16,22 +16,33 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
 import { SectionPageLayout } from '@/components/layout'
 import { LoadingState } from '@/components/loading-state'
 
-import { getSelfSellablePlans } from './api'
+import {
+  getSelfCustomerCodes,
+  getSelfSellablePlans,
+  issueSelfCustomerCodes,
+  revokeSelfCustomerCode,
+} from './api'
 import { AgentCustomersPanel } from './components/agent-customers-panel'
+import {
+  CustomerCodesPanel,
+  type CustomerCodesSource,
+} from './components/customer-codes-panel'
 import type { DealerPlanOption } from './types'
 
 /**
  * 我的客户 —— 只给经销商看。
  *
- * 看的是他名下有哪些人（绑过他的客户号，就归到他名下），以及给某一位改价、发额度。
- * 数据来自 GET /api/user/self/agent/customers（自己看自己，不用管理员权限）；
+ * 分上下两块，顺序就是这门生意的顺序：上面是手上的客户号（先把号给客户），
+ * 下面是已经挂到他名下的人（客户绑完号就出现在这里），以及给谁改价、发额度。
+ *
+ * 数据来自 /api/user/self/agent/*（自己看自己，不用管理员权限）；
  * 菜单项由 use-sidebar-data.ts 按 subject_type 决定是否出现，路由上还挡了一道。
  */
 export function DealerCustomers() {
@@ -56,6 +67,33 @@ export function DealerCustomers() {
     void fetchPlans()
   }, [fetchPlans])
 
+  // 签号那块要的三个动作。货架变了它也跟着变，所以签号弹窗里的方案永远是最新的。
+  const codesSource = useMemo<CustomerCodesSource>(
+    () => ({
+      list: async (page, onlyUsable) => {
+        const response = await getSelfCustomerCodes(page, 20, onlyUsable)
+        return {
+          items: response.success ? (response.data?.items ?? []) : [],
+          total: response.success ? (response.data?.total ?? 0) : 0,
+        }
+      },
+      create: async (payload) => {
+        const response = await issueSelfCustomerCodes(payload)
+        return {
+          success: response.success,
+          message: response.message,
+          items: response.data?.items,
+        }
+      },
+      revoke: async (codeId) => {
+        const response = await revokeSelfCustomerCode(codeId)
+        return { success: response.success, message: response.message }
+      },
+      plans,
+    }),
+    [plans]
+  )
+
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('My Customers')}</SectionPageLayout.Title>
@@ -63,13 +101,7 @@ export function DealerCustomers() {
         {plansLoading ? (
           <LoadingState size='lg' />
         ) : (
-          <div className='flex w-full flex-col gap-4'>
-            <p className='text-muted-foreground text-sm'>
-              {t(
-                'The customers under your name, and what each of them is priced at.'
-              )}
-            </p>
-
+          <div className='flex w-full flex-col gap-6'>
             {plans.length === 0 && (
               <EmptyState
                 title={t('No discount plan is available to you yet')}
@@ -79,6 +111,8 @@ export function DealerCustomers() {
                 size='md'
               />
             )}
+
+            <CustomerCodesPanel source={codesSource} />
 
             <AgentCustomersPanel plans={plans} />
           </div>

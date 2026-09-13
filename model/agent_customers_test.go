@@ -102,7 +102,7 @@ func TestSetAgentCustomerDiscountAppliesAndRevertsToCodePrice(t *testing.T) {
 	dealerPlan := seedTestPlanWithDiscount(t, "0.800000")
 	assignOwner(t, customer.Id, agent.Id)
 
-	code := seedCodeTestCode(t, agent.Id, codePlan.Id, 1)
+	code := seedCodeTestCode(t, agent.Id, codePlan.Id)
 	_, err := BindCustomerCode(customer.Id, code.Code)
 	require.NoError(t, err)
 	assertDiscount(t, customer.Id, "0.9")

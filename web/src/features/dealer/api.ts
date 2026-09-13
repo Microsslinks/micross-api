@@ -40,10 +40,14 @@ export async function getAgentLedger(): Promise<ApiResponse<AgentLedger>> {
 
 /**
  * 经销商看自己签出去的客户号，最新的在前。
+ *
+ * `onlyUsable` 为真时只要还能发出去的号：他打开这一页想先看的是"手上还剩哪些号"，
+ * 而不是一屏旧号。用完的、作废的、过期的都还在库里，切到全部就能翻到。
  */
 export async function getSelfCustomerCodes(
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  onlyUsable = false
 ): Promise<
   ApiResponse<{
     items: CustomerCode[]
@@ -55,7 +59,11 @@ export async function getSelfCustomerCodes(
   const res = await api.get('/api/user/self/agent/codes', {
     // 页码参数名是 p：后端 common.GetPageQuery 读的是 p / ps / size，
     // 写成 page 会被忽略，翻到第二页时拿回来的还是第一页。
-    params: { p: page, page_size: pageSize },
+    params: {
+      p: page,
+      page_size: pageSize,
+      ...(onlyUsable ? { usable: 1 } : {}),
+    },
   })
   return res.data
 }

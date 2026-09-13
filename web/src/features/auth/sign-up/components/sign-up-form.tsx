@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -48,7 +47,9 @@ import { useEmailVerification } from '@/features/auth/hooks/use-email-verificati
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import {
   getAffiliateCode,
+  getCustomerCode,
   saveAffiliateCode,
+  saveCustomerCode,
 } from '@/features/auth/lib/storage'
 import { useStatus } from '@/hooks/use-status'
 import { isAuthBundle } from '@/lib/api'
@@ -95,7 +96,6 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
-      customerCode: '',
     },
   })
 
@@ -134,9 +134,14 @@ export function SignUpForm({
   }, [requiresLegalConsent])
 
   useEffect(() => {
-    const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
+    const params = new URLSearchParams(window.location.search)
+    const aff = params.get('aff')?.trim()
     if (aff) {
       saveAffiliateCode(aff)
+    }
+    const customerCode = params.get('customer_code')?.trim()
+    if (customerCode) {
+      saveCustomerCode(customerCode)
     }
   }, [])
 
@@ -168,7 +173,8 @@ export function SignUpForm({
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
-        customer_code: data.customerCode?.trim() || undefined,
+        // 客户号只能通过经销商发的链接用上（与推广码同一条链），不从表单里取
+        customer_code: getCustomerCode() || undefined,
         turnstile: turnstileToken,
       })
 
@@ -305,34 +311,6 @@ export function SignUpForm({
               <FormControl>
                 <PasswordInput placeholder={t('Confirm password')} {...field} />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Customer Code Field（选填）：经销商把号给客户，客户在这里填上就归到他名下 */}
-        <FormField
-          control={form.control}
-          name='customerCode'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('Customer code (optional)')}</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder={t('The code your dealer gave you')}
-                  autoComplete='off'
-                  {...field}
-                  // 库里存的是大写，客户手抄常常是小写，输入时就统一，省得提交后被判不存在
-                  onChange={(event) =>
-                    field.onChange(event.target.value.toUpperCase())
-                  }
-                />
-              </FormControl>
-              <FormDescription>
-                {t(
-                  'With a dealer-issued code, your account is billed at the price on that code.'
-                )}
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

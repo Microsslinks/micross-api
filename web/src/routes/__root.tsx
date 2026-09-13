@@ -30,7 +30,10 @@ import { useEffect } from 'react'
 import { NavigationProgress } from '@/components/navigation-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizationProvider } from '@/context/theme-customization-provider'
-import { saveAffiliateCode } from '@/features/auth/lib/storage'
+import {
+  saveAffiliateCode,
+  saveCustomerCode,
+} from '@/features/auth/lib/storage'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { getSetupStatus } from '@/features/setup/api'
@@ -51,10 +54,17 @@ function RootComponent() {
   // Load system configuration (logo, system name, etc.) from backend
   useSystemConfig({ autoLoad: true })
 
+  // 链接带来的码要在任何页面上都接得住：客户点开 /sign-up?customer_code=… 之前可能先落在
+  // 首页，之后再点「注册」，所以在这里统一抓住存起来，注册那一趟再取出来提交。
   useEffect(() => {
-    const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
+    const params = new URLSearchParams(window.location.search)
+    const aff = params.get('aff')?.trim()
     if (aff) {
       saveAffiliateCode(aff)
+    }
+    const customerCode = params.get('customer_code')?.trim()
+    if (customerCode) {
+      saveCustomerCode(customerCode)
     }
   }, [])
 
