@@ -85,6 +85,7 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 	var err error
 	selectGroup := param.TokenGroup
 	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
+	costFilter := BuildChannelCostFilter(param)
 
 	if param.TokenGroup == "auto" {
 		autoGroups := GetRequestAutoGroups(param.Ctx, userGroup)
@@ -115,7 +116,7 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			}
 			logger.LogDebug(param.Ctx, "Auto selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
 
-			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath)
+			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath, costFilter)
 			if channel == nil {
 				// Current group has no available channel for this model, try next group
 				// 当前分组没有该模型的可用渠道，尝试下一个分组
@@ -153,10 +154,26 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			break
 		}
 	} else {
-		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath)
+		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath, costFilter)
 		if err != nil {
 			return nil, param.TokenGroup, err
 		}
 	}
 	return channel, selectGroup, nil
+}
+
+// BuildChannelCostFilter 算出这一单的成本过滤条件，交给选线路逻辑剔掉会亏本的线路。
+//
+// 折扣从 model.ResolveBillingDiscount 取——它自带总开关：开关关着、没绑方案、
+// 方案停用都给出 1，于是过滤器不启用、候选集一条不动。这里刻意放在
+// channelSyncLock 之外调用：解析折扣要查库，不能占着缓存锁去查。
+func BuildChannelCostFilter(param *RetryParam) *model.ChannelCostFilter {
+	if param == nil || param.Ctx == nil {
+		return nil
+	}
+	discount := model.ResolveBillingDiscount(common.GetContextKeyInt(param.Ctx, constant.ContextKeyUserId), param.ModelName)
+	if !discount.Applied() {
+		return nil
+	}
+	return model.NewChannelCostFilter(discount.Ratio)
 }

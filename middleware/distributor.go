@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	taskdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -102,11 +103,18 @@ func Distribute() func(c *gin.Context) {
 					}
 				}
 
+				costFilter := service.BuildChannelCostFilter(&service.RetryParam{Ctx: c, ModelName: modelRequest.Model})
 				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelRequest.Model, usingGroup); found {
 					affinityUsable := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
+					// 折扣客户不能靠粘连绕开成本过滤：命中粘连渠道后补一次同样的校验，
+					// 不达标就放弃粘连、回到正常的「不亏本」候选里挑。
+					costAllowed := model.ChannelPassesCostBudget(preferredChannelID, costFilter)
+					if !costAllowed {
+						logger.LogWarn(c, fmt.Sprintf("渠道粘连已跳过：渠道 #%d 在当前折扣 %.4f 下会亏本", preferredChannelID, costFilter.SellRatio))
+					}
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
-						channelSupportsRequestPath(preferred, c.Request.URL.Path, modelRequest.Model) {
+						channelSupportsRequestPath(preferred, c.Request.URL.Path, modelRequest.Model) && costAllowed {
 						if usingGroup == "auto" {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 							autoGroups := service.GetRequestAutoGroups(c, userGroup)

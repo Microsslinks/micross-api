@@ -111,7 +111,7 @@ func SyncChannelCache(frequency int) {
 	}
 }
 
-func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string, costFilter *ChannelCostFilter) (*Channel, error) {
 	// if memory cache is disabled, get channel directly from database
 	if !common.MemoryCacheEnabled {
 		return GetChannel(group, model, retry, requestPath)
@@ -131,6 +131,16 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 
 	if len(channels) == 0 {
 		return nil, nil
+	}
+
+	// 成本过滤：剔掉会亏本的线路。只在客户真的享受折扣时动手；过滤前有候选、
+	// 过滤后为空，说明「有线路能走但都不保本」，必须明确报错，不能静默降级到亏损
+	// 线路（口径见 .docs/task-02-business-goals/04-cost-aware-routing.md §7 E1）。
+	if costFilter.Enabled() {
+		channels = filterChannelsByCost(channels, costFilter)
+		if len(channels) == 0 {
+			return nil, fmt.Errorf("当前折扣下没有不亏本的可用线路，group: %s, model: %s", group, model)
+		}
 	}
 
 	if len(channels) == 1 {
