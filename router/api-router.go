@@ -146,6 +146,10 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.DELETE("/:id", controller.DeleteUser)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
 
+				// 经销商身份（业务身份，不是权限角色）
+				adminRoute.POST("/:id/agent", controller.SetUserAsAgent)
+				adminRoute.DELETE("/:id/agent", controller.UnsetUserAsAgent)
+
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)

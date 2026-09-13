@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  Store,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -47,16 +48,25 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
-import { manageUser, resetUserPasskey, resetUserTwoFA } from '../api'
+import {
+  manageUser,
+  resetUserPasskey,
+  resetUserTwoFA,
+  unsetUserAsAgent,
+} from '../api'
 import {
   USER_STATUS,
   USER_ROLE,
+  CUSTOMER_TYPE,
   ERROR_MESSAGES,
   isUserDeleted,
 } from '../constants'
 import { getUserActionMessage } from '../lib'
 import type { User, ManageUserAction } from '../types'
+import { SetAgentDialog } from './dialogs/set-agent-dialog'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { useUsers } from './users-provider'
 
@@ -68,10 +78,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
+  const currentUser = useAuthStore((s) => s.auth.user)
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const [setAgentOpen, setSetAgentOpen] = useState(false)
+  const [unsetAgentOpen, setUnsetAgentOpen] = useState(false)
 
   const handleEdit = () => {
     setCurrentRow(user)
@@ -131,9 +144,29 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     }
   }
 
+  const handleUnsetAgent = async () => {
+    try {
+      const result = await unsetUserAsAgent(user.id)
+      if (result.success) {
+        toast.success(t('Dealer status removed'))
+        triggerRefresh()
+      } else {
+        toast.error(result.message || t('Failed to remove dealer status'))
+      }
+    } catch {
+      toast.error(t(ERROR_MESSAGES.UNEXPECTED))
+    } finally {
+      setUnsetAgentOpen(false)
+    }
+  }
+
   const isDisabled = user.status === USER_STATUS.DISABLED
   const isAdmin = user.role >= USER_ROLE.ADMIN
   const isRoot = user.role === USER_ROLE.ROOT
+  const isAgent = user.subject_type === CUSTOMER_TYPE.AGENT
+  // 提升/降级只有超级管理员能真正执行：后端 promote 只放行 Root，而业务管理员
+  // 能管理的目标里不存在可降级的人。其他身份显示了也只会弹错，直接不显示。
+  const canManageRoles = currentUser?.role === ROLE.SUPER_ADMIN
 
   if (isUserDeleted(user)) {
     return null
@@ -180,7 +213,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
-        {isAdmin && !isRoot && (
+        {canManageRoles && isAdmin && !isRoot && (
           <DropdownMenuItem onClick={() => handleManage('demote')}>
             {t('Demote')}
             <DropdownMenuShortcut>
@@ -189,11 +222,41 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
-        {!isAdmin && (
+        {canManageRoles && !isAdmin && (
           <DropdownMenuItem onClick={() => handleManage('promote')}>
             {t('Promote')}
             <DropdownMenuShortcut>
               <ArrowUp size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {/* 经销商是业务身份而不是权限等级，业务管理员本来就该能设，
+            所以这里只按「是不是经销商」二选一，不跟着角色可见性走。 */}
+        {!isAgent && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setSetAgentOpen(true)
+            }}
+          >
+            {t('Set as Dealer')}
+            <DropdownMenuShortcut>
+              <Store size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {isAgent && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setUnsetAgentOpen(true)
+            }}
+          >
+            {t('Remove Dealer Status')}
+            <DropdownMenuShortcut>
+              <Store size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
@@ -263,6 +326,25 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuShortcut>
         </DropdownMenuItem>
       </DataTableRowActionMenu>
+
+      <SetAgentDialog
+        open={setAgentOpen}
+        onOpenChange={setSetAgentOpen}
+        user={{ id: user.id, username: user.username }}
+        onSuccess={triggerRefresh}
+      />
+
+      <ConfirmDialog
+        open={unsetAgentOpen}
+        onOpenChange={setUnsetAgentOpen}
+        title={t('Remove Dealer Status')}
+        desc={t(
+          'Remove dealer status for {{username}}? The balance, group and bound discount plan stay unchanged.',
+          { username: user.username }
+        )}
+        confirmText={t('Remove Dealer Status')}
+        handleConfirm={handleUnsetAgent}
+      />
 
       <ConfirmDialog
         open={resetPasskeyOpen}

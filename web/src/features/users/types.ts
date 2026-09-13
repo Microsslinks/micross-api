@@ -59,6 +59,10 @@ export const userSchema = z.object({
   last_login_at: z.number().optional(),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
+  /** 用户主体类型：individual = 普通客户，agent = 经销商 */
+  subject_type: z.string().optional(),
+  /** 绑定的折扣方案 id；大于 0 表示这个客户有专属价 */
+  discount_plan_id: z.number().optional(),
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))
     .optional(),
@@ -113,6 +117,7 @@ export interface SearchUsersParams {
   group?: string
   role?: string
   status?: string
+  customer_type?: string
   p?: number
   page_size?: number
   sort_by?: UserSortBy
@@ -147,6 +152,15 @@ export interface ManageUserQuotaPayload {
   action: 'add_quota'
   mode: QuotaAdjustMode
   value: number
+}
+
+/** 设为经销商的入参。两个折扣由平台手动设定，经销商不可自改。 */
+export interface SetAgentPayload {
+  /** 批发折扣：平台卖给经销商的价格，0 < 值 ≤ 1 */
+  wholesale_discount: string
+  /** 最低折扣：平台给这个经销商的地板价，0 ≤ 值 ≤ 批发折扣 */
+  min_discount: string
+  remark?: string
 }
 
 // ============================================================================

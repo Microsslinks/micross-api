@@ -79,12 +79,12 @@ export const USER_ROLES = {
     icon: User,
   },
   [USER_ROLE.ADMIN]: {
-    labelKey: 'Admin',
+    labelKey: 'Business Admin',
     value: USER_ROLE.ADMIN,
     icon: Users,
   },
   [USER_ROLE.ROOT]: {
-    labelKey: 'Root',
+    labelKey: 'Super Admin',
     value: USER_ROLE.ROOT,
     icon: Shield,
   },
@@ -92,9 +92,70 @@ export const USER_ROLES = {
 
 export const getUserRoleOptions = (t: (key: string) => string) => [
   { label: t('User'), value: String(USER_ROLE.USER), icon: User },
-  { label: t('Admin'), value: String(USER_ROLE.ADMIN), icon: Users },
-  { label: t('Root'), value: String(USER_ROLE.ROOT), icon: Shield },
+  { label: t('Business Admin'), value: String(USER_ROLE.ADMIN), icon: Users },
+  { label: t('Super Admin'), value: String(USER_ROLE.ROOT), icon: Shield },
 ]
+
+// ============================================================================
+// Customer Type Configuration
+// ============================================================================
+
+/**
+ * 客户类型：给运营看的客户分类标记，与权限角色是两回事，会叠加
+ * （比如业务管理员也可能有企业折扣）。
+ *
+ * - individual：普通客户，没有专属折扣方案
+ * - enterprise：企业折扣，绑了专属折扣方案
+ * - agent：经销商
+ */
+export const CUSTOMER_TYPE = {
+  INDIVIDUAL: 'individual',
+  ENTERPRISE: 'enterprise',
+  AGENT: 'agent',
+} as const
+
+export type CustomerType = (typeof CUSTOMER_TYPE)[keyof typeof CUSTOMER_TYPE]
+
+export const CUSTOMER_TYPES = {
+  [CUSTOMER_TYPE.INDIVIDUAL]: {
+    labelKey: 'Common User',
+    variant: 'neutral' as const,
+    value: CUSTOMER_TYPE.INDIVIDUAL,
+  },
+  [CUSTOMER_TYPE.ENTERPRISE]: {
+    labelKey: 'Enterprise Discount',
+    variant: 'info' as const,
+    value: CUSTOMER_TYPE.ENTERPRISE,
+  },
+  [CUSTOMER_TYPE.AGENT]: {
+    labelKey: 'Agent',
+    variant: 'pink' as const,
+    value: CUSTOMER_TYPE.AGENT,
+  },
+} as const
+
+export const getCustomerTypeOptions = (t: (key: string) => string) =>
+  Object.values(CUSTOMER_TYPES).map((customerType) => ({
+    label: t(customerType.labelKey),
+    value: customerType.value as string,
+  }))
+
+/**
+ * 判定一个客户属于哪一类。
+ *
+ * 顺序不能调换：经销商自己身上也挂着专属方案（他的批发价），先看折扣方案
+ * 会把经销商标成「企业折扣」。判定口径与后端 model.SearchUsers 的
+ * customer_type 筛选保持一致，两边必须同时改。
+ */
+export const resolveCustomerType = (user: UserType): CustomerType => {
+  if (user.subject_type === CUSTOMER_TYPE.AGENT) {
+    return CUSTOMER_TYPE.AGENT
+  }
+  if ((user.discount_plan_id ?? 0) > 0) {
+    return CUSTOMER_TYPE.ENTERPRISE
+  }
+  return CUSTOMER_TYPE.INDIVIDUAL
+}
 
 // ============================================================================
 // Default Values

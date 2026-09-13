@@ -97,6 +97,8 @@ type User struct {
 	RequestCount     int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
 	Group            string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
 	DiscountPlanId   int                        `json:"discount_plan_id" gorm:"type:int;default:0;index"` // discount_bindings 的快路径，变更由绑定表同处写入
+	SubjectType      string                     `json:"subject_type" gorm:"type:varchar(16);default:'individual';index"`
+	ParentAgentId    int                        `json:"parent_agent_id" gorm:"type:int;default:0;index"`
 	AffCode          string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount         int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
 	AffQuota         int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
@@ -458,7 +460,11 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 	return users, total, nil
 }
 
-func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
+// SearchUsers 按条件搜索用户。
+// customerType 是客户类型筛选（customer_type 查询参数），取值 individual / enterprise / agent，
+// 传空字符串表示不筛。判定口径必须与前端 resolveCustomerType 保持一致：
+// 先看是不是经销商，再看有没有绑定折扣方案——顺序反了会把经销商算进企业折扣。
+func SearchUsers(keyword string, group string, role *int, status *int, customerType string, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
@@ -501,6 +507,19 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 			query = query.Where("deleted_at IS NOT NULL")
 		} else {
 			query = query.Where("deleted_at IS NULL").Where("status = ?", *status)
+		}
+	}
+	if customerType != "" {
+		// 存量行的 subject_type 可能是 NULL，不能直接用 <> 比较（NULL 参与比较恒不成立，
+		// 会把老用户整个筛掉）；空串同理，一并按"不是经销商"处理。
+		const notAgent = "(subject_type IS NULL OR subject_type <> ?)"
+		switch customerType {
+		case CustomerTypeAgent:
+			query = query.Where("subject_type = ?", SubjectTypeAgent)
+		case CustomerTypeEnterprise:
+			query = query.Where(notAgent, SubjectTypeAgent).Where("discount_plan_id > ?", 0)
+		case CustomerTypeIndividual:
+			query = query.Where(notAgent, SubjectTypeAgent).Where("discount_plan_id <= ?", 0)
 		}
 	}
 

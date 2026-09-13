@@ -20,6 +20,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import z from 'zod'
 
 import { Users } from '@/features/users'
+import { CUSTOMER_TYPE } from '@/features/users/constants'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -36,6 +37,16 @@ const usersSearchSchema = z.object({
     .optional()
     .catch([]),
   group: z.string().optional().catch(''),
+  customerType: z
+    .array(
+      z.enum([
+        CUSTOMER_TYPE.INDIVIDUAL,
+        CUSTOMER_TYPE.ENTERPRISE,
+        CUSTOMER_TYPE.AGENT,
+      ])
+    )
+    .optional()
+    .catch([]),
 })
 
 export const Route = createFileRoute('/_authenticated/users/')({

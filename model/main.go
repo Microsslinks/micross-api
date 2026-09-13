@@ -314,6 +314,9 @@ func migrateDB() error {
 	if err := migrateDiscountTables(DB); err != nil {
 		return err
 	}
+	if err := migrateAgentTables(DB); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -396,6 +399,9 @@ func migrateDBFast() error {
 		}
 	}
 	if err := migrateDiscountTables(DB); err != nil {
+		return err
+	}
+	if err := migrateAgentTables(DB); err != nil {
 		return err
 	}
 	common.SysLog("database migrated")
@@ -596,6 +602,17 @@ func migrateDiscountTables(db *gorm.DB) error {
 		return db.AutoMigrate(&DiscountRoutingPolicy{})
 	}
 	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{})
+}
+
+// migrateAgentTables 迁移经销商两表（agent_profiles / customer_codes）。
+// agent_profiles 有 decimal(10,6) 列，与折扣三表受同一个 SQLite 坑影响（列比对不相等会让
+// 每次启动重建整张表），故建过之后不再重复迁移；客户号表没有 decimal 列，每次照常迁移。
+// 后续给 agent_profiles 新增列时，需在此补 ALTER TABLE ADD COLUMN（与 subscription 表同法）。
+func migrateAgentTables(db *gorm.DB) error {
+	if db.Dialector.Name() == "sqlite" && db.Migrator().HasTable(&AgentProfile{}) {
+		return db.AutoMigrate(&CustomerCode{})
+	}
+	return db.AutoMigrate(&AgentProfile{}, &CustomerCode{})
 }
 
 // migrateTokenModelLimitsToText migrates model_limits column from varchar(1024) to text

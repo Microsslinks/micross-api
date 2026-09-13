@@ -35,6 +35,7 @@ import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { getUsers, searchUsers } from '../api'
 import {
   USER_STATUS,
+  getCustomerTypeOptions,
   getUserStatusOptions,
   getUserRoleOptions,
   isUserDeleted,
@@ -83,6 +84,7 @@ export function UsersTable() {
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
       { columnId: 'group', searchKey: 'group', type: 'string' },
+      { columnId: 'customerType', searchKey: 'customerType', type: 'array' },
     ],
   })
   const statusFilter =
@@ -96,6 +98,10 @@ export function UsersTable() {
   const groupFilter =
     (columnFilters.find((filter) => filter.id === 'group')?.value as string) ??
     ''
+  const customerTypeFilter =
+    (columnFilters.find((filter) => filter.id === 'customerType')?.value as
+      | string[]
+      | undefined) ?? []
 
   const sortParams = useMemo(() => {
     const activeSort = sorting[0]
@@ -129,13 +135,17 @@ export function UsersTable() {
       statusFilter,
       roleFilter,
       groupFilter,
+      customerTypeFilter,
       sortParams,
       refreshTrigger,
     ],
     queryFn: async () => {
       const hasFilter = globalFilter?.trim()
       const hasColumnFilter =
-        statusFilter.length > 0 || roleFilter.length > 0 || Boolean(groupFilter)
+        statusFilter.length > 0 ||
+        roleFilter.length > 0 ||
+        Boolean(groupFilter) ||
+        customerTypeFilter.length > 0
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
@@ -150,6 +160,7 @@ export function UsersTable() {
               status: statusFilter[0] ?? '',
               role: roleFilter[0] ?? '',
               group: groupFilter,
+              customer_type: customerTypeFilter[0] ?? '',
             })
           : await getUsers(params)
 
@@ -228,6 +239,12 @@ export function UsersTable() {
             columnId: 'role',
             title: t('Role'),
             options: getUserRoleOptions(t),
+            singleSelect: true,
+          },
+          {
+            columnId: 'customerType',
+            title: t('Customer Type'),
+            options: getCustomerTypeOptions(t),
             singleSelect: true,
           },
         ],

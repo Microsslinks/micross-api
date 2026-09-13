@@ -28,6 +28,7 @@ import type {
   UserFormData,
   ManageUserAction,
   ManageUserQuotaPayload,
+  SetAgentPayload,
   ApiResponse,
 } from './types'
 
@@ -64,6 +65,7 @@ export async function searchUsers(
     group = '',
     role = '',
     status = '',
+    customer_type = '',
     p = 1,
     page_size = 10,
     sort_by,
@@ -74,6 +76,7 @@ export async function searchUsers(
   queryParams.set('group', group)
   if (role) queryParams.set('role', role)
   if (status) queryParams.set('status', status)
+  if (customer_type) queryParams.set('customer_type', customer_type)
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))
   if (sort_by) queryParams.set('sort_by', sort_by)
@@ -126,6 +129,28 @@ export async function manageUser(
   action: ManageUserAction
 ): Promise<ApiResponse<Partial<User>>> {
   const res = await api.post('/api/user/manage', { id, action })
+  return res.data
+}
+
+/**
+ * Mark a user as a dealer (a business identity on top of the user, not a role).
+ * The two discounts are set by the platform and stored on the dealer profile.
+ */
+export async function setUserAsAgent(
+  id: number,
+  payload: SetAgentPayload
+): Promise<ApiResponse<Partial<User>>> {
+  const res = await api.post(`/api/user/${id}/agent`, payload)
+  return res.data
+}
+
+/**
+ * Remove dealer status from a user (keeps balance, group and discount plan)
+ */
+export async function unsetUserAsAgent(
+  id: number
+): Promise<ApiResponse<Partial<User>>> {
+  const res = await api.delete(`/api/user/${id}/agent`)
   return res.data
 }
 

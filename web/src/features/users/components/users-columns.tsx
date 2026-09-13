@@ -33,10 +33,13 @@ import {
 import { formatQuota, formatTimestamp } from '@/lib/format'
 
 import {
+  CUSTOMER_TYPES,
   USER_STATUS,
   USER_STATUSES,
   USER_ROLES,
   isUserDeleted,
+  resolveCustomerType,
+  type CustomerType,
 } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
@@ -217,6 +220,35 @@ export function useUsersColumns(): ColumnDef<User>[] {
       enableSorting: false,
       size: 120,
       meta: { mobileOrder: 20 },
+    },
+    {
+      id: 'customerType',
+      accessorFn: (row) => resolveCustomerType(row),
+      header: t('Customer Type'),
+      cell: ({ row }) => {
+        const customerType = row.getValue('customerType') as CustomerType
+        const customerTypeConfig = CUSTOMER_TYPES[customerType]
+
+        if (!customerTypeConfig) {
+          return null
+        }
+
+        return (
+          <BadgeCell>
+            <StatusBadge
+              label={t(customerTypeConfig.labelKey)}
+              variant={customerTypeConfig.variant}
+              copyable={false}
+            />
+          </BadgeCell>
+        )
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(String(row.getValue(id)))
+      },
+      enableSorting: false,
+      size: 140,
+      meta: { mobileOrder: 25 },
     },
     {
       id: 'invite_info',
