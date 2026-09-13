@@ -543,17 +543,7 @@ PRIMARY KEY (` + "`id`" + `)
 )`
 		return DB.Exec(createSQL).Error
 	}
-	var cols []struct {
-		Name string `gorm:"column:name"`
-	}
-	if err := DB.Raw("PRAGMA table_info(`" + tableName + "`)").Scan(&cols).Error; err != nil {
-		return err
-	}
-	existing := make(map[string]struct{}, len(cols))
-	for _, c := range cols {
-		existing[c.Name] = struct{}{}
-	}
-	required := []sqliteColumnDef{
+	return ensureSQLiteTableColumns(tableName, []sqliteColumnDef{
 		{Name: "title", DDL: "`title` varchar(128) NOT NULL"},
 		{Name: "subtitle", DDL: "`subtitle` varchar(255) DEFAULT ''"},
 		{Name: "price_amount", DDL: "`price_amount` decimal(10,6) NOT NULL"},
@@ -576,6 +566,28 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "quota_reset_custom_seconds", DDL: "`quota_reset_custom_seconds` bigint DEFAULT 0"},
 		{Name: "created_at", DDL: "`created_at` bigint"},
 		{Name: "updated_at", DDL: "`updated_at` bigint"},
+	})
+}
+
+// ensureSQLiteTableColumns 给已存在的 SQLite 表补上缺失的列。
+//
+// 用于那些"建过之后不再走 AutoMigrate"的表：它们带 decimal 列，AutoMigrate 的列比对
+// 判不出相等，每启动一次就会 CREATE __temp → DROP → RENAME 把整张表重建一遍。
+// 代价是新增的列不会自己出现，必须在迁移处显式补上，否则老库缺列，
+// 读整行时报 "no such column"，而新库（这次启动才建的表）一切正常——
+// 这个差异只在开发机上看得出来，所以补列这件事漏一次就是一次故障。
+//
+// 调用方负责确认表已存在（表不存在时应当走建表分支，而不是补列）。
+func ensureSQLiteTableColumns(tableName string, required []sqliteColumnDef) error {
+	var cols []struct {
+		Name string `gorm:"column:name"`
+	}
+	if err := DB.Raw("PRAGMA table_info(`" + tableName + "`)").Scan(&cols).Error; err != nil {
+		return err
+	}
+	existing := make(map[string]struct{}, len(cols))
+	for _, c := range cols {
+		existing[c.Name] = struct{}{}
 	}
 	for _, col := range required {
 		if _, ok := existing[col.Name]; ok {
@@ -610,6 +622,15 @@ func migrateDiscountTables(db *gorm.DB) error {
 // 后续给 agent_profiles 新增列时，需在此补 ALTER TABLE ADD COLUMN（与 subscription 表同法）。
 func migrateAgentTables(db *gorm.DB) error {
 	if db.Dialector.Name() == "sqlite" && db.Migrator().HasTable(&AgentProfile{}) {
+		// markup_ratio（平台加价率）是这次改造新加的列，建过表的库要靠这里补上。
+		// 漏了它的后果很具体：读经营档案报 "no such column: markup_ratio"，
+		// 于是「设为经销商」保存失败、经销商拿货价解析失败、他的自助台账也打不开。
+		// 列刻意不给默认值：这一行还没设过加价率时留空，由 EffectiveMarkupRatio 兜到缺省档。
+		if err := ensureSQLiteTableColumns("agent_profiles", []sqliteColumnDef{
+			{Name: "markup_ratio", DDL: "`markup_ratio` decimal(10,6)"},
+		}); err != nil {
+			return err
+		}
 		return db.AutoMigrate(&CustomerCode{})
 	}
 	return db.AutoMigrate(&AgentProfile{}, &CustomerCode{})
