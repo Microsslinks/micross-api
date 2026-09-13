@@ -83,6 +83,8 @@ func (p *RetryParam) ResetRetryNextTry() {
 func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, error) {
 	var channel *model.Channel
 	var err error
+	// costBreachErr 留住「这个分组有线路、但一条都不保本」的报错（见下面 auto 分支）。
+	var costBreachErr error
 	selectGroup := param.TokenGroup
 	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
 	costFilter := BuildChannelCostFilter(param)
@@ -116,11 +118,22 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			}
 			logger.LogDebug(param.Ctx, "Auto selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
 
-			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath, costFilter)
+			channel, err = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath, costFilter)
+			if err != nil && costBreachErr == nil {
+				// 「这个分组有线路、但一条都不保本」不是"没渠道"，原因必须留住：auto 分组本来就是
+				// 按客户给的顺序往下试，后面那个分组可能是赚的，所以不能一遇到就放弃整单。
+				// 但整条链都试完还是没挑到线路时，要把这条报错透出去（见本函数末尾）。
+				// 只留第一条——报客户最先想要的那个分组，对他最有用。
+				costBreachErr = err
+			}
 			if channel == nil {
 				// Current group has no available channel for this model, try next group
 				// 当前分组没有该模型的可用渠道，尝试下一个分组
-				logger.LogDebug(param.Ctx, "No available channel in group %s for model %s at priorityRetry %d, trying next group", autoGroup, param.ModelName, priorityRetry)
+				reason := "no channel for this model"
+				if err != nil {
+					reason = err.Error()
+				}
+				logger.LogDebug(param.Ctx, "No available channel in group %s for model %s at priorityRetry %d, trying next group (reason: %s)", autoGroup, param.ModelName, priorityRetry, reason)
 				// 重置状态以尝试下一个分组
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex, i+1)
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupRetryIndex, 0)
@@ -159,6 +172,14 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			return nil, param.TokenGroup, err
 		}
 	}
+
+	if channel == nil && costBreachErr != nil {
+		// auto 链全试完了仍然没挑到线路，而其中至少有一个分组是"有线路、但都不保本"：
+		// 把"为什么"透出去，否则客户只看到"没找到可用渠道"，运营也分不清是"这个模型真没线路"
+		// 还是"线路全亏本"（口径见 .docs/task-02-business-goals/04-cost-aware-routing.md §7 的 E1）。
+		return nil, selectGroup, costBreachErr
+	}
+
 	// 客户被允许走亏损线路时，这一单必须在消费日志里留痕。记在请求上下文上是因为写日志的
 	// 地方在计费链路深处，够不着这里的局部变量；由 attachCostBreach 落到 admin_info 下。
 	if costFilter != nil && costFilter.Breach != nil {
