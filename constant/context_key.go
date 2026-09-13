@@ -64,6 +64,11 @@ const (
 	// It is not returned to end users, but can be persisted into consume/error logs for debugging.
 	ContextKeyAdminRejectReason ContextKey = "admin_reject_reason"
 
+	// ContextKeyCostBreach stores the cost breach record of the current request: the client was
+	// allowed to use an upstream provider whose cost is above its sell price. It is carried from
+	// channel selection to consume-log generation and nested under other.admin_info.cost_breach.
+	ContextKeyCostBreach ContextKey = "cost_breach"
+
 	// ContextKeyLanguage stores the user's language preference for i18n
 	ContextKeyLanguage ContextKey = "language"
 	ContextKeyIsStream ContextKey = "is_stream"

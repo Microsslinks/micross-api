@@ -8,6 +8,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -48,6 +49,39 @@ func attachQuotaSaturation(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, o
 	attachQuotaSaturationToOther(other, clamp)
 	logger.LogWarn(ctx, fmt.Sprintf("quota saturation on consume log: op=%s kind=%s original=%g clamped=%d user=%d model=%s",
 		clamp.Op, clamp.Kind, clamp.Original, clamp.Clamped, relayInfo.UserId, relayInfo.OriginModelName))
+}
+
+// attachCostBreach 把「这一单走了亏本线路」写进消费日志的 other.admin_info.cost_breach，
+// 并记一条与请求关联的后端告警。
+//
+// 与 attachQuotaSaturation 同一套做法与同一个位置：嵌在 admin_info 下，非管理员看日志时
+// 整块被剥掉，所以客户看不到自己被标记为「平台在赔钱」，管理员对账时看得到。只有客户被
+// 明确允许走亏损线路、且这一单真的走了亏损线路时才有记录；其余情况一个字都不写。
+func attachCostBreach(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
+	if ctx == nil || other == nil {
+		return
+	}
+	raw, exists := common.GetContextKey(ctx, constant.ContextKeyCostBreach)
+	if !exists {
+		return
+	}
+	breach, ok := raw.(*model.CostBreach)
+	if !ok || breach == nil {
+		return
+	}
+	adminInfo, ok := other["admin_info"].(map[string]interface{})
+	if !ok || adminInfo == nil {
+		adminInfo = map[string]interface{}{}
+		other["admin_info"] = adminInfo
+	}
+	adminInfo["cost_breach"] = breach
+
+	modelName := ""
+	if relayInfo != nil {
+		modelName = relayInfo.OriginModelName
+	}
+	logger.LogWarn(ctx, fmt.Sprintf("cost breach on consume log: channel=%d channel_name=%s cost_ratio=%s sell_ratio=%s loss_ratio=%s model=%s",
+		breach.ChannelId, breach.ChannelName, breach.CostRatio, breach.SellRatio, breach.LossRatio, modelName))
 }
 
 func appendRequestPath(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {

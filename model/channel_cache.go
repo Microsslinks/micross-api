@@ -134,57 +134,63 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	}
 
 	// 成本过滤：剔掉会亏本的线路。只在客户真的享受折扣时动手；过滤前有候选、
-	// 过滤后为空，说明「有线路能走但都不保本」，必须明确报错，不能静默降级到亏损
-	// 线路（口径见 .docs/task-02-business-goals/04-cost-aware-routing.md §7 E1）。
+	// 过滤后为空，说明「有线路能走但都不保本」——默认报错，并把「还有哪条能走、走它亏多少」
+	// 说清楚（口径见 .docs/task-02-business-goals/04-cost-aware-routing.md §7 的 E1）。
+	// 只有这个客户被明确允许走亏损线路时才放行，并在选中后留下击穿记录。
+	breaching := false
 	if costFilter.Enabled() {
-		channels = filterChannelsByCost(channels, costFilter)
-		if len(channels) == 0 {
-			return nil, fmt.Errorf("当前折扣下没有不亏本的可用线路，group: %s, model: %s", group, model)
+		kept := filterChannelsByCost(channels, costFilter)
+		if len(kept) == 0 {
+			if !costFilter.AllowCostBreach {
+				return nil, describeCostBreach(group, model, channels, costFilter)
+			}
+			// 放行：候选保持原样，后面按「亏得最少」优先挑（毛利优先排序在亏损区间里
+			// 就是亏损最小优先），选中哪条由权重随机决定。
+			breaching = true
+		} else {
+			channels = kept
 		}
 	}
 
 	if len(channels) == 1 {
 		if channel, ok := channelsIDM[channels[0]]; ok {
+			if breaching {
+				costFilter.recordBreach(channel)
+			}
 			return channel, nil
 		}
 		return nil, fmt.Errorf("数据库一致性错误，渠道# %d 不存在，请联系管理员修复", channels[0])
 	}
 
-	uniquePriorities := make(map[int]bool)
-	for _, channelId := range channels {
-		if channel, ok := channelsIDM[channelId]; ok {
-			uniquePriorities[int(channel.GetPriority())] = true
-		} else {
-			return nil, fmt.Errorf("数据库一致性错误，渠道# %d 不存在，请联系管理员修复", channelId)
-		}
+	// 按本次策略把候选切成有序的若干层：毛利优先（默认）先走毛利高的层，稳定优先（按客户可切）
+	// 只看上游供应商优先级。层内仍按权重随机分摊，所以「毛利最高」不等于「只走一条线」。
+	tiers, err := buildChannelRouteTiers(channels, costFilter)
+	if err != nil {
+		return nil, err
 	}
-	var sortedUniquePriorities []int
-	for priority := range uniquePriorities {
-		sortedUniquePriorities = append(sortedUniquePriorities, priority)
+	if len(tiers) == 0 {
+		return nil, errors.New(fmt.Sprintf("no channel found, group: %s, model: %s", group, model))
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(sortedUniquePriorities)))
 
-	if retry >= len(uniquePriorities) {
-		retry = len(uniquePriorities) - 1
+	if retry >= len(tiers) {
+		retry = len(tiers) - 1
 	}
-	targetPriority := int64(sortedUniquePriorities[retry])
+	targetTier := tiers[retry]
 
-	// get the priority for the given retry number
+	// get the tier for the given retry number
 	var sumWeight = 0
-	var targetChannels []*Channel
-	for _, channelId := range channels {
+	targetChannels := make([]*Channel, 0, len(targetTier.channels))
+	for _, channelId := range targetTier.channels {
 		if channel, ok := channelsIDM[channelId]; ok {
-			if channel.GetPriority() == targetPriority {
-				sumWeight += channel.GetWeight()
-				targetChannels = append(targetChannels, channel)
-			}
+			sumWeight += channel.GetWeight()
+			targetChannels = append(targetChannels, channel)
 		} else {
 			return nil, fmt.Errorf("数据库一致性错误，渠道# %d 不存在，请联系管理员修复", channelId)
 		}
 	}
 
 	if len(targetChannels) == 0 {
-		return nil, errors.New(fmt.Sprintf("no channel found, group: %s, model: %s, priority: %d", group, model, targetPriority))
+		return nil, errors.New(fmt.Sprintf("no channel found, group: %s, model: %s", group, model))
 	}
 
 	// smoothing factor and adjustment
@@ -211,6 +217,9 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	for _, channel := range targetChannels {
 		randomWeight -= channel.GetWeight()*smoothingFactor + smoothingAdjustment
 		if randomWeight < 0 {
+			if breaching {
+				costFilter.recordBreach(channel)
+			}
 			return channel, nil
 		}
 	}

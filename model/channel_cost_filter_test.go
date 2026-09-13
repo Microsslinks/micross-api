@@ -76,13 +76,15 @@ func TestNewChannelCostFilterReadsMinMarginRatio(t *testing.T) {
 	setting.MinMarginRatio = "0.05"
 	defer func() { setting.MinMarginRatio = previous }()
 
-	filter := NewChannelCostFilter(0.8)
+	filter := NewChannelCostFilter(0.8, nil)
 	require.NotNil(t, filter)
 	assert.Equal(t, 0.8, filter.SellRatio)
 	assert.Equal(t, 0.05, filter.MinMarginRatio)
+	assert.True(t, filter.PrioritizeMargin, "没有配置行时默认按毛利优先")
+	assert.False(t, filter.AllowCostBreach, "没有配置行时不允许走亏损线路")
 
 	setting.MinMarginRatio = ""
-	assert.Equal(t, 0.0, NewChannelCostFilter(0.8).MinMarginRatio, "空串按 0 处理")
+	assert.Equal(t, 0.0, NewChannelCostFilter(0.8, nil).MinMarginRatio, "空串按 0 处理")
 }
 
 func TestGetRandomSatisfiedChannelFiltersCost(t *testing.T) {

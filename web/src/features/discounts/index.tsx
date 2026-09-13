@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Calculator } from 'lucide-react'
+import { Calculator, Route as RouteIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,12 +26,14 @@ import { Button } from '@/components/ui/button'
 import { DiscountsDialogs } from './components/discounts-dialogs'
 import { DiscountsPrimaryButtons } from './components/discounts-primary-buttons'
 import { DiscountsProvider } from './components/discounts-provider'
+import { DiscountsRoutingDrawer } from './components/discounts-routing-drawer'
 import { DiscountsSimulateDrawer } from './components/discounts-simulate-drawer'
 import { DiscountsTable } from './components/discounts-table'
 
 /**
- * 折扣页：管方案（折扣、规则、绑了谁），再给一个试算入口看实际会收多少钱。
- * 试算是「看一眼」，方案管理是「真改」，两者放一起正好对照着用。
+ * 折扣页：管方案（折扣、规则、绑了谁），再给两个按客户的入口——
+ * 试算看「按这个折扣会收多少钱、每条线路赚多少」，路由策略定「钱花在哪条线路上」。
+ * 折扣定的是收入，路由策略定的是成本，两者放一起正好对照着用。
  */
 export function Discounts() {
   return (
@@ -44,12 +46,17 @@ export function Discounts() {
 function DiscountsPage() {
   const { t } = useTranslation()
   const [simulateOpen, setSimulateOpen] = useState(false)
+  const [routingOpen, setRoutingOpen] = useState(false)
 
   return (
     <>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>{t('Discount Plans')}</SectionPageLayout.Title>
         <SectionPageLayout.Actions>
+          <Button variant='outline' onClick={() => setRoutingOpen(true)}>
+            <RouteIcon className='h-4 w-4' />
+            {t('Routing Policy')}
+          </Button>
           <Button variant='outline' onClick={() => setSimulateOpen(true)}>
             <Calculator className='h-4 w-4' />
             {t('Simulate')}
@@ -66,6 +73,7 @@ function DiscountsPage() {
         open={simulateOpen}
         onOpenChange={setSimulateOpen}
       />
+      <DiscountsRoutingDrawer open={routingOpen} onOpenChange={setRoutingOpen} />
     </>
   )
 }

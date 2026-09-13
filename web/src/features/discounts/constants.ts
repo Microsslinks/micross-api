@@ -23,6 +23,7 @@ import {
   DISCOUNT_BINDING_SOURCE,
   DISCOUNT_OWNER,
   DISCOUNT_PLAN_STATUS,
+  DISCOUNT_ROUTING_STRATEGY,
   DISCOUNT_SCOPE,
   DISCOUNT_SOURCE,
   DISCOUNT_SUBJECT,
@@ -114,6 +115,9 @@ export const ERROR_MESSAGES = {
   BINDINGS_LOAD_FAILED: 'Failed to load the bindings',
   BINDING_SAVE_FAILED: 'Failed to bind the customer',
   BINDING_DELETE_FAILED: 'Failed to unbind the customer',
+  ROUTING_LOAD_FAILED: 'Failed to load the routing policy',
+  ROUTING_SAVE_FAILED: 'Failed to save the routing policy',
+  ROUTING_RESET_FAILED: 'Failed to reset the routing policy',
 } as const
 
 // ============================================================================
@@ -256,4 +260,34 @@ export const DISCOUNT_PLAN_LIMITS = {
   BINDING_PAGE_SIZE: 50,
   /** 绑定客户时给用户下拉取的条数。 */
   CUSTOMER_PAGE_SIZE: 50,
+}
+
+// ============================================================================
+// Customer routing policy (择优策略 / 允许走亏损线路)
+// ============================================================================
+
+/** 择优口径 → i18n 键 */
+export const DISCOUNT_ROUTING_STRATEGY_LABEL_KEYS: Record<string, string> = {
+  [DISCOUNT_ROUTING_STRATEGY.MARGIN]: 'Highest margin first',
+  [DISCOUNT_ROUTING_STRATEGY.PRIORITY]: 'Stable route first',
+}
+
+/** 择优口径的展示文案；遇见没见过的取值就原样显示，不假装认识它。 */
+export function getDiscountRoutingStrategyLabel(
+  t: TFunction,
+  strategy: string
+): string {
+  return lookupLabel(t, DISCOUNT_ROUTING_STRATEGY_LABEL_KEYS, strategy)
+}
+
+/** 择优策略的两个选项；平铺成单选，与方案表单里的归属／状态一致。 */
+export function getDiscountRoutingStrategyOptions(t: TFunction) {
+  return [DISCOUNT_ROUTING_STRATEGY.MARGIN, DISCOUNT_ROUTING_STRATEGY.PRIORITY].map(
+    (value) => ({ label: getDiscountRoutingStrategyLabel(t, value), value })
+  )
+}
+
+export const DISCOUNT_ROUTING_LIMITS = {
+  /** 备注长度上界，与后端列的 varchar(255) 对齐。 */
+  REMARK_MAX_LENGTH: 255,
 } as const

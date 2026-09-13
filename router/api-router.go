@@ -208,6 +208,12 @@ func SetApiRouter(router *gin.Engine) {
 
 			// 保存前提示：这个方案会不会亏，答在哪些模型 / 厂商上。只读，不阻断保存。
 			discountAdminRoute.POST("/plans/:id/validate", controller.ValidateDiscountPlan)
+
+			// 客户路由策略：择优策略（默认毛利优先、可按客户切成稳定优先）与
+			// 「允许走亏损线路」的开关。没有配置行的客户走默认口径。
+			discountAdminRoute.GET("/routing", controller.GetDiscountRouting)
+			discountAdminRoute.PUT("/routing", controller.UpdateDiscountRouting)
+			discountAdminRoute.DELETE("/routing", controller.DeleteDiscountRouting)
 		}
 
 		// Subscription payment callbacks (no auth)

@@ -29,6 +29,8 @@ import type {
   DiscountPlanDetail,
   DiscountPlanListParams,
   DiscountPlanPayload,
+  DiscountRouting,
+  DiscountRoutingPayload,
   DiscountRule,
   DiscountRulePayload,
   DiscountSimulateResult,
@@ -233,5 +235,40 @@ export async function deleteDiscountBinding(
   bindingId: number
 ): Promise<ApiResponse<null>> {
   const res = await api.delete(`/api/discount/admin/bindings/${bindingId}`)
+  return res.data
+}
+
+// ============================================================================
+// Customer routing policy（择优策略 + 允许走亏损线路的开关）
+// ============================================================================
+
+/**
+ * 读一个客户当前生效的路由策略。没单独配过的客户也会返回一份：configured 为 false、
+ * routing_strategy 是默认的 margin——「没配过」是常态，不是错误。
+ */
+export async function getDiscountRouting(
+  userId: number
+): Promise<ApiResponse<DiscountRouting>> {
+  const res = await api.get('/api/discount/admin/routing', {
+    params: { user_id: userId },
+  })
+  return res.data
+}
+
+/** 写入（或更新）一个客户的路由策略。 */
+export async function saveDiscountRouting(
+  payload: DiscountRoutingPayload
+): Promise<ApiResponse<null>> {
+  const res = await api.put('/api/discount/admin/routing', payload)
+  return res.data
+}
+
+/** 删掉这个客户的例外配置，回到默认口径（毛利优先、不允许走亏损线路）。 */
+export async function resetDiscountRouting(
+  userId: number
+): Promise<ApiResponse<null>> {
+  const res = await api.delete('/api/discount/admin/routing', {
+    params: { user_id: userId },
+  })
   return res.data
 }

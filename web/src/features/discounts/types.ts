@@ -81,6 +81,17 @@ export const DISCOUNT_VIOLATION_REASON = {
   NO_CHANNEL: 'no_channel',
 } as const
 
+/** 客户路由策略的择优口径；对应 `model.RoutingStrategy*`。 */
+export const DISCOUNT_ROUTING_STRATEGY = {
+  /** 默认：谁毛利高走谁。 */
+  MARGIN: 'margin',
+  /** 稳定优先：走上游优先级高的线路，不看毛利。 */
+  PRIORITY: 'priority',
+} as const
+
+export type DiscountRoutingStrategy =
+  (typeof DISCOUNT_ROUTING_STRATEGY)[keyof typeof DISCOUNT_ROUTING_STRATEGY]
+
 // ============================================================================
 // Simulation result (mirrors service.DiscountSimulateResult)
 // ============================================================================
@@ -313,4 +324,33 @@ export interface DiscountValidateResult {
   min_margin_ratio: string
   violations: DiscountValidateViolation[]
   warnings: string[]
+}
+
+// ============================================================================
+// Customer routing policy (mirrors service.DiscountRoutingView)
+// ============================================================================
+
+/**
+ * 一个客户的路由策略。没单独配过的客户也会拿到一份：configured 为 false、
+ * routing_strategy 是默认的 margin、allow_cost_breach 是 false。
+ */
+export interface DiscountRouting {
+  user_id: number
+  username: string
+  routing_strategy: string
+  /** 是否允许这个客户走会亏本的线路。 */
+  allow_cost_breach: boolean
+  remark: string
+  /** 最后改这一行的管理员 id；没配过时为 0。 */
+  updated_by: number
+  updated_at: number
+  /** 这个客户有没有单独的配置行。 */
+  configured: boolean
+}
+
+export interface DiscountRoutingPayload {
+  user_id: number
+  routing_strategy: string
+  allow_cost_breach: boolean
+  remark: string
 }

@@ -591,9 +591,11 @@ func migrateDiscountTables(db *gorm.DB) error {
 		db.Migrator().HasTable(&DiscountPlan{}) &&
 		db.Migrator().HasTable(&DiscountRule{}) &&
 		db.Migrator().HasTable(&DiscountBinding{}) {
-		return nil
+		// 折扣三表建过就不再重复迁移（decimal 列比对不相等会让每次启动重建整张表）。
+		// 路由策略表没有 decimal 列，不受这个坑影响，所以与三表分开、每次照常迁移。
+		return db.AutoMigrate(&DiscountRoutingPolicy{})
 	}
-	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{})
+	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{})
 }
 
 // migrateTokenModelLimitsToText migrates model_limits column from varchar(1024) to text

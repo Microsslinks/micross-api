@@ -159,6 +159,11 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			return nil, param.TokenGroup, err
 		}
 	}
+	// 客户被允许走亏损线路时，这一单必须在消费日志里留痕。记在请求上下文上是因为写日志的
+	// 地方在计费链路深处，够不着这里的局部变量；由 attachCostBreach 落到 admin_info 下。
+	if costFilter != nil && costFilter.Breach != nil {
+		common.SetContextKey(param.Ctx, constant.ContextKeyCostBreach, costFilter.Breach)
+	}
 	return channel, selectGroup, nil
 }
 
@@ -167,13 +172,17 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 // 折扣从 model.ResolveBillingDiscount 取——它自带总开关：开关关着、没绑方案、
 // 方案停用都给出 1，于是过滤器不启用、候选集一条不动。这里刻意放在
 // channelSyncLock 之外调用：解析折扣要查库，不能占着缓存锁去查。
+//
+// 客户的路由策略（毛利优先／稳定优先、是否允许走亏损线路）跟折扣一起取：两者都只在
+// 「这一单真的要打折」时才有意义，所以都放在 discount.Applied() 这道门后面。
 func BuildChannelCostFilter(param *RetryParam) *model.ChannelCostFilter {
 	if param == nil || param.Ctx == nil {
 		return nil
 	}
-	discount := model.ResolveBillingDiscount(common.GetContextKeyInt(param.Ctx, constant.ContextKeyUserId), param.ModelName)
+	userId := common.GetContextKeyInt(param.Ctx, constant.ContextKeyUserId)
+	discount := model.ResolveBillingDiscount(userId, param.ModelName)
 	if !discount.Applied() {
 		return nil
 	}
-	return model.NewChannelCostFilter(discount.Ratio)
+	return model.NewChannelCostFilter(discount.Ratio, model.ResolveCustomerRouting(userId))
 }
