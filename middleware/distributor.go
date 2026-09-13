@@ -55,6 +55,19 @@ func Distribute() func(c *gin.Context) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorChannelDisabled))
 				return
 			}
+			// 令牌被钉在某条线路上时，选线路整个绕开候选集与成本过滤：管理员指定的线路哪怕亏本
+			// 也照走，这是有意保留的特权。但这一单不能悄悄走——留一行痕，事后对账才看得出
+			// 「这一单是被人为钉在亏损线路上的」（见 .docs/task-04-p1-discount/02-work-queue.md §八 L2）。
+			// 只在真的要中转到上游、会按折扣结算的请求上判：拉取任务状态之类不产生费用，
+			// 在那里报「会亏本」是假警报，假警报多了运营就不看日志了。
+			if shouldSelectChannel && modelRequest.Model != "" {
+				// 没折扣就没有过滤器（BuildChannelCostFilter 返回 nil），这一单本来也不会亏。
+				costFilter := service.BuildChannelCostFilter(&service.RetryParam{Ctx: c, ModelName: modelRequest.Model})
+				if costFilter != nil && !model.ChannelPassesCostBudget(channel.Id, costFilter) {
+					logger.LogWarn(c, fmt.Sprintf("指定渠道仍按管理员指定使用：渠道 #%d（模型 %s）在当前折扣 %.4f 下会亏本",
+						channel.Id, modelRequest.Model, costFilter.SellRatio))
+				}
+			}
 		} else {
 			// Select a channel for the user
 			// check token model mapping
