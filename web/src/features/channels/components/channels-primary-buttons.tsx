@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Plus,
   MoreHorizontal,
@@ -29,11 +29,13 @@ import {
   SortAsc,
   RefreshCw,
   ArrowUpFromLine,
+  BadgePercent,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -58,12 +60,16 @@ import {
 } from '@/lib/admin-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { getStaleChannelCosts } from '../api'
 import {
+  COST_STALE_DAYS,
+  channelCostQueryKeys,
   handleDeleteAllDisabled,
   handleFixAbilities,
   handleTestAllChannels,
   handleUpdateAllBalances,
 } from '../lib'
+import { ChannelCostAlertsDialog } from './channel-cost-alerts-dialog'
 import { useChannels } from './channels-provider'
 
 export function ChannelsPrimaryButtons() {
@@ -82,6 +88,7 @@ export function ChannelsPrimaryButtons() {
   const queryClient = useQueryClient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showConsistencyDialog, setShowConsistencyDialog] = useState(false)
+  const [showCostAlertsDialog, setShowCostAlertsDialog] = useState(false)
   const [isRepairingConsistency, setIsRepairingConsistency] = useState(false)
   const currentUser = useAuthStore((s) => s.auth.user)
   const canEditSensitive = hasPermission(
@@ -89,6 +96,13 @@ export function ChannelsPrimaryButtons() {
     ADMIN_PERMISSION_RESOURCES.CHANNEL,
     ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
   )
+  // 待补数量直接标在菜单项上，不用点开才知道要不要去补。
+  const costAlertsQuery = useQuery({
+    queryKey: channelCostQueryKeys.stale(COST_STALE_DAYS),
+    queryFn: () => getStaleChannelCosts(COST_STALE_DAYS),
+    staleTime: 60 * 1000,
+  })
+  const costAlertCount = costAlertsQuery.data?.data?.items.length ?? 0
 
   const handleTagModeToggle = (checked: boolean) => {
     localStorage.setItem('enable-tag-mode', String(checked))
@@ -256,6 +270,27 @@ export function ChannelsPrimaryButtons() {
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault()
+                setShowCostAlertsDialog(true)
+              }}
+            >
+              {t('Cost ratio needs attention')}
+              <DropdownMenuShortcut>
+                {costAlertCount > 0 ? (
+                  <StatusBadge
+                    label={String(costAlertCount)}
+                    variant='danger'
+                    size='sm'
+                    copyable={false}
+                  />
+                ) : (
+                  <BadgePercent className='h-4 w-4' />
+                )}
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
                 setShowConsistencyDialog(true)
               }}
             >
@@ -301,6 +336,11 @@ export function ChannelsPrimaryButtons() {
           })
           setShowDeleteDialog(false)
         }}
+      />
+
+      <ChannelCostAlertsDialog
+        open={showCostAlertsDialog}
+        onOpenChange={setShowCostAlertsDialog}
       />
 
       <ConfirmDialog

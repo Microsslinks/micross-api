@@ -58,12 +58,17 @@ import { truncateText } from '@/lib/utils'
 import { getCodexUsage, updateChannelBalance } from '../api'
 import { CHANNEL_STATUS_CONFIG, MODEL_FETCHABLE_TYPES } from '../constants'
 import {
+  COST_STALE_DAYS,
+  formatCostRatio,
+  formatCostRatioPercent,
   formatRelativeTime,
   formatResponseTime,
   getBalanceVariant,
   getChannelTypeIcon,
   getChannelTypeLabel,
   getResponseTimeConfig,
+  isCostRatioConfigured,
+  isCostRatioStale,
   isMultiKeyChannel,
   parseModelsList,
   parseGroupsList,
@@ -313,6 +318,89 @@ function TagWeightCell({ channel }: { channel: TagRow }) {
         }}
       />
     </>
+  )
+}
+
+/**
+ * 进货折扣单元格。
+ * 没录的线路会被排除在折扣客户的候选之外（客户会觉得「线路少了」却查不出原因），
+ * 所以空值必须显眼；录了但太久没更新的同样提示该去核一下上游价。
+ */
+function CostRatioCell({ channel }: { channel: Channel }) {
+  const { t } = useTranslation()
+
+  // 汇总行没有单一折扣可言。
+  if (isTagAggregateRow(channel)) {
+    return <span className='text-muted-foreground text-xs'>-</span>
+  }
+
+  if (!isCostRatioConfigured(channel.cost_ratio)) {
+    return (
+      <TooltipProvider delay={100}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <StatusBadge
+                label={t('Not set')}
+                variant='danger'
+                size='sm'
+                copyable={false}
+                className='-ml-1.5 cursor-help'
+              />
+            }
+          />
+          <TooltipContent side='top' className='max-w-xs'>
+            {t(
+              'Channels without a cost ratio are skipped when serving customers on a discount.'
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
+  const stale = isCostRatioStale(channel.cost_updated_at)
+  const updatedAt = channel.cost_updated_at
+    ? formatTimestampToDate(channel.cost_updated_at)
+    : t('Unknown')
+
+  return (
+    <TooltipProvider delay={100}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <StatusBadge
+              label={formatCostRatio(channel.cost_ratio)}
+              icon={stale ? AlertTriangle : undefined}
+              variant={stale ? 'warning' : 'neutral'}
+              size='sm'
+              copyable={false}
+              className='-ml-1.5 cursor-help'
+            />
+          }
+        />
+        <TooltipContent side='top' className='max-w-xs space-y-1'>
+          <p>
+            {t('You pay {{percent}} of your list price.', {
+              percent: formatCostRatioPercent(channel.cost_ratio),
+            })}
+          </p>
+          <p>
+            {t('Last updated: {{time}}', {
+              time: updatedAt,
+            })}
+          </p>
+          {stale && (
+            <p>
+              {t(
+                'Not updated in {{days}} days — the upstream price may have changed.',
+                { days: COST_STALE_DAYS }
+              )}
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -1126,6 +1214,16 @@ export function useChannelsColumns(
         meta: { mobileHidden: true },
         cell: ({ row }) => <WeightCell channel={row.original} />,
         size: 90,
+        enableSorting: false,
+      },
+
+      // Cost Ratio column
+      {
+        accessorKey: 'cost_ratio',
+        header: t('Cost Ratio'),
+        meta: { mobileHidden: true },
+        cell: ({ row }) => <CostRatioCell channel={row.original} />,
+        size: 120,
         enableSorting: false,
       },
 

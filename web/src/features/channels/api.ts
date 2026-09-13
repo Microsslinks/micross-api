@@ -22,8 +22,10 @@ import { api, type ApiRequestConfig } from '@/lib/api'
 import type {
   AddChannelRequest,
   BatchDeleteParams,
+  BatchSetCostParams,
   BatchSetTagParams,
   Channel,
+  ChannelCostOverviewResponse,
   ChannelBalanceResponse,
   ChannelOpsResponse,
   ChannelTestResponse,
@@ -200,6 +202,33 @@ export async function batchSetChannelTag(
     data,
     channelActionConfig()
   )
+  return res.data
+}
+
+/**
+ * Batch set cost ratio for channels
+ */
+export async function batchSetChannelCost(
+  data: BatchSetCostParams
+): Promise<{ success: boolean; message?: string; data?: number }> {
+  const res = await api.post(
+    '/api/channel/cost/batch',
+    data,
+    channelActionConfig()
+  )
+  return res.data
+}
+
+/**
+ * List channels whose cost ratio is missing or too old to trust
+ */
+export async function getStaleChannelCosts(
+  days?: number
+): Promise<ChannelCostOverviewResponse> {
+  const res = await api.get('/api/channel/cost/stale', {
+    params: days ? { days } : undefined,
+    ...channelActionConfig(),
+  })
   return res.data
 }
 

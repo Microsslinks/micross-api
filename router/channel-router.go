@@ -69,6 +69,8 @@ var channelPermissionRoutes = []permissionRoute{
 	{method: http.MethodDelete, path: "/ollama/delete", permission: authz.ChannelSensitiveWrite, handler: controller.OllamaDeleteModel},
 	{method: http.MethodGet, path: "/ollama/version/:id", permission: authz.ChannelSensitiveWrite, handler: controller.OllamaVersion},
 	{method: http.MethodPost, path: "/batch/tag", permission: authz.ChannelWrite, handler: controller.BatchSetChannelTag},
+	{method: http.MethodPost, path: "/cost/batch", permission: authz.ChannelSensitiveWrite, handler: controller.BatchSetChannelCost},
+	{method: http.MethodGet, path: "/cost/stale", permission: authz.ChannelRead, handler: controller.GetStaleChannelCosts},
 	{method: http.MethodGet, path: "/tag/models", permission: authz.ChannelRead, handler: controller.GetTagModels},
 	{method: http.MethodPost, path: "/copy/:id", permission: authz.ChannelSensitiveWrite, handler: controller.CopyChannel},
 	{method: http.MethodPost, path: "/multi_key/manage", permission: authz.ChannelOperate, handler: controller.ManageMultiKeys},

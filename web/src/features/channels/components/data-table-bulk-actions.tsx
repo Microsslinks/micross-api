@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
-import { Power, PowerOff, Tag, Trash2 } from 'lucide-react'
+import { BadgePercent, Power, PowerOff, Tag, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -40,10 +40,12 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { FIELD_DESCRIPTIONS } from '../constants'
 import {
   handleBatchDelete,
   handleBatchDisable,
   handleBatchEnable,
+  handleBatchSetCost,
   handleBatchSetTag,
 } from '../lib'
 import type { Channel } from '../types'
@@ -58,8 +60,10 @@ export function DataTableBulkActions<TData>({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [showTagDialog, setShowTagDialog] = useState(false)
+  const [showCostDialog, setShowCostDialog] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [tagValue, setTagValue] = useState('')
+  const [costRatioValue, setCostRatioValue] = useState('')
   const currentUser = useAuthStore((s) => s.auth.user)
   const canEditSensitive = hasPermission(
     currentUser,
@@ -102,6 +106,14 @@ export function DataTableBulkActions<TData>({
     handleBatchSetTag(selectedIds, tagValue || null, queryClient, () => {
       setShowTagDialog(false)
       setTagValue('')
+      handleClearSelection()
+    })
+  }
+
+  const handleSetCost = () => {
+    handleBatchSetCost(selectedIds, costRatioValue.trim(), queryClient, () => {
+      setShowCostDialog(false)
+      setCostRatioValue('')
       handleClearSelection()
     })
   }
@@ -171,6 +183,44 @@ export function DataTableBulkActions<TData>({
           </TooltipTrigger>
           <TooltipContent>
             <p>{t('Set tag for selected channels')}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => {
+                  if (!canEditSensitive) return
+                  setShowCostDialog(true)
+                }}
+                aria-disabled={!canEditSensitive}
+                className={cn(
+                  'size-8',
+                  !canEditSensitive && 'cursor-not-allowed opacity-50'
+                )}
+                aria-label={t('Set cost ratio for selected channels')}
+                title={
+                  canEditSensitive
+                    ? t('Set cost ratio for selected channels')
+                    : t('No permission to perform this action')
+                }
+              />
+            }
+          >
+            <BadgePercent />
+            <span className='sr-only'>
+              {t('Set cost ratio for selected channels')}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {canEditSensitive
+                ? t('Set cost ratio for selected channels')
+                : t('No permission to perform this action')}
+            </p>
           </TooltipContent>
         </Tooltip>
 
@@ -249,6 +299,56 @@ export function DataTableBulkActions<TData>({
               value={tagValue}
               onChange={(e) => setTagValue(e.target.value)}
             />
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Set Cost Ratio Dialog */}
+      <Dialog
+        open={showCostDialog}
+        onOpenChange={setShowCostDialog}
+        title={t('Set Cost Ratio')}
+        description={t(
+          'Set a cost ratio for {{count}} selected channel(s). Leave empty to clear.',
+          { count: selectedIds.length }
+        )}
+        contentHeight='auto'
+        bodyClassName='space-y-4'
+        footer={
+          <>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setShowCostDialog(false)
+                setCostRatioValue('')
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleSetCost}>{t('Save')}</Button>
+          </>
+        }
+      >
+        <div className='grid gap-4 py-4'>
+          <div className='grid gap-2'>
+            <Label htmlFor='cost-ratio'>{t('Cost Ratio')}</Label>
+            <Input
+              id='cost-ratio'
+              type='number'
+              min='0'
+              step='0.01'
+              placeholder={t('Not set')}
+              value={costRatioValue}
+              onChange={(e) => setCostRatioValue(e.target.value)}
+            />
+            <p className='text-muted-foreground text-xs'>
+              {t(FIELD_DESCRIPTIONS.COST_RATIO)}
+            </p>
+            {costRatioValue.trim() === '' && (
+              <p className='text-muted-foreground text-xs'>
+                {t('Saving an empty value clears the cost ratio.')}
+              </p>
+            )}
           </div>
         </div>
       </Dialog>

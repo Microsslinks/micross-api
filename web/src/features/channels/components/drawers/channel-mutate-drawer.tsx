@@ -122,6 +122,7 @@ import {
   parseChannelConnectionInfo,
   type ChannelConnectionInfo,
 } from '@/lib/channel-connection-info'
+import { formatTimestampToDate } from '@/lib/format'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
@@ -165,10 +166,12 @@ import {
   formatModelsArray,
   extractRedirectModels,
   extractMappingSourceModels,
+  COST_STALE_DAYS,
   hasModelConfigChanged,
   findMissingModelsInMapping,
   validateModelMappingJson,
   hasAdvancedSettingsErrors,
+  isCostRatioStale,
 } from '../../lib'
 import {
   collectInvalidStatusCodeEntries,
@@ -3698,7 +3701,26 @@ export function ChannelMutateDrawer({
                                 name='cost_ratio'
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('Cost Ratio')}</FormLabel>
+                                    <FormLabel className='flex-wrap items-center gap-2'>
+                                      {t('Cost Ratio')}
+                                      {currentRow?.cost_updated_at ? (
+                                        <span className='text-muted-foreground text-xs font-normal'>
+                                          {t('Last updated: {{time}}', {
+                                            time: formatTimestampToDate(
+                                              currentRow.cost_updated_at
+                                            ),
+                                          })}
+                                          {isCostRatioStale(
+                                            currentRow.cost_updated_at
+                                          )
+                                            ? ` · ${t(
+                                                'Not updated in {{days}} days — the upstream price may have changed.',
+                                                { days: COST_STALE_DAYS }
+                                              )}`
+                                            : ''}
+                                        </span>
+                                      ) : null}
+                                    </FormLabel>
                                     <FormControl>
                                       <Input
                                         type='number'

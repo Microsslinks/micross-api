@@ -328,6 +328,32 @@ export interface BatchSetTagParams {
   tag: string | null
 }
 
+export interface BatchSetCostParams {
+  ids: number[]
+  cost_ratio: string
+}
+
+/** 一条线路为什么出现在「进货折扣待补」清单里。 */
+export type ChannelCostReason = 'unconfigured' | 'stale'
+
+export interface ChannelCostOverviewItem {
+  id: number
+  name: string
+  status: number
+  cost_ratio: string
+  cost_updated_at: number
+  reason: ChannelCostReason
+}
+
+export interface ChannelCostOverviewResponse {
+  success: boolean
+  message?: string
+  data?: {
+    days: number
+    items: ChannelCostOverviewItem[]
+  }
+}
+
 export interface TagOperationParams {
   tag: string
   new_tag?: string
