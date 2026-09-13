@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 export type TopNavLink = {
@@ -59,6 +60,7 @@ export function useTopNavLinks(): TopNavLink[] {
   const docsLink: string | undefined = status?.docs_link as string | undefined
 
   const isAuthed = !!auth?.user
+  const isAdmin = (auth?.user?.role ?? ROLE.GUEST) >= ROLE.ADMIN
 
   const links: TopNavLink[] = []
 
@@ -67,9 +69,18 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Home'), href: '/' })
   }
 
-  // Console -> /dashboard (new console path)
-  if (modules?.console !== false) {
-    links.push({ title: t('Console'), href: '/dashboard' })
+  // Console -> /dashboard，只给管理员看。
+  //
+  // 它是管理端工作区，而「控制台」正是 P0 验收 #2 要求客户界面避开的三个词
+  // 之一（Console / Dashboard / Overview 不复用）。此前这一段没有任何角色门
+  // 控，于是访客和普通客户在最显眼的顶栏上都能看到「控制台」，点进去还要先
+  // 登录——等于拿后台入口当门面。管理员登录后本就在 /dashboard，保留此项只是
+  // 让他们从公开页（模型广场、排行榜）能一键回后台。
+  //
+  // 开关仍归管理端「顶栏导航」设置管（HeaderNavModules.console）：关掉它对
+  // 管理员也不显示。
+  if (modules?.console !== false && isAdmin) {
+    links.push({ title: t('Console'), href: '/dashboard/overview' })
   }
 
   // Pricing

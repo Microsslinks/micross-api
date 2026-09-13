@@ -34,7 +34,7 @@ import {
 export const Route = createFileRoute('/_authenticated/chat/$chatId')({
   loader: async ({ params }) => {
     if (!Number.isInteger(Number(params.chatId))) {
-      throw redirect({ to: '/dashboard' })
+      throw redirect({ href: '/dashboard/overview' })
     }
   },
   component: ChatRouteComponent,

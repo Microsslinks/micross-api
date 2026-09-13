@@ -24,8 +24,11 @@ import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 export const Route = createFileRoute('/_authenticated/playground/')({
   beforeLoad: () => {
+    // 注意：这里查的是 chat.playground，而侧边栏可见性看的是 playground 段，
+    // 两者不对称且默认配置里没有 chat 段，所以这个守卫实际上不生效。本次只
+    // 统一兜底落点，守卫本身的不对称另记（见 master-plan §「刻意未动的五处」）。
     if (!isSidebarModuleEnabled('chat', 'playground')) {
-      throw redirect({ to: '/dashboard' })
+      throw redirect({ href: '/dashboard/overview' })
     }
   },
   component: PlaygroundPage,

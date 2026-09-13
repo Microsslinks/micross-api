@@ -47,8 +47,12 @@ export function useAuthRedirect() {
       await i18n.changeLanguage(savedLang)
     }
 
+    // 没指定去向时落到侧边栏第一项「概览」（/dashboard/overview），而不是父
+    // 路径 /dashboard：后者要靠一次 redirect 才到同一页面，多一跳不说，落点
+    // 还会跟着 /dashboard 的默认 section 悄悄漂移。
     const targetPath =
-      sanitizeAuthRedirect(redirectTo, window.location.origin) ?? '/dashboard'
+      sanitizeAuthRedirect(redirectTo, window.location.origin) ??
+      '/dashboard/overview'
     navigate({ href: targetPath, replace: true })
   }
 
