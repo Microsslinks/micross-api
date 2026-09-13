@@ -77,9 +77,7 @@ export function PublicLayout(props: PublicLayoutProps) {
         props.children
       ) : (
         <main className={headerOffset ? 'pt-16 sm:pt-20' : undefined}>
-          <Container width={contentWidth}>
-            {props.children}
-          </Container>
+          <Container width={contentWidth}>{props.children}</Container>
         </main>
       )}
 

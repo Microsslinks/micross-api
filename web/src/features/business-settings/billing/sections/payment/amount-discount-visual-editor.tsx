@@ -25,9 +25,9 @@ import { StaticRowActions } from '@/components/data-table/static/static-row-acti
 import { EmptyState } from '@/components/empty-state'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-
 import { safeJsonParseWithValidation } from '@/features/system-settings/utils/json-parser'
 import { isObjectRecord } from '@/features/system-settings/utils/json-validators'
+
 import {
   AmountDiscountDialog,
   type AmountDiscountData,

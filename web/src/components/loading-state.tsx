@@ -68,7 +68,9 @@ export function LoadingState(props: LoadingStateProps) {
           <EmptyMedia variant='icon'>
             <Loader2 className={cn(iconSize, 'animate-spin')} />
           </EmptyMedia>
-          <EmptyDescription>{props.message ?? t('Loading...')}</EmptyDescription>
+          <EmptyDescription>
+            {props.message ?? t('Loading...')}
+          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     </FadeIn>

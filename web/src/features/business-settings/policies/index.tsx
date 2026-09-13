@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '@/features/system-settings/components/settings-page'
+
 import {
   POLICIES_DEFAULT_SECTION,
   getPoliciesSectionContent,

@@ -21,7 +21,13 @@ import { useMemo, useCallback, useState } from 'react'
 
 import { useDebounce } from '@/hooks/use-debounce'
 
-import { FILTER_ALL, SORT_OPTIONS, ENDPOINT_TYPES, VIEW_MODES, type ViewMode } from '../constants'
+import {
+  FILTER_ALL,
+  SORT_OPTIONS,
+  ENDPOINT_TYPES,
+  VIEW_MODES,
+  type ViewMode,
+} from '../constants'
 import { filterAndSortModels, extractAllTags } from '../lib/filters'
 import type { PricingModel } from '../types'
 

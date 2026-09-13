@@ -40,8 +40,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { DEFAULT_CURRENCY_CONFIG } from '@/stores/system-config-store'
-
 import { FormDirtyIndicator } from '@/features/system-settings/components/form-dirty-indicator'
 import { FormNavigationGuard } from '@/features/system-settings/components/form-navigation-guard'
 import {
@@ -54,6 +52,7 @@ import { SettingsSection } from '@/features/system-settings/components/settings-
 import { useSettingsForm } from '@/features/system-settings/hooks/use-settings-form'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
 import { safeNumberFieldProps } from '@/features/system-settings/utils/numeric-field'
+import { DEFAULT_CURRENCY_CONFIG } from '@/stores/system-config-store'
 
 const createPricingSchema = (t: (key: string) => string) =>
   z

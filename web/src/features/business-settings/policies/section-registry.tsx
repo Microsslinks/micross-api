@@ -16,11 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Gauge, KeyRound, UserPlus } from 'lucide-react'
+
+import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
+
 import { BasicAuthSection } from './sections/basic-auth-section'
 import { RateLimitSection } from './sections/rate-limit-section'
 import { TokenLimitSection } from './sections/token-limit-section'
-import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
-import { Gauge, KeyRound, UserPlus } from 'lucide-react'
 
 /**
  * 「业务策略」配置组的字段集合。
@@ -100,12 +102,14 @@ const POLICIES_SECTIONS = [
 
 export type PolicySectionId = (typeof POLICIES_SECTIONS)[number]['id']
 
-const policiesRegistry = createSectionRegistry<PolicySectionId, PolicySettings>({
-  sections: POLICIES_SECTIONS,
-  defaultSection: 'registration',
-  basePath: '/business-settings/policies',
-  urlStyle: 'path',
-})
+const policiesRegistry = createSectionRegistry<PolicySectionId, PolicySettings>(
+  {
+    sections: POLICIES_SECTIONS,
+    defaultSection: 'registration',
+    basePath: '/business-settings/policies',
+    urlStyle: 'path',
+  }
+)
 
 export const POLICIES_SECTION_IDS = policiesRegistry.sectionIds
 export const POLICIES_DEFAULT_SECTION = policiesRegistry.defaultSection

@@ -313,6 +313,5 @@ export function usePricingColumns(): ColumnDef<PricingModel>[] {
       size: 130,
       enableSorting: false,
     },
-
   ]
 }

@@ -110,7 +110,8 @@ export function DiscountSettingSection(props: DiscountSettingSectionProps) {
   const onSubmit = async (values: DiscountSettingFormValues) => {
     // 留空与 0 同义：后端把空串也当 0 处理，这里统一成 "0" 少一种落库形态。
     const normalized: FlatDiscountDefaults = {
-      'discount_setting.min_margin_ratio': values.min_margin_ratio.trim() || '0',
+      'discount_setting.min_margin_ratio':
+        values.min_margin_ratio.trim() || '0',
       'discount_setting.enable_billing_discount':
         values.enable_billing_discount,
     }

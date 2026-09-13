@@ -16,15 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ChannelAffinitySection } from '../general/channel-affinity'
-import { IoNetDeploymentSettingsSection } from '../integrations/ionet-deployment-settings-section'
-import type { ModelSettings } from '../types'
-import { createSectionRegistry } from '../utils/section-registry'
-import { ClaudeSettingsCard } from './claude-settings-card'
-import { GeminiSettingsCard } from './gemini-settings-card'
-import { GlobalSettingsCard } from './global-settings-card'
-import { GrokSettingsCard } from './grok-settings-card'
-import { RoutingReliabilitySection } from './routing-reliability-section'
 import {
   Magnet,
   MessageCircle,
@@ -34,6 +25,16 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react'
+
+import { ChannelAffinitySection } from '../general/channel-affinity'
+import { IoNetDeploymentSettingsSection } from '../integrations/ionet-deployment-settings-section'
+import type { ModelSettings } from '../types'
+import { createSectionRegistry } from '../utils/section-registry'
+import { ClaudeSettingsCard } from './claude-settings-card'
+import { GeminiSettingsCard } from './gemini-settings-card'
+import { GlobalSettingsCard } from './global-settings-card'
+import { GrokSettingsCard } from './grok-settings-card'
+import { RoutingReliabilitySection } from './routing-reliability-section'
 
 function formatJsonForEditor(value: string, fallback: string) {
   const raw = (value ?? '').toString().trim()

@@ -71,8 +71,7 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
       {
         key: 'users',
         labelKey: 'User Management',
-        descriptionKey:
-          'User accounts, redemption codes, and subscriptions.',
+        descriptionKey: 'User accounts, redemption codes, and subscriptions.',
       },
       {
         key: 'billing',
@@ -130,8 +129,7 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
       {
         key: 'operations',
         labelKey: 'Operations',
-        descriptionKey:
-          'SMTP, worker proxy, logs, performance, and updates.',
+        descriptionKey: 'SMTP, worker proxy, logs, performance, and updates.',
       },
     ],
   },
@@ -192,7 +190,9 @@ export function updateSectionConfig(
 ): SidebarModulesConfig {
   const base = config ?? {}
   const stored = base[sectionKey]
-  const section: SidebarSectionConfig = stored ? { ...stored } : { enabled: true }
+  const section: SidebarSectionConfig = stored
+    ? { ...stored }
+    : { enabled: true }
   Object.entries(patch).forEach(([key, value]) => {
     section[key] = value
   })

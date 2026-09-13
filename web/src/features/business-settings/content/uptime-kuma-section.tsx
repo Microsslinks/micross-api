@@ -49,7 +49,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-
 import { SettingsSwitchField } from '@/features/system-settings/components/settings-form-layout'
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'

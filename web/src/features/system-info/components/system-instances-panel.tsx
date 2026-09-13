@@ -623,7 +623,7 @@ export function SystemInstancesPanel() {
 
   return (
     <>
-      <section className='bg-card overflow-hidden rounded-2xl border shadow-card'>
+      <section className='bg-card shadow-card overflow-hidden rounded-2xl border'>
         <div className='flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5'>
           <div className='min-w-0'>
             <div className='flex items-center gap-2'>

@@ -35,8 +35,8 @@ import { Trans, useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
+import { cn } from '@/lib/utils'
 
 import { getAboutContent } from './api'
 
@@ -110,7 +110,11 @@ function ContentCard(props: {
   )
 }
 
-function CardBadge(props: { tone: Tone; icon: React.ReactNode; title: string }) {
+function CardBadge(props: {
+  tone: Tone
+  icon: React.ReactNode
+  title: string
+}) {
   return (
     <div className='flex items-center gap-3.5'>
       <span
@@ -137,9 +141,7 @@ function Tag(props: { children: React.ReactNode }) {
 }
 
 function TagRow(props: { children: React.ReactNode }) {
-  return (
-    <div className='mt-4 flex flex-wrap gap-2'>{props.children}</div>
-  )
+  return <div className='mt-4 flex flex-wrap gap-2'>{props.children}</div>
 }
 
 /**
@@ -334,7 +336,7 @@ function CompanyProfile() {
             'Rooted in China, serving the world — a second growth curve built on AI technology and Token services.'
           )}
         />
-        <div className='border-border/50 bg-card relative overflow-hidden rounded-3xl border p-6 shadow-card md:p-8'>
+        <div className='border-border/50 bg-card shadow-card relative overflow-hidden rounded-3xl border p-6 md:p-8'>
           <div
             aria-hidden
             className='bg-primary/10 pointer-events-none absolute -top-28 -right-24 size-80 rounded-full blur-3xl'
@@ -347,7 +349,10 @@ function CompanyProfile() {
             <h3 className='mt-4 text-2xl leading-snug font-bold tracking-tight md:text-3xl'>
               <Trans
                 i18nKey='Becoming an <1>AI technology service provider</1> and a <3>Token service provider</3>'
-                components={{ 1: <span className={GRADIENT_TEXT} />, 3: <span className={GRADIENT_TEXT} /> }}
+                components={{
+                  1: <span className={GRADIENT_TEXT} />,
+                  3: <span className={GRADIENT_TEXT} />,
+                }}
               />
             </h3>
             <p className='text-muted-foreground mt-4 max-w-3xl text-sm leading-relaxed'>
@@ -447,14 +452,8 @@ function CompanyProfile() {
         <div className='grid gap-4 md:grid-cols-3'>
           {honors.map((item) => (
             <ContentCard key={item.title} tone={item.tone}>
-              <CardBadge
-                tone={item.tone}
-                icon={item.icon}
-                title={item.title}
-              />
-              <p className='text-muted-foreground mt-1 text-xs'>
-                {item.maker}
-              </p>
+              <CardBadge tone={item.tone} icon={item.icon} title={item.title} />
+              <p className='text-muted-foreground mt-1 text-xs'>{item.maker}</p>
               <TagRow>
                 {item.tags.map((tag) => (
                   <Tag key={tag}>{tag}</Tag>
@@ -480,14 +479,8 @@ function CompanyProfile() {
         <div className='grid gap-4 md:grid-cols-2'>
           {products.map((item) => (
             <ContentCard key={item.title} tone={item.tone}>
-              <CardBadge
-                tone={item.tone}
-                icon={item.icon}
-                title={item.title}
-              />
-              <p className='text-muted-foreground mt-1 text-xs'>
-                {item.maker}
-              </p>
+              <CardBadge tone={item.tone} icon={item.icon} title={item.title} />
+              <p className='text-muted-foreground mt-1 text-xs'>{item.maker}</p>
               <p className='text-muted-foreground mt-4 text-sm leading-relaxed'>
                 {item.body}
               </p>

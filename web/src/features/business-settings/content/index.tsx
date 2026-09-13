@@ -17,7 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '@/features/system-settings/components/settings-page'
-import type { ContentSettings, SystemOption } from '@/features/system-settings/types'
+import type {
+  ContentSettings,
+  SystemOption,
+} from '@/features/system-settings/types'
+
 import {
   CONTENT_DEFAULT_SECTION,
   getContentSectionContent,

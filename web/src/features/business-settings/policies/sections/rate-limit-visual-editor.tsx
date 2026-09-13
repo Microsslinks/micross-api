@@ -24,9 +24,9 @@ import { StaticDataTable } from '@/components/data-table/static/static-data-tabl
 import { StaticRowActions } from '@/components/data-table/static/static-row-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
 import { safeJsonParseWithValidation } from '@/features/system-settings/utils/json-parser'
 import { isObjectRecord } from '@/features/system-settings/utils/json-validators'
+
 import { RateLimitDialog, type RateLimitEntryData } from './rate-limit-dialog'
 
 type RateLimitVisualEditorProps = {

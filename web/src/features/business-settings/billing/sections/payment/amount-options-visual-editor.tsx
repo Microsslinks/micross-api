@@ -25,7 +25,6 @@ import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
 import { safeJsonParseWithValidation } from '@/features/system-settings/utils/json-parser'
 import { isArray } from '@/features/system-settings/utils/json-validators'
 

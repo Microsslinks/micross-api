@@ -73,7 +73,10 @@ function DiscountsPage() {
         open={simulateOpen}
         onOpenChange={setSimulateOpen}
       />
-      <DiscountsRoutingDrawer open={routingOpen} onOpenChange={setRoutingOpen} />
+      <DiscountsRoutingDrawer
+        open={routingOpen}
+        onOpenChange={setRoutingOpen}
+      />
     </>
   )
 }

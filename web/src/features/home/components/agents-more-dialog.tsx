@@ -36,7 +36,7 @@ export function AgentsMoreDialog() {
 
   return (
     <Dialog>
-      <DialogTrigger className='group border-border/40 text-muted-foreground shadow-card hover:border-border hover:bg-muted/30 hover:text-foreground flex min-w-0 items-center gap-2 rounded-xl border border-dashed px-3 py-2.5 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-card-lift'>
+      <DialogTrigger className='group border-border/40 text-muted-foreground shadow-card hover:border-border hover:bg-muted/30 hover:text-foreground hover:shadow-card-lift flex min-w-0 items-center gap-2 rounded-xl border border-dashed px-3 py-2.5 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-1'>
         <span className='bg-background/60 grid size-8 shrink-0 place-items-center rounded-lg'>
           <LayoutGrid className='size-4' />
         </span>

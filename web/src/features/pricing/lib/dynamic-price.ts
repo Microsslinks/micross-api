@@ -63,9 +63,7 @@ export function isDynamicPricingModel(model: PricingModel): boolean {
  * The model square is a public price list, so it always shows the official
  * catalog price per 1M tokens.
  */
-export function formatDynamicUnitPrice(
-  valuePerMillionTokens: number
-): string {
+export function formatDynamicUnitPrice(valuePerMillionTokens: number): string {
   const priceUSD =
     valuePerMillionTokens / TOKEN_UNIT_DIVISORS[DEFAULT_TOKEN_UNIT]
 

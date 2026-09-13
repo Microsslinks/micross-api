@@ -83,7 +83,7 @@ export function PublicNavigation({
             )}
           >
             {t(link.title)}
-            </Link>
+          </Link>
         )
       })}
     </nav>

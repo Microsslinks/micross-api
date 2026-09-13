@@ -16,7 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { SystemInfoSection } from './sections/system-info-section'
+import { Bell, BookOpen, Info, LayoutTemplate, Menu } from 'lucide-react'
+
+import type { SiteSettings } from '@/features/system-settings/types'
+import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
+
 import {
   parseHeaderNavModules,
   parseSidebarModulesAdmin,
@@ -27,9 +31,7 @@ import { DocsLinkSection } from './sections/docs-link-section'
 import { HeaderNavigationSection } from './sections/header-navigation-section'
 import { NoticeSection } from './sections/notice-section'
 import { SidebarModulesSection } from './sections/sidebar-modules-section'
-import type { SiteSettings } from '@/features/system-settings/types'
-import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
-import { Bell, BookOpen, Info, LayoutTemplate, Menu } from 'lucide-react'
+import { SystemInfoSection } from './sections/system-info-section'
 
 const SITE_SECTIONS = [
   {

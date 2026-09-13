@@ -15,6 +15,7 @@ var Version = "v0.0.0"            // this hard coding will be replaced automatic
 var SystemName = "Microsslink"
 var Footer = ""
 var Logo = ""
+
 // Icp 备案号，展示在页脚；由管理员在「业务设置 → 站点」中配置
 var Icp = ""
 var TopUpLink = ""

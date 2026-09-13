@@ -282,9 +282,13 @@ export function getDiscountRoutingStrategyLabel(
 
 /** 择优策略的两个选项；平铺成单选，与方案表单里的归属／状态一致。 */
 export function getDiscountRoutingStrategyOptions(t: TFunction) {
-  return [DISCOUNT_ROUTING_STRATEGY.MARGIN, DISCOUNT_ROUTING_STRATEGY.PRIORITY].map(
-    (value) => ({ label: getDiscountRoutingStrategyLabel(t, value), value })
-  )
+  return [
+    DISCOUNT_ROUTING_STRATEGY.MARGIN,
+    DISCOUNT_ROUTING_STRATEGY.PRIORITY,
+  ].map((value) => ({
+    label: getDiscountRoutingStrategyLabel(t, value),
+    value,
+  }))
 }
 
 export const DISCOUNT_ROUTING_LIMITS = {

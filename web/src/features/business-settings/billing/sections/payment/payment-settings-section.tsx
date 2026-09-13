@@ -46,8 +46,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
-
 import { confirmPaymentCompliance } from '@/features/system-settings/api'
 import {
   SettingsForm,
@@ -57,17 +55,19 @@ import {
 import { SettingsPageFormActions } from '@/features/system-settings/components/settings-page-context'
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
-import { safeNumberFieldProps } from '@/features/system-settings/utils/numeric-field'
-import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
-import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
-import { CreemProductsVisualEditor } from './creem-products-visual-editor'
-import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import {
   formatJsonForEditor,
   getJsonError,
   normalizeJsonForComparison,
   removeTrailingSlash,
 } from '@/features/system-settings/integrations/utils'
+import { safeNumberFieldProps } from '@/features/system-settings/utils/numeric-field'
+import { cn } from '@/lib/utils'
+
+import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
+import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
+import { CreemProductsVisualEditor } from './creem-products-visual-editor'
+import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import { saveWaffoPancakeConfig } from './waffo-pancake-api'
 import {
   WaffoPancakeSettingsSection,

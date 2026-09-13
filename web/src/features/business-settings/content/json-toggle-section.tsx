@@ -33,7 +33,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
-
 import { SettingsAccordion } from '@/features/system-settings/components/settings-accordion'
 import {
   SettingsForm,
@@ -42,6 +41,7 @@ import {
 } from '@/features/system-settings/components/settings-form-layout'
 import { SettingsPageFormActions } from '@/features/system-settings/components/settings-page-context'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
+
 import { formatJsonForEditor, normalizeJsonString } from './utils'
 
 type JsonToggleSectionProps = {

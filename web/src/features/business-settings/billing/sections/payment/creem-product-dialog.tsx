@@ -42,9 +42,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreemProduct } from '@/features/wallet/types'
-
 import { safeNumberFieldProps } from '@/features/system-settings/utils/numeric-field'
+import type { CreemProduct } from '@/features/wallet/types'
 
 const creemProductDialogSchema = z.object({
   name: z.string().min(1, 'Product name is required'),

@@ -24,15 +24,16 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
-import { parseCurrencyDisplayType } from '@/lib/currency'
 
-import { CheckinSettingsSection } from './sections/checkin-settings-section'
-import { PricingSection } from './sections/pricing-section'
-import { QuotaSettingsSection } from './sections/quota-settings-section'
-import { PaymentSettingsSection } from './sections/payment/payment-settings-section'
 import { RatioSettingsCard } from '@/features/system-settings/models/ratio-settings-card'
 import type { BillingSettings } from '@/features/system-settings/types'
 import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
+import { parseCurrencyDisplayType } from '@/lib/currency'
+
+import { CheckinSettingsSection } from './sections/checkin-settings-section'
+import { PaymentSettingsSection } from './sections/payment/payment-settings-section'
+import { PricingSection } from './sections/pricing-section'
+import { QuotaSettingsSection } from './sections/quota-settings-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,

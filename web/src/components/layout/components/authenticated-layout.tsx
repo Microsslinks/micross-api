@@ -40,7 +40,7 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
         {/* Header, sidebar and content share this centred canvas, so the
          * console never spans the full viewport on wide screens. Full-bleed
          * below `lg`. See `.docs/frontend/layout-system.md`. */}
-        <div className='mx-auto flex min-h-svh w-full flex-col lg:max-w-container-lg lg:border-x'>
+        <div className='lg:max-w-container-lg mx-auto flex min-h-svh w-full flex-col lg:border-x'>
           <SidebarProvider defaultOpen={defaultOpen} className='flex-col'>
             <SkipToMain />
             <AppHeader />

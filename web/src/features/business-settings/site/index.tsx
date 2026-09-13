@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '@/features/system-settings/components/settings-page'
 import type { SiteSettings } from '@/features/system-settings/types'
+
 import {
   SITE_DEFAULT_SECTION,
   getSiteSectionContent,

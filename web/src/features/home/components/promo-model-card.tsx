@@ -36,9 +36,9 @@ export function PromoModelCard(props: PromoModelCardProps) {
       as='li'
       animation='fade-up'
       delay={props.delay}
-      className='group border-border/50 bg-card shadow-card hover:border-border relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-lift'
+      className='group border-border/50 bg-card shadow-card hover:border-border hover:shadow-card-lift relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1.5'
     >
-      <span className='from-[#ff6a3d] to-[#ff2d55] absolute top-0 right-0 flex flex-col items-end gap-0.5 rounded-bl-[22px] bg-gradient-to-br px-4 py-2.5 text-white shadow-md'>
+      <span className='absolute top-0 right-0 flex flex-col items-end gap-0.5 rounded-bl-[22px] bg-gradient-to-br from-[#ff6a3d] to-[#ff2d55] px-4 py-2.5 text-white shadow-md'>
         <i className='text-[10px] leading-none font-bold tracking-[0.1em] uppercase not-italic opacity-90'>
           {t('Up to')}
         </i>

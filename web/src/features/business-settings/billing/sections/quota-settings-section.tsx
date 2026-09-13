@@ -34,8 +34,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { formatQuota } from '@/lib/format'
-
 import { FormDirtyIndicator } from '@/features/system-settings/components/form-dirty-indicator'
 import { FormNavigationGuard } from '@/features/system-settings/components/form-navigation-guard'
 import {
@@ -49,6 +47,7 @@ import { SettingsPageFormActions } from '@/features/system-settings/components/s
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useSettingsForm } from '@/features/system-settings/hooks/use-settings-form'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
+import { formatQuota } from '@/lib/format'
 
 const quotaSchema = z.object({
   QuotaForNewUser: z.coerce.number().min(0),
@@ -279,7 +278,6 @@ export function QuotaSettingsSection({
                 </FormItem>
               )}
             />
-
           </SettingsFormGrid>
         </SettingsForm>
       </Form>

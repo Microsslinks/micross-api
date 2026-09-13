@@ -31,7 +31,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
-
 import {
   SettingsControlChildren,
   SettingsForm,
@@ -42,6 +41,7 @@ import {
 import { SettingsPageFormActions } from '@/features/system-settings/components/settings-page-context'
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
+
 import {
   HEADER_NAV_DEFAULT,
   type HeaderNavModulesConfig,

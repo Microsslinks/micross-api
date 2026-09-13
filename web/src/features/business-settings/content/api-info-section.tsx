@@ -59,11 +59,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getBgColorClass } from '@/lib/colors'
-
 import { SettingsSwitchField } from '@/features/system-settings/components/settings-form-layout'
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
+import { getBgColorClass } from '@/lib/colors'
 
 type ApiInfo = {
   id: number

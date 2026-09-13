@@ -16,16 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { SystemBehaviorSection } from '../general/system-behavior-section'
-import { EmailSettingsSection } from '../integrations/email-settings-section'
-import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
-import { WorkerSettingsSection } from '../integrations/worker-settings-section'
-import { LogSettingsSection } from '../maintenance/log-settings-section'
-import { PerformanceSection } from '../maintenance/performance-section'
-import { UpdateCheckerSection } from '../maintenance/update-checker-section'
-import { DiscountSettingSection } from '../pricing/discount-setting-section'
-import type { OperationsSettings } from '../types'
-import { createSectionRegistry } from '../utils/section-registry'
 import {
   Bell,
   Cog,
@@ -36,6 +26,17 @@ import {
   Mail,
   Percent,
 } from 'lucide-react'
+
+import { SystemBehaviorSection } from '../general/system-behavior-section'
+import { EmailSettingsSection } from '../integrations/email-settings-section'
+import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
+import { WorkerSettingsSection } from '../integrations/worker-settings-section'
+import { LogSettingsSection } from '../maintenance/log-settings-section'
+import { PerformanceSection } from '../maintenance/performance-section'
+import { UpdateCheckerSection } from '../maintenance/update-checker-section'
+import { DiscountSettingSection } from '../pricing/discount-setting-section'
+import type { OperationsSettings } from '../types'
+import { createSectionRegistry } from '../utils/section-registry'
 
 const OPERATIONS_SECTIONS = [
   {

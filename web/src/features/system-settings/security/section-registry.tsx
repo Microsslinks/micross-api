@@ -16,11 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { ShieldAlert, ShieldBan } from 'lucide-react'
+
 import { SensitiveWordsSection } from '../request-limits/sensitive-words-section'
 import { SSRFSection } from '../request-limits/ssrf-section'
 import type { SecuritySettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
-import { ShieldAlert, ShieldBan } from 'lucide-react'
 
 /**
  * 安全防护配置组（系统管理）。

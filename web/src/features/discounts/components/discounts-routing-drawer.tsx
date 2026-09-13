@@ -95,7 +95,9 @@ export function DiscountsRoutingDrawer({
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [routing, setRouting] = useState<DiscountRouting | null>(null)
   const [isLoadingRouting, setIsLoadingRouting] = useState(false)
-  const [strategy, setStrategy] = useState<string>(DISCOUNT_ROUTING_STRATEGY.MARGIN)
+  const [strategy, setStrategy] = useState<string>(
+    DISCOUNT_ROUTING_STRATEGY.MARGIN
+  )
   const [allowCostBreach, setAllowCostBreach] = useState<string>(
     COST_BREACH_VALUES[0]
   )
@@ -142,7 +144,9 @@ export function DiscountsRoutingDrawer({
           setRemark(response.data.remark ?? '')
         } else {
           setRouting(null)
-          setFormError(response.message || t(ERROR_MESSAGES.ROUTING_LOAD_FAILED))
+          setFormError(
+            response.message || t(ERROR_MESSAGES.ROUTING_LOAD_FAILED)
+          )
         }
       } catch (error) {
         setRouting(null)
@@ -346,7 +350,9 @@ export function DiscountsRoutingDrawer({
               <SideDrawerSection>
                 <SideDrawerSectionHeader
                   title={t('Routing Strategy')}
-                  description={t('How this customer picks among break-even routes.')}
+                  description={t(
+                    'How this customer picks among break-even routes.'
+                  )}
                 />
                 <ToggleGroup
                   value={[strategy]}
@@ -421,7 +427,9 @@ export function DiscountsRoutingDrawer({
                 <Input
                   value={remark}
                   maxLength={DISCOUNT_ROUTING_LIMITS.REMARK_MAX_LENGTH}
-                  placeholder={t('Why this customer is special, e.g. the ticket number')}
+                  placeholder={t(
+                    'Why this customer is special, e.g. the ticket number'
+                  )}
                   onChange={(event) => setRemark(event.target.value)}
                 />
               </SideDrawerSection>
@@ -448,7 +456,11 @@ export function DiscountsRoutingDrawer({
           >
             {t('Reset to default')}
           </Button>
-          <Button form='discount-routing-form' type='submit' disabled={!hasCustomer || isBusy}>
+          <Button
+            form='discount-routing-form'
+            type='submit'
+            disabled={!hasCustomer || isBusy}
+          >
             {isSaving ? t('Saving...') : t('Save')}
           </Button>
         </SheetFooter>

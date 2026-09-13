@@ -126,10 +126,10 @@ func SimulateDiscount(userId int, modelName string, channelId int) (*DiscountSim
 	floor := discount.Sub(minMargin)
 
 	result := &DiscountSimulateResult{
-		User:    DiscountSimulateUser{Id: user.Id, Username: user.Username, Group: user.Group},
-		Model:   modelName,
-		Vendor:  vendorName,
-		Plan:    buildSimulatePlan(resolution.Plan),
+		User:   DiscountSimulateUser{Id: user.Id, Username: user.Username, Group: user.Group},
+		Model:  modelName,
+		Vendor: vendorName,
+		Plan:   buildSimulatePlan(resolution.Plan),
 		Resolution: DiscountSimulateResolution{
 			Discount:    resolution.Discount,
 			Source:      resolution.Source,

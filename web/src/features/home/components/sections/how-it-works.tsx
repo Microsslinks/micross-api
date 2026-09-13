@@ -51,14 +51,14 @@ export function HowItWorks() {
   ] as const
 
   return (
-    <section className={cn('border-border/40 relative z-10 border-t', SECTION_PY)}>
+    <section
+      className={cn('border-border/40 relative z-10 border-t', SECTION_PY)}
+    >
       <Container>
         <AnimateInView className='mb-12 text-center md:mb-14'>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
             {t('Three steps')}{' '}
-            <span className='brand-gradient-text'>
-              {t('to get started')}
-            </span>
+            <span className='brand-gradient-text'>{t('to get started')}</span>
           </h2>
         </AnimateInView>
 
@@ -70,7 +70,7 @@ export function HowItWorks() {
               animation='fade-up'
               className='relative'
             >
-              <div className='group/step border-border bg-card relative overflow-hidden rounded-2xl border shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg'>
+              <div className='group/step border-border bg-card shadow-card relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg'>
                 <div className='relative h-52 overflow-hidden md:h-56'>
                   <img
                     src={step.image}
@@ -90,8 +90,8 @@ export function HowItWorks() {
                 </p>
               </div>
 
-              <div className='absolute -top-3 -right-2 z-10 flex size-12 items-center justify-center rounded-full bg-primary shadow-md md:-right-3'>
-                <span className='text-2xl leading-none font-black text-primary-foreground'>
+              <div className='bg-primary absolute -top-3 -right-2 z-10 flex size-12 items-center justify-center rounded-full shadow-md md:-right-3'>
+                <span className='text-primary-foreground text-2xl leading-none font-black'>
                   {step.num}
                 </span>
               </div>

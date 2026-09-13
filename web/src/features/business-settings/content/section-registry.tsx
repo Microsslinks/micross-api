@@ -16,8 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ContentSettings } from '@/features/system-settings/types'
-import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
 import {
   Activity,
   CircleHelp,
@@ -27,6 +25,10 @@ import {
   Megaphone,
   MessageSquare,
 } from 'lucide-react'
+
+import type { ContentSettings } from '@/features/system-settings/types'
+import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
+
 import { AnnouncementsSection } from './announcements-section'
 import { ApiInfoSection } from './api-info-section'
 import { ChatSettingsSection } from './chat-settings-section'

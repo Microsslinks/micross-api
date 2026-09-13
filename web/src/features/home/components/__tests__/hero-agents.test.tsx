@@ -43,9 +43,9 @@ describe('hero agents block', () => {
     expect(links.map((link) => link.getAttribute('href'))).toEqual(
       featured.map((agent) => agent.url)
     )
-    expect(links.every((link) => link.getAttribute('target') === '_blank')).toBe(
-      true
-    )
+    expect(
+      links.every((link) => link.getAttribute('target') === '_blank')
+    ).toBe(true)
     expect(
       links.every((link) => link.getAttribute('rel')?.includes('noopener'))
     ).toBe(true)

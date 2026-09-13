@@ -138,9 +138,7 @@ describe('discount margin setting', () => {
     fireEvent.change(input, { target: { value: '1.5' } })
     fireEvent.submit(form)
 
-    await waitFor(() =>
-      expect(input).toHaveAttribute('aria-invalid', 'true')
-    )
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'true'))
     expect(screen.getByText(MARGIN_INVALID_MESSAGE)).toBeInTheDocument()
     expect(mutateAsync).not.toHaveBeenCalled()
 

@@ -24,8 +24,7 @@ import type { DiscountRouting, DiscountRoutingPayload } from '../../types'
 const i18n = (await import('i18next')).default
 const { I18nextProvider, initReactI18next } = await import('react-i18next')
 const { api } = await import('@/lib/api')
-const { DiscountsRoutingDrawer } =
-  await import('../discounts-routing-drawer')
+const { DiscountsRoutingDrawer } = await import('../discounts-routing-drawer')
 
 await i18n.use(initReactI18next).init({
   lng: 'en',
@@ -41,7 +40,8 @@ await i18n.use(initReactI18next).init({
         'Routing Strategy': 'Routing Strategy',
         Save: 'Save',
         'Select a customer': 'Select a customer',
-        'Setting the routing policy failed': 'Setting the routing policy failed',
+        'Setting the routing policy failed':
+          'Setting the routing policy failed',
         'Stable route first': 'Stable route first',
         'This customer has its own routing policy; other customers use the default.':
           'This customer has its own routing policy; other customers use the default.',
@@ -173,9 +173,7 @@ async function renderDrawer(withCustomer = true): Promise<void> {
 }
 
 function submitForm(): void {
-  const form = document.querySelector<HTMLFormElement>(
-    '#discount-routing-form'
-  )
+  const form = document.querySelector<HTMLFormElement>('#discount-routing-form')
   if (!form) throw new Error('Expected the routing form')
   fireEvent.submit(form)
 }
@@ -267,7 +265,9 @@ describe('discount routing drawer', () => {
 
     submitForm()
 
-    expect(screen.getByText('Setting the routing policy failed')).toBeInTheDocument()
+    expect(
+      screen.getByText('Setting the routing policy failed')
+    ).toBeInTheDocument()
     const alert = document.querySelector('[role="alert"]')
     expect(alert?.textContent ?? '').toContain('Select a customer')
     expect(saveCalls).toBe(0)

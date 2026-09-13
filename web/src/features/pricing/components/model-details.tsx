@@ -776,7 +776,7 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
         <TabsContent value='overview' className='space-y-6 outline-none'>
           <OverviewSummaryGrid model={props.model} />
 
-          <section className='bg-card border-border/50 space-y-5 rounded-2xl border p-4 shadow-card'>
+          <section className='bg-card border-border/50 shadow-card space-y-5 rounded-2xl border p-4'>
             <SectionTitle>{t('Pricing')}</SectionTitle>
             <PriceSection model={props.model} />
             {isDynamic && (

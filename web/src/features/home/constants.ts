@@ -153,7 +153,12 @@ export const PROMO_GROUPS: PromoGroup[] = [
         promo: '70% off',
         plans: [
           { id: 'gemini-3.1-pro', input: '$2', output: '$12', cache: '$0.2' },
-          { id: 'gemini-3.6-flash', input: '$1.5', output: '$7.5', cache: '$0.15' },
+          {
+            id: 'gemini-3.6-flash',
+            input: '$1.5',
+            output: '$7.5',
+            cache: '$0.15',
+          },
           {
             id: 'gemini-3.5-flash-lite',
             input: '$0.3',
@@ -191,7 +196,12 @@ export const PROMO_GROUPS: PromoGroup[] = [
             output: '¥6.2',
             cache: '¥0.03',
           },
-          { id: 'deepseek-v4-flash', input: '¥1', output: '¥2', cache: '¥0.02' },
+          {
+            id: 'deepseek-v4-flash',
+            input: '¥1',
+            output: '¥2',
+            cache: '¥0.02',
+          },
           { id: 'deepseek-v3.2-pro', input: '¥2', output: '¥3', cache: '¥0.2' },
         ],
       },
@@ -203,7 +213,12 @@ export const PROMO_GROUPS: PromoGroup[] = [
         plans: [
           { id: 'glm-5.3', input: '¥8', output: '¥28', cache: '¥2' },
           { id: 'glm-5.2', input: '¥8', output: '¥28', cache: '¥2' },
-          { id: 'glm-5.3-flash', input: '¥0.4', output: '¥0.8', cache: '¥0.115' },
+          {
+            id: 'glm-5.3-flash',
+            input: '¥0.4',
+            output: '¥0.8',
+            cache: '¥0.115',
+          },
         ],
       },
     ],

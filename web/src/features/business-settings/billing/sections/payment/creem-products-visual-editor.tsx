@@ -25,13 +25,13 @@ import { StaticRowActions } from '@/components/data-table/static/static-row-acti
 import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { safeJsonParseWithValidation } from '@/features/system-settings/utils/json-parser'
+import { isArray } from '@/features/system-settings/utils/json-validators'
 import {
   formatCreemPrice,
   formatQuotaShort,
 } from '@/features/wallet/lib/format'
 
-import { safeJsonParseWithValidation } from '@/features/system-settings/utils/json-parser'
-import { isArray } from '@/features/system-settings/utils/json-validators'
 import {
   CreemProductDialog,
   type CreemProductData,
@@ -176,9 +176,7 @@ export function CreemProductsVisualEditor({
           title={
             searchText
               ? t('No products match your search')
-              : t(
-                  'No products configured. Click "Add product" to get started.'
-                )
+              : t('No products configured. Click "Add product" to get started.')
           }
           className='rounded-lg border border-dashed'
           size='sm'
