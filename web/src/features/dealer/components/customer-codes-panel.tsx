@@ -54,7 +54,7 @@ import type {
 } from '../types'
 
 /** 客户号状态：与后端 customer_codes.status 对齐。 */
-export const CUSTOMER_CODE_STATUS = {
+const CUSTOMER_CODE_STATUS = {
   REVOKED: 0,
   ACTIVE: 1,
 } as const
@@ -71,9 +71,7 @@ const PAGE_SIZE = 20
  * 差别只在请求打到哪个地址，所以由调用方把这三个动作组装好传进来。
  */
 export interface CustomerCodesSource {
-  list: (
-    page: number
-  ) => Promise<{ items: CustomerCode[]; total: number }>
+  list: (page: number) => Promise<{ items: CustomerCode[]; total: number }>
   create: (
     payload: CustomerCodeIssuePayload
   ) => Promise<{ success: boolean; message?: string; items?: CustomerCode[] }>
@@ -136,7 +134,9 @@ export function CustomerCodesPanel({ source }: Props) {
   const planLabel = (id: number) => {
     if (id <= 0) return t('No discount plan')
     const plan = source.plans.find((item) => item.id === id)
-    return plan ? `${plan.name} · ${plan.base_discount}` : t('Plan #{{id}}', { id })
+    return plan
+      ? `${plan.name} · ${plan.base_discount}`
+      : t('Plan #{{id}}', { id })
   }
 
   const handleIssue = async () => {
@@ -292,16 +292,18 @@ export function CustomerCodesPanel({ source }: Props) {
         )}
       </div>
 
-      {loading ? (
-        <LoadingState size='md' />
-      ) : codes.length === 0 ? (
+      {loading && <LoadingState size='md' />}
+
+      {!loading && codes.length === 0 && (
         <EmptyState
           icon={Ticket}
           title={t('No customer codes yet')}
           description={t('Issue a code and hand it to a customer to sign up.')}
           size='md'
         />
-      ) : (
+      )}
+
+      {!loading && codes.length > 0 && (
         <div className='space-y-2'>
           <div className='overflow-hidden rounded-lg border'>
             <Table>

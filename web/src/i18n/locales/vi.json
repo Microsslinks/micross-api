@@ -5696,7 +5696,17 @@
     "Lowest selling discount": "Lowest selling discount",
     "The floor for the prices this dealer gives customers. 0 means no limit.": "The floor for the prices this dealer gives customers. 0 means no limit.",
     "Allow issuing quota to customers": "Allow issuing quota to customers",
-    "When off, this dealer can no longer hand quota to his customers.": "When off, this dealer can no longer hand quota to his customers."
+    "When off, this dealer can no longer hand quota to his customers.": "When off, this dealer can no longer hand quota to his customers.",
+    "Customer code bound": "Customer code bound",
+    "Failed to bind the customer code": "Failed to bind the customer code",
+    "Belong to a dealer and use the price he gave you": "Belong to a dealer and use the price he gave you",
+    "Your dealer": "Your dealer",
+    "Dealer": "Dealer",
+    "Direct under the platform": "Direct under the platform",
+    "Your discount": "Your discount",
+    "Official list price": "Official list price",
+    "Binding": "Binding",
+    "Ask the dealer for a customer code. Binding records you under that dealer and applies the discount on the code; only the platform can change it afterwards.": "Ask the dealer for a customer code. Binding records you under that dealer and applies the discount on the code; only the platform can change it afterwards."
   },
   "What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list, up to 100). Leave empty if not yet known.": "What this upstream costs you, as a fraction of your list price (0.27 = you pay 27% of list, up to 100). Leave empty if not yet known.",
   "Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)": "Cost ratio must be a number greater than 0 (leave empty when the cost is not known yet)",

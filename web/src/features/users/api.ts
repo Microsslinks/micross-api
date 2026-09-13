@@ -16,14 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { PermissionCatalog } from '@/lib/admin-permissions'
-import { api } from '@/lib/api'
-import type { CustomOAuthBinding } from '@/lib/oauth'
-
 import type {
   CustomerCode,
   CustomerCodeIssuePayload,
 } from '@/features/dealer/types'
+import type { PermissionCatalog } from '@/lib/admin-permissions'
+import { api } from '@/lib/api'
+import type { CustomOAuthBinding } from '@/lib/oauth'
 
 import type {
   User,
@@ -184,7 +183,9 @@ export async function unsetUserAsAgent(
  * Read a dealer's operating profile (markup, retail discount floor, quota issuing
  * switch, remark) so the "Dealer Settings" dialog can be filled in.
  */
-export async function getAgentProfile(id: number): Promise<ApiResponse<AgentProfile>> {
+export async function getAgentProfile(
+  id: number
+): Promise<ApiResponse<AgentProfile>> {
   const res = await api.get(`/api/user/${id}/agent/profile`)
   return res.data
 }
@@ -208,7 +209,12 @@ export async function getAgentCustomerCodes(
   page = 1,
   pageSize = 20
 ): Promise<
-  ApiResponse<{ items: CustomerCode[]; total: number; page: number; page_size: number }>
+  ApiResponse<{
+    items: CustomerCode[]
+    total: number
+    page: number
+    page_size: number
+  }>
 > {
   const res = await api.get(`/api/user/${id}/agent/codes`, {
     params: { page, page_size: pageSize },

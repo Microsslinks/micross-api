@@ -29,9 +29,12 @@ func setupAgentCodeTest(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 	DB, LOG_DB = db, db
+	// 厂商与模型目录也建上：绑号用例要顺着 ResolveUserDiscount 走一遍，
+	// 折扣解析会去查模型目录（见 discount_resolve.go 第 5 步）。
 	require.NoError(t, db.AutoMigrate(
 		&User{}, &AgentProfile{}, &CustomerCode{},
 		&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{},
+		&Vendor{}, &Model{},
 	))
 	sqlDB, err := db.DB()
 	require.NoError(t, err)

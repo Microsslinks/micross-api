@@ -95,6 +95,9 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/self/agent/codes", controller.GetSelfAgentCodes)
 				selfRoute.POST("/self/agent/codes", middleware.CriticalRateLimit(), controller.CreateSelfAgentCodes)
 				selfRoute.DELETE("/self/agent/codes/:codeId", controller.RevokeSelfAgentCode)
+				// 客户这一侧：看自己挂在谁名下，以及用一张客户号把归属与折扣绑上
+				selfRoute.GET("/self/agent/binding", controller.GetMyAgentBinding)
+				selfRoute.POST("/self/agent/bind", middleware.CriticalRateLimit(), controller.BindCustomerCode)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)

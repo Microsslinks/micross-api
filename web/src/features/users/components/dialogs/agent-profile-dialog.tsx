@@ -63,7 +63,12 @@ interface Props {
  * 加价率填的是百分数（10 = 加价 10%），存的是乘数（1.100000）；折扣下限填的是
  * 小数（0.8 = 八折），与折扣方案页看到的写法一致。0 表示平台不给下限。
  */
-export function AgentProfileDialog({ open, onOpenChange, user, onSuccess }: Props) {
+export function AgentProfileDialog({
+  open,
+  onOpenChange,
+  user,
+  onSuccess,
+}: Props) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -100,7 +105,9 @@ export function AgentProfileDialog({ open, onOpenChange, user, onSuccess }: Prop
         const result = await getAgentProfile(user.id)
         if (cancelled || !result.data) return
         setMarkupPercent(
-          String(Math.round((Number.parseFloat(result.data.markup_ratio) - 1) * 100))
+          String(
+            Math.round((Number.parseFloat(result.data.markup_ratio) - 1) * 100)
+          )
         )
         setMinDiscount(result.data.min_discount)
         setIssueQuotaEnabled(result.data.issue_quota_enabled === 1)
@@ -164,7 +171,9 @@ export function AgentProfileDialog({ open, onOpenChange, user, onSuccess }: Prop
           total: result.data?.total ?? 0,
         }
       },
-      create: async (payload: Parameters<typeof issueAgentCustomerCodes>[1]) => {
+      create: async (
+        payload: Parameters<typeof issueAgentCustomerCodes>[1]
+      ) => {
         const result = await issueAgentCustomerCodes(agentId, payload)
         return {
           success: result.success,

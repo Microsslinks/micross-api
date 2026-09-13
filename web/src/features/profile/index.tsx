@@ -21,6 +21,7 @@ import {
   CardStaggerContainer,
   CardStaggerItem,
 } from '@/components/page-transition'
+import { CustomerCodeCard } from '@/features/customer-code/components/customer-code-card'
 import { useStatus } from '@/hooks/use-status'
 
 import { CheckinCalendarCard } from './components/checkin-calendar-card'
@@ -63,6 +64,8 @@ export function Profile() {
                   profile={profile}
                   onProfileUpdate={refreshProfile}
                 />
+                {/* 客户号：客户填经销商给他的号，归属与折扣一起落下 */}
+                <CustomerCodeCard />
                 <ProfileSecurityCard profile={profile} loading={loading} />
                 <LoginSessionsCard />
               </div>
