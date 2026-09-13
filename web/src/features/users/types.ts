@@ -166,6 +166,31 @@ export interface SetAgentPayload {
   remark?: string
 }
 
+/**
+ * 经销商的经营档案：平台给他定的那几个经营参数。
+ *
+ * 设成经销商时只填加价率，这份档案是之后调整用的——加价率、零售折扣下限、
+ * 能不能给下属客户发额度、备注。改这些不影响他的角色、余额和折扣方案。
+ */
+export interface AgentProfile {
+  user_id: number
+  /** 平台加价率，是乘数不是百分数："1.1" 表示加价 10% */
+  markup_ratio: string
+  /** 零售折扣下限，"0" 表示平台不限制他的报价 */
+  min_discount: string
+  /** 1 = 允许给下属客户发额度，0 = 停发 */
+  issue_quota_enabled: number
+  remark: string
+}
+
+/** 改档案的入参：哪个字段不传就是这次不动它。 */
+export interface AgentProfilePayload {
+  markup_ratio?: string
+  min_discount?: string
+  issue_quota_enabled?: number
+  remark?: string
+}
+
 /** 经销商拿货价目表里的一行：这个模型他按几折拿货，拿去给客户报价的依据。 */
 export interface AgentWholesaleQuoteItem {
   model_name: string

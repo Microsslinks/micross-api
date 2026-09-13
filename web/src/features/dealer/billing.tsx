@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Activity, BarChart3, Key, Percent, WalletCards } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
@@ -41,8 +41,15 @@ import {
   formatTimestamp,
 } from '@/lib/format'
 
-import { getAgentLedger } from './api'
-import type { AgentLedger } from './types'
+import {
+  getAgentLedger,
+  getSelfCustomerCodes,
+  getSelfSellablePlans,
+  issueSelfCustomerCodes,
+  revokeSelfCustomerCode,
+} from './api'
+import { CustomerCodesPanel } from './components/customer-codes-panel'
+import type { AgentLedger, DealerPlanOption } from './types'
 
 /**
  * 经销商台账 —— 只给经销商看。
@@ -58,6 +65,7 @@ export function DealerBilling() {
   const { t } = useTranslation()
   const [ledger, setLedger] = useState<AgentLedger | null>(null)
   const [loading, setLoading] = useState(true)
+  const [plans, setPlans] = useState<DealerPlanOption[]>([])
 
   const fetchLedger = useCallback(async () => {
     try {
@@ -70,9 +78,48 @@ export function DealerBilling() {
     }
   }, [])
 
+  // 货架（能给他客户用的折扣方案）跟台账一起拉：下号时就要挑方案，
+  // 分两次加载会让面板先空一下再跳出来。
+  const fetchPlans = useCallback(async () => {
+    try {
+      const response = await getSelfSellablePlans()
+      setPlans(response.success ? (response.data?.items ?? []) : [])
+    } catch {
+      setPlans([])
+    }
+  }, [])
+
   useEffect(() => {
     void fetchLedger()
-  }, [fetchLedger])
+    void fetchPlans()
+  }, [fetchLedger, fetchPlans])
+
+  // 客户号那三个动作：经销商动的是自己，所以走自助路径，不需要管理员权限。
+  const codesSource = useMemo(
+    () => ({
+      list: async (page: number) => {
+        const result = await getSelfCustomerCodes(page)
+        return {
+          items: result.data?.items ?? [],
+          total: result.data?.total ?? 0,
+        }
+      },
+      create: async (payload: Parameters<typeof issueSelfCustomerCodes>[0]) => {
+        const result = await issueSelfCustomerCodes(payload)
+        return {
+          success: result.success,
+          message: result.message,
+          items: result.data?.items,
+        }
+      },
+      revoke: async (codeId: number) => {
+        const result = await revokeSelfCustomerCode(codeId)
+        return { success: result.success, message: result.message }
+      },
+      plans,
+    }),
+    [plans]
+  )
 
   // 加价率是乘数（1.1 = 在他拿货价上加 10%），换成百分数才看得懂。
   // 值缺了或不是数字时 formatPercent 会给 '-'。
@@ -231,6 +278,8 @@ export function DealerBilling() {
                 </Table>
               </div>
             )}
+
+            <CustomerCodesPanel source={codesSource} />
           </div>
         )}
       </SectionPageLayout.Content>

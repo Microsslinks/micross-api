@@ -30,6 +30,7 @@ import {
   CreditCard,
   Store,
   Percent,
+  Settings2,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -67,6 +68,7 @@ import {
 } from '../constants'
 import { getUserActionMessage } from '../lib'
 import type { User, ManageUserAction } from '../types'
+import { AgentProfileDialog } from './dialogs/agent-profile-dialog'
 import { SetAgentDialog } from './dialogs/set-agent-dialog'
 import { SetDiscountDialog } from './dialogs/set-discount-dialog'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
@@ -87,6 +89,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
   const [setDiscountOpen, setSetDiscountOpen] = useState(false)
   const [setAgentOpen, setSetAgentOpen] = useState(false)
+  const [agentProfileOpen, setAgentProfileOpen] = useState(false)
   const [unsetAgentOpen, setUnsetAgentOpen] = useState(false)
 
   const handleEdit = () => {
@@ -264,6 +267,21 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {/* 已经是经销商的人：改他的经营参数、替他发客户号都在这一项里 */}
+        {isAgent && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setAgentProfileOpen(true)
+            }}
+          >
+            {t('Dealer Settings')}
+            <DropdownMenuShortcut>
+              <Settings2 size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
         {isAgent && (
           <DropdownMenuItem
             onSelect={(event) => {
@@ -354,6 +372,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       <SetAgentDialog
         open={setAgentOpen}
         onOpenChange={setSetAgentOpen}
+        user={{ id: user.id, username: user.username }}
+        onSuccess={triggerRefresh}
+      />
+
+      <AgentProfileDialog
+        open={agentProfileOpen}
+        onOpenChange={setAgentProfileOpen}
         user={{ id: user.id, username: user.username }}
         onSuccess={triggerRefresh}
       />

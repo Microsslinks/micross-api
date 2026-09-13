@@ -21,6 +21,11 @@ import { api } from '@/lib/api'
 import type { CustomOAuthBinding } from '@/lib/oauth'
 
 import type {
+  CustomerCode,
+  CustomerCodeIssuePayload,
+} from '@/features/dealer/types'
+
+import type {
   User,
   GetUsersParams,
   GetUsersResponse,
@@ -29,6 +34,8 @@ import type {
   ManageUserAction,
   ManageUserQuotaPayload,
   SetAgentPayload,
+  AgentProfile,
+  AgentProfilePayload,
   AgentWholesaleQuoteItem,
   ApiResponse,
 } from './types'
@@ -170,6 +177,64 @@ export async function unsetUserAsAgent(
   id: number
 ): Promise<ApiResponse<Partial<User>>> {
   const res = await api.delete(`/api/user/${id}/agent`)
+  return res.data
+}
+
+/**
+ * Read a dealer's operating profile (markup, retail discount floor, quota issuing
+ * switch, remark) so the "Dealer Settings" dialog can be filled in.
+ */
+export async function getAgentProfile(id: number): Promise<ApiResponse<AgentProfile>> {
+  const res = await api.get(`/api/user/${id}/agent/profile`)
+  return res.data
+}
+
+/**
+ * Update a dealer's operating profile. Only the fields sent are changed.
+ */
+export async function updateAgentProfile(
+  id: number,
+  payload: AgentProfilePayload
+): Promise<ApiResponse<AgentProfile>> {
+  const res = await api.put(`/api/user/${id}/agent`, payload)
+  return res.data
+}
+
+/**
+ * List the customer codes this dealer has issued.
+ */
+export async function getAgentCustomerCodes(
+  id: number,
+  page = 1,
+  pageSize = 20
+): Promise<
+  ApiResponse<{ items: CustomerCode[]; total: number; page: number; page_size: number }>
+> {
+  const res = await api.get(`/api/user/${id}/agent/codes`, {
+    params: { page, page_size: pageSize },
+  })
+  return res.data
+}
+
+/**
+ * Issue customer codes on behalf of this dealer (an operator doing it for him).
+ */
+export async function issueAgentCustomerCodes(
+  id: number,
+  payload: CustomerCodeIssuePayload
+): Promise<ApiResponse<{ items: CustomerCode[] }>> {
+  const res = await api.post(`/api/user/${id}/agent/codes`, payload)
+  return res.data
+}
+
+/**
+ * Revoke one of this dealer's customer codes.
+ */
+export async function revokeAgentCustomerCode(
+  id: number,
+  codeId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/user/${id}/agent/codes/${codeId}`)
   return res.data
 }
 

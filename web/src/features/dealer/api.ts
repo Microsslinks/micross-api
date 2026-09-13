@@ -18,7 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
-import type { AgentLedger, ApiResponse } from './types'
+import type {
+  AgentLedger,
+  ApiResponse,
+  CustomerCode,
+  CustomerCodeIssuePayload,
+  DealerPlanList,
+} from './types'
 
 /**
  * 取当前登录用户的经销商自助台账。
@@ -28,5 +34,56 @@ import type { AgentLedger, ApiResponse } from './types'
  */
 export async function getAgentLedger(): Promise<ApiResponse<AgentLedger>> {
   const res = await api.get('/api/user/self/agent/ledger')
+  return res.data
+}
+
+/**
+ * 经销商看自己签出去的客户号，最新的在前。
+ */
+export async function getSelfCustomerCodes(
+  page = 1,
+  pageSize = 20
+): Promise<
+  ApiResponse<{
+    items: CustomerCode[]
+    total: number
+    page: number
+    page_size: number
+  }>
+> {
+  const res = await api.get('/api/user/self/agent/codes', {
+    params: { page, page_size: pageSize },
+  })
+  return res.data
+}
+
+/**
+ * 经销商自己签一批客户号发给客户。
+ */
+export async function issueSelfCustomerCodes(
+  payload: CustomerCodeIssuePayload
+): Promise<ApiResponse<{ items: CustomerCode[] }>> {
+  const res = await api.post('/api/user/self/agent/codes', payload)
+  return res.data
+}
+
+/**
+ * 作废自己的一个客户号（不删行，留着谁签过、被用了几次的痕迹）。
+ */
+export async function revokeSelfCustomerCode(
+  codeId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/user/self/agent/codes/${codeId}`)
+  return res.data
+}
+
+/**
+ * 他自己货架上的方案 + 平台给他定的零售折扣下限。
+ * 低于下限的方案不会出现在这份清单里，所以界面不用再自己挡一道。
+ */
+export async function getSelfSellablePlans(): Promise<
+  ApiResponse<DealerPlanList>
+> {
+  const res = await api.get('/api/user/self/agent/plans')
   return res.data
 }

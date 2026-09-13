@@ -89,6 +89,12 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/self", controller.GetSelf)
 				// 经销商自助台账：他自己看钱包余额，以及发出去的每个 Key 用了多少、花了多少
 				selfRoute.GET("/self/agent/ledger", controller.GetSelfAgentLedger)
+				// 他自己的货架：能拿去给客户报价的折扣方案（发号与改价共用这份清单）
+				selfRoute.GET("/self/agent/plans", controller.GetSelfAgentPlans)
+				// 经销商自己签客户号：签号只对他有意义，所以这条挂在自助路径下，不用管理员权限
+				selfRoute.GET("/self/agent/codes", controller.GetSelfAgentCodes)
+				selfRoute.POST("/self/agent/codes", middleware.CriticalRateLimit(), controller.CreateSelfAgentCodes)
+				selfRoute.DELETE("/self/agent/codes/:codeId", controller.RevokeSelfAgentCode)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
@@ -153,6 +159,13 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.DELETE("/:id/agent", controller.UnsetUserAsAgent)
 				// 他的拿货价目表：设经销商时看一眼，也用来试算不同的毛利
 				adminRoute.GET("/:id/agent/wholesale", controller.GetAgentWholesaleQuote)
+				// 他的经营档案：加价率 / 最低折扣 / 发额度开关 / 备注，读与改各一个
+				adminRoute.GET("/:id/agent/profile", controller.GetAgentProfile)
+				adminRoute.PUT("/:id/agent", controller.UpdateAgentProfile)
+				// 平台替他签客户号（他跟客户当面谈的时候，运营顺手帮他发几张）
+				adminRoute.GET("/:id/agent/codes", controller.GetAgentCustomerCodes)
+				adminRoute.POST("/:id/agent/codes", controller.CreateAgentCustomerCodes)
+				adminRoute.DELETE("/:id/agent/codes/:codeId", controller.RevokeAgentCustomerCode)
 
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)

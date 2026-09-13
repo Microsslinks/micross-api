@@ -54,3 +54,53 @@ export interface AgentLedger {
   markup_ratio: string
   keys: AgentLedgerKey[]
 }
+
+/**
+ * 客户号：经销商发出去的兑换凭证。
+ *
+ * 一码同时写着两件事——归属哪个经销商、按哪套折扣方案计价——客户绑一下，
+ * 这两件事就在他的账号上生效。`plan_id` 为 0 表示这张号只落归属、不带折扣。
+ */
+export interface CustomerCode {
+  id: number
+  code: string
+  agent_id: number
+  plan_id: number
+  /** 0 表示不限次数 */
+  max_uses: number
+  used_count: number
+  /** 0 表示不过期 */
+  expired_at: number
+  /** 1 可用 / 0 已作废 */
+  status: number
+  remark: string
+  created_at: number
+  updated_at: number
+}
+
+/** 签一批客户号要带上的几件事；`count` 是唯一必填项。 */
+export interface CustomerCodeIssuePayload {
+  count: number
+  /** 0 或不传 = 不绑折扣，只落归属 */
+  plan_id?: number
+  /** 0 或不传 = 不限次数 */
+  max_uses?: number
+  /** 0 或不传 = 不过期 */
+  expired_at?: number
+  remark?: string
+}
+
+/** 货架上的一个折扣方案：经销商挑给客户用哪套价。 */
+export interface DealerPlanOption {
+  id: number
+  name: string
+  base_discount: string
+  billing_mode: string
+  remark: string
+}
+
+/** 经销商的货架，以及他自己的零售折扣下限（"0" 表示平台不限）。 */
+export interface DealerPlanList {
+  min_discount: string
+  items: DealerPlanOption[]
+}
