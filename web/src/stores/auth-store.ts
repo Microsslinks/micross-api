@@ -32,6 +32,12 @@ export interface AuthUser {
   display_name?: string
   email?: string
   role: number
+  /**
+   * 业务身份，取值同 CUSTOMER_TYPE：individual / enterprise / agent。
+   * 与 role（权限等级）是两回事：经销商是叠在普通用户身上的身份，
+   * role 不变，界面靠这个字段决定要不要多给他看经销商那几页（例如台账）。
+   */
+  subject_type?: string
   status?: number
   group?: string
   quota?: number

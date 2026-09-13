@@ -34,22 +34,9 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import type { NavItem, SidebarData } from '@/components/layout/types'
+import { CUSTOMER_TYPE } from '@/features/users/constants'
 import { ROLE } from '@/lib/roles'
-
-/**
- * Whether the dealer identity is available yet.
- *
- * Dealers (`users.subject_type = 'agent'`) arrive with P3 — until then no
- * field and no endpoint can answer "is the signed-in user a dealer", so the
- * dealer-only 「账单」 entry is defined below but switched off. It has to be
- * hidden from *every* role, administrators included: turning it on earlier
- * would put a page with nothing behind it in front of the wrong audience.
- *
- * P3 replaces this constant with the real identity check. The navigation
- * entry, the `/billing` route, its sidebar-module switch and its
- * `URL_TO_CONFIG_MAP` registration are already in place.
- */
-const DEALER_IDENTITY_ENABLED = false
+import { useAuthStore } from '@/stores/auth-store'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -58,8 +45,8 @@ const DEALER_IDENTITY_ENABLED = false
  *   · General — every signed-in user: the console entry points;
  *   · Personal — the signed-in user's own money and account, split by the
  *     direction money moves: wallet (balance / top-up / redemption),
- *     plans (what you buy), earnings (referral commission, plus the dealer
- *     margin from P3), profile;
+ *     plans (what you buy), earnings (referral commission), the dealer
+ *     ledger (only for `subject_type = 'agent'`), profile;
  *   · Business Management — administrators (`requiredRole: ROLE.ADMIN`);
  *   · System Management — super administrators only.
  *
@@ -70,7 +57,13 @@ const DEALER_IDENTITY_ENABLED = false
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
 
-  const dealerBillingItems: NavItem[] = DEALER_IDENTITY_ENABLED
+  // 经销商是叠在用户身上的业务身份（users.subject_type = 'agent'），不是权限等级：
+  // 他自己那几个客户侧菜单照旧，只是多出「台账」这一项，普通客户看不到它。
+  const isDealer =
+    useAuthStore((state) => state.auth.user?.subject_type) ===
+    CUSTOMER_TYPE.AGENT
+
+  const dealerBillingItems: NavItem[] = isDealer
     ? [
         {
           title: t('Dealer Billing'),

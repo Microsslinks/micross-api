@@ -141,6 +141,8 @@ func SimulateDiscount(userId int, modelName string, channelId int) (*DiscountSim
 	}
 
 	switch {
+	case resolution.Source == model.DiscountResolvedFromAgentWholesale:
+		// 经销商自己消费按拿货价算，跟他绑没绑方案无关，不加"未绑方案"的提示。
 	case resolution.PlanId == 0:
 		result.Warnings = append(result.Warnings, "该客户未绑定折扣方案，按官方标价试算")
 	case resolution.Plan == nil:

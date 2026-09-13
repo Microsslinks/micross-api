@@ -21,8 +21,7 @@ import (
 // 所以这里的两个接口只动身份与经营档案，**不碰 role**。
 
 type setAgentRequest struct {
-	WholesaleDiscount *string `json:"wholesale_discount"`
-	MinDiscount       *string `json:"min_discount"`
+	MarkupRatio       *string `json:"markup_ratio"`
 	IssueQuotaEnabled *int    `json:"issue_quota_enabled"`
 	Remark            *string `json:"remark"`
 }
@@ -47,10 +46,12 @@ func loadManageableUser(c *gin.Context, idParam string) (*model.User, bool) {
 	return user, true
 }
 
-// SetUserAsAgent 把一个用户设为经销商：写身份 + 建经营档案（同一事务）。
+// SetUserAsAgent 把一个用户设为经销商：写身份 + 建经营档案（同一事务），
+// 并定下平台卖给这位经销商的价。
 //
-// 两个折扣由平台手动设定（见 .docs/task-02-business-goals/03-agent-and-commission.md §5 与开放问题 A3）：
-// 批发折扣是平台卖给经销商的价格，最低折扣是平台给他的地板价。
+// 这个价不逐个模型手填，只定一档毛利：每个模型各自按它最便宜一条线路的成本乘上这档毛利
+// （见 model/agent_wholesale.go）。所以请求里只收毛利，界面上给 5% / 10% / 20% 三档、
+// 也允许手改，但不得低于 5%——再低平台就白干了。
 func SetUserAsAgent(c *gin.Context) {
 	user, ok := loadManageableUser(c, c.Param("id"))
 	if !ok {
@@ -67,27 +68,13 @@ func SetUserAsAgent(c *gin.Context) {
 		return
 	}
 
-	// 没给批发折扣时用「无折扣」，即按官方标价进货，不会算错钱。
-	wholesaleDiscount := model.DiscountNone
-	if req.WholesaleDiscount != nil {
-		wholesaleDiscount = *req.WholesaleDiscount
+	// 没给毛利时用缺省档 +10%：平台照常赚钱，也不会算错钱。
+	markupRatio := model.AgentWholesaleMarkupDefault
+	if req.MarkupRatio != nil {
+		markupRatio = *req.MarkupRatio
 	}
-	normalizedWholesale, err := model.NormalizeDiscount(wholesaleDiscount)
+	normalizedMarkup, err := model.NormalizeAgentMarkup(markupRatio)
 	if err != nil {
-		common.ApiErrorMsg(c, err.Error())
-		return
-	}
-	minDiscount := "0"
-	if req.MinDiscount != nil {
-		minDiscount = *req.MinDiscount
-	}
-	normalizedMin, err := model.NormalizeDiscountRatio(minDiscount)
-	if err != nil {
-		common.ApiErrorMsg(c, err.Error())
-		return
-	}
-	// 地板价高于进货价没有意义，与折扣方案用同一条铁律。
-	if err := model.ValidateDiscountFloor(normalizedWholesale, normalizedMin); err != nil {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}
@@ -105,14 +92,13 @@ func SetUserAsAgent(c *gin.Context) {
 		remark = strings.TrimSpace(*req.Remark)
 	}
 
-	if err := model.PromoteUserToAgent(user.Id, normalizedWholesale, normalizedMin, issueQuotaEnabled, remark); err != nil {
+	if err := model.PromoteUserToAgentWithMarkup(user.Id, normalizedMarkup, issueQuotaEnabled, remark); err != nil {
 		common.ApiError(c, err)
 		return
 	}
 	recordManageAuditFor(c, user.Id, "user.set_agent", map[string]interface{}{
-		"username":           user.Username,
-		"wholesale_discount": normalizedWholesale,
-		"min_discount":       normalizedMin,
+		"username":     user.Username,
+		"markup_ratio": normalizedMarkup,
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -120,6 +106,37 @@ func SetUserAsAgent(c *gin.Context) {
 		"data": gin.H{
 			"subject_type": model.SubjectTypeAgent,
 		},
+	})
+}
+
+// GetAgentWholesaleQuote 给出这位经销商当前每个模型的拿货价，也就是他拿去给客户报价的底价表。
+//
+// 界面在设毛利时会反复拉它试算：数字一改就拉一次，下面那张胶囊清单跟着变。
+// 不传 markup_ratio 时按缺省档 +10% 试算，所以还没设过档案的用户也能先看一眼这张表。
+func GetAgentWholesaleQuote(c *gin.Context) {
+	user, ok := loadManageableUser(c, c.Param("id"))
+	if !ok {
+		return
+	}
+
+	markupRatio := strings.TrimSpace(c.Query("markup_ratio"))
+	if markupRatio == "" {
+		markupRatio = model.AgentWholesaleMarkupDefault
+	}
+	normalizedMarkup, err := model.NormalizeAgentMarkup(markupRatio)
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	items, err := model.ListAgentWholesale(user.Id, normalizedMarkup)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"markup_ratio": normalizedMarkup,
+		"items":        items,
 	})
 }
 

@@ -160,6 +160,16 @@ export function UsersMutateDrawer({
   const currentQuotaRaw = form.watch('quota_dollars') || 0
   const selectedRole = form.watch('role')
   const canEditAdminPermissions = currentUser?.role === ROLE.SUPER_ADMIN
+  // 建号时能选哪几档角色，取决于当前登录的人是谁：系统管理员能建出普通用户与
+  // 业务管理员，业务管理员只能建普通用户。口径与后端 POST /api/user/ 的
+  // `user.Role >= myRole` 拒绝保持一致，免得下拉里选得到、提交才被驳回。
+  const creatableRoles =
+    currentUser?.role === ROLE.SUPER_ADMIN
+      ? [
+          { value: ROLE.USER, label: 'Common User' },
+          { value: ROLE.ADMIN, label: 'Business Admin' },
+        ]
+      : [{ value: ROLE.USER, label: 'Common User' }]
   const targetRole = selectedRole ?? currentRow?.role ?? 0
   const targetIsAdmin = targetRole >= ROLE.ADMIN
   // 系统管理按角色只对超级管理员开放，对普通管理员展示这些开关没有意义。
@@ -282,10 +292,10 @@ export function UsersMutateDrawer({
                       <FormItem>
                         <FormLabel>{t('Role')}</FormLabel>
                         <Select
-                          items={[
-                            { value: '1', label: t('Common User') },
-                            { value: '10', label: t('Business Admin') },
-                          ]}
+                          items={creatableRoles.map((role) => ({
+                            value: String(role.value),
+                            label: t(role.label),
+                          }))}
                           onValueChange={(value) =>
                             value !== null && field.onChange(parseInt(value))
                           }
@@ -298,10 +308,14 @@ export function UsersMutateDrawer({
                           </FormControl>
                           <SelectContent alignItemWithTrigger={false}>
                             <SelectGroup>
-                              <SelectItem value='1'>
-                                {t('Common User')}
-                              </SelectItem>
-                              <SelectItem value='10'>{t('Business Admin')}</SelectItem>
+                              {creatableRoles.map((role) => (
+                                <SelectItem
+                                  key={role.value}
+                                  value={String(role.value)}
+                                >
+                                  {t(role.label)}
+                                </SelectItem>
+                              ))}
                             </SelectGroup>
                           </SelectContent>
                         </Select>

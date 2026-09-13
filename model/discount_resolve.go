@@ -2,18 +2,21 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
 // 折扣解析结果的来源：这一单的折扣是从哪一层取到的。
 const (
-	DiscountResolvedFromModel    = "model"     // 命中模型级规则（最具体，永远优先）
-	DiscountResolvedFromVendor   = "vendor"    // 命中厂商级规则
-	DiscountResolvedFromPlanBase = "plan_base" // 回落到方案的基础折扣
-	DiscountResolvedFromDefault  = "default"   // 没绑定方案或方案已停用，即官方标价
+	DiscountResolvedFromModel          = "model"           // 命中模型级规则（最具体，永远优先）
+	DiscountResolvedFromVendor         = "vendor"          // 命中厂商级规则
+	DiscountResolvedFromPlanBase       = "plan_base"       // 回落到方案的基础折扣
+	DiscountResolvedFromAgentWholesale = "agent_wholesale" // 经销商自己消费，按他的拿货价
+	DiscountResolvedFromDefault        = "default"         // 没绑定方案或方案已停用，即官方标价
 )
 
 // DiscountResolution 是「某个客户对某个模型实际按几折算」的答案。
@@ -27,9 +30,20 @@ type DiscountResolution struct {
 }
 
 // ResolveUserDiscount 算出「这个客户 + 这个模型」该按几折，以及这个折扣从哪来。
-// 优先级：模型级规则 → 厂商级规则 → 方案基础折扣 → 官方标价（1.0）。
+// 分两层：先看绑定的折扣方案（模型级规则 → 厂商级规则 → 方案基础折扣 → 官方标价），
+// 再让经销商自己消费的拿货价参与比较，取更便宜的那个。
 // 计费、试算、保存前校验三处共用这一个函数，折扣口径只能有这一份。
 func ResolveUserDiscount(userId int, modelName string) (*DiscountResolution, error) {
+	resolution, err := resolvePlanDiscount(userId, modelName)
+	if err != nil {
+		return nil, err
+	}
+	return applyAgentWholesaleDiscount(resolution, userId, modelName)
+}
+
+// resolvePlanDiscount 只看折扣方案这一层，是 ResolveUserDiscount 的前半段。
+// 优先级：模型级规则 → 厂商级规则 → 方案基础折扣 → 官方标价（1.0）。
+func resolvePlanDiscount(userId int, modelName string) (*DiscountResolution, error) {
 	resolution := &DiscountResolution{
 		Discount: DiscountNone,
 		Source:   DiscountResolvedFromDefault,
@@ -98,6 +112,49 @@ func ResolveUserDiscount(userId int, modelName string) (*DiscountResolution, err
 	// 第 6 步：回落到方案基础折扣。
 	resolution.Source = DiscountResolvedFromPlanBase
 	resolution.Discount = formatResolvedDiscount(plan.BaseDiscount)
+	return resolution, nil
+}
+
+// applyAgentWholesaleDiscount 让「经销商自己消费的拿货价」参与比较。
+//
+// 没有生效方案时直接按拿货价；已经有方案价时取更便宜的那个——两条价都在，
+// 让经销商吃亏没有道理。不是经销商时这一次判断只花一条索引查询。
+// 拿货价算不出来（没线路、没录进货折扣、加价后不低于标价）时原样返回，
+// 交给上层按原价处理，绝不用一个没有依据的数字替换现有结论。
+func applyAgentWholesaleDiscount(resolution *DiscountResolution, userId int, modelName string) (*DiscountResolution, error) {
+	if resolution == nil {
+		return nil, nil
+	}
+	wholesale, err := ResolveAgentWholesale(userId, modelName)
+	if err != nil {
+		// 拿货价是叠在方案折扣之上的一层，它自己出错不该把方案折扣一起拖下水：
+		// 记一笔日志，这一单照方案折扣算，跟没做这个功能时一样。
+		common.SysError(fmt.Sprintf("解析经销商拿货价失败，客户 %d 本单按方案折扣计费：%v", userId, err))
+		return resolution, nil
+	}
+	if wholesale == nil {
+		return resolution, nil
+	}
+	if resolution.Source == DiscountResolvedFromDefault {
+		resolution.Discount = wholesale.Discount
+		resolution.Source = DiscountResolvedFromAgentWholesale
+		resolution.Rule = nil
+		return resolution, nil
+	}
+	planValue, err := decimal.NewFromString(strings.TrimSpace(resolution.Discount))
+	if err != nil {
+		// 方案折扣解析不出来属于数据异常：不猜，保持原样让上层按原价兜底。
+		return resolution, nil
+	}
+	wholesaleValue, err := decimal.NewFromString(wholesale.Discount)
+	if err != nil {
+		return resolution, nil
+	}
+	if wholesaleValue.LessThan(planValue) {
+		resolution.Discount = wholesale.Discount
+		resolution.Source = DiscountResolvedFromAgentWholesale
+		resolution.Rule = nil
+	}
 	return resolution, nil
 }
 

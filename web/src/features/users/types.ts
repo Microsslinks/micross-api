@@ -154,13 +154,27 @@ export interface ManageUserQuotaPayload {
   value: number
 }
 
-/** 设为经销商的入参。两个折扣由平台手动设定，经销商不可自改。 */
+/**
+ * 设为经销商的入参。
+ *
+ * 平台只定一档毛利：每个模型的拿货价由系统按「该模型最便宜一条线路的成本 × 加价率」
+ * 各自算出来，所以这里没有逐模型的数字可填。
+ */
 export interface SetAgentPayload {
-  /** 批发折扣：平台卖给经销商的价格，0 < 值 ≤ 1 */
-  wholesale_discount: string
-  /** 最低折扣：平台给这个经销商的地板价，0 ≤ 值 ≤ 批发折扣 */
-  min_discount: string
+  /** 平台加价率，如 "1.1" 表示在自采成本之上加 10%；下限 "1.05" */
+  markup_ratio: string
   remark?: string
+}
+
+/** 经销商拿货价目表里的一行：这个模型他按几折拿货，拿去给客户报价的依据。 */
+export interface AgentWholesaleQuoteItem {
+  model_name: string
+  /** 他的拿货折扣 = 成本 × 加价率 */
+  discount: string
+  /** 这个折扣是从哪条线路的成本算出来的 */
+  cost_ratio: string
+  /** 那条线路的名字 */
+  channel_name: string
 }
 
 // ============================================================================

@@ -87,6 +87,8 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/sessions/revoke-others", middleware.DisableCache(), controller.RevokeOtherLoginSessions)
 				selfRoute.GET("/self/groups", controller.GetUserGroups)
 				selfRoute.GET("/self", controller.GetSelf)
+				// 经销商自助台账：他自己看钱包余额，以及发出去的每个 Key 用了多少、花了多少
+				selfRoute.GET("/self/agent/ledger", controller.GetSelfAgentLedger)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
@@ -149,6 +151,8 @@ func SetApiRouter(router *gin.Engine) {
 				// 经销商身份（业务身份，不是权限角色）
 				adminRoute.POST("/:id/agent", controller.SetUserAsAgent)
 				adminRoute.DELETE("/:id/agent", controller.UnsetUserAsAgent)
+				// 他的拿货价目表：设经销商时看一眼，也用来试算不同的毛利
+				adminRoute.GET("/:id/agent/wholesale", controller.GetAgentWholesaleQuote)
 
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)

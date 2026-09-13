@@ -138,7 +138,9 @@ export function SidebarModulesSection({
       },
       billing: {
         title: t('Dealer Billing'),
-        description: t('Dealer Billing Placeholder Description'),
+        description: t(
+          'Your balance, and what each of your keys has used and spent.'
+        ),
       },
       personal: {
         title: t('Profile'),

@@ -516,6 +516,9 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"username":          user.Username,
 		"display_name":      user.DisplayName,
 		"role":              user.Role,
+		// subject_type 是业务身份（individual / agent），与 role 无关：
+		// 界面靠它决定要不要多给经销商看那些页，例如控制台里的台账。
+		"subject_type":      user.SubjectType,
 		"status":            user.Status,
 		"email":             user.Email,
 		"github_id":         user.GitHubId,

@@ -29,6 +29,7 @@ import {
   Link2,
   CreditCard,
   Store,
+  Percent,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -67,6 +68,7 @@ import {
 import { getUserActionMessage } from '../lib'
 import type { User, ManageUserAction } from '../types'
 import { SetAgentDialog } from './dialogs/set-agent-dialog'
+import { SetDiscountDialog } from './dialogs/set-discount-dialog'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { useUsers } from './users-provider'
 
@@ -83,6 +85,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const [setDiscountOpen, setSetDiscountOpen] = useState(false)
   const [setAgentOpen, setSetAgentOpen] = useState(false)
   const [unsetAgentOpen, setUnsetAgentOpen] = useState(false)
 
@@ -231,6 +234,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {/* 给这一位客户配专属价：绑上哪套折扣方案就按哪套计价，客户类型列会
+            跟着显示成「企业折扣」。跟经销商、订阅都不是一回事，所以单独一项。 */}
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault()
+            setSetDiscountOpen(true)
+          }}
+        >
+          {t('Set Exclusive Discount')}
+          <DropdownMenuShortcut>
+            <Percent size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+
         {/* 经销商是业务身份而不是权限等级，业务管理员本来就该能设，
             所以这里只按「是不是经销商」二选一，不跟着角色可见性走。 */}
         {!isAgent && (
@@ -326,6 +343,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuShortcut>
         </DropdownMenuItem>
       </DataTableRowActionMenu>
+
+      <SetDiscountDialog
+        open={setDiscountOpen}
+        onOpenChange={setSetDiscountOpen}
+        user={{ id: user.id, username: user.username }}
+        onSuccess={triggerRefresh}
+      />
 
       <SetAgentDialog
         open={setAgentOpen}

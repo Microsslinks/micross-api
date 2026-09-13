@@ -29,6 +29,7 @@ import type {
   ManageUserAction,
   ManageUserQuotaPayload,
   SetAgentPayload,
+  AgentWholesaleQuoteItem,
   ApiResponse,
 } from './types'
 
@@ -134,13 +135,31 @@ export async function manageUser(
 
 /**
  * Mark a user as a dealer (a business identity on top of the user, not a role).
- * The two discounts are set by the platform and stored on the dealer profile.
+ * The platform only sets one markup; each model is priced from its own cost.
  */
 export async function setUserAsAgent(
   id: number,
   payload: SetAgentPayload
 ): Promise<ApiResponse<Partial<User>>> {
   const res = await api.post(`/api/user/${id}/agent`, payload)
+  return res.data
+}
+
+/**
+ * List what this dealer pays per model at the given markup.
+ *
+ * The dialog calls it whenever the markup changes so the chips follow the number.
+ * Models whose upstream lines have no purchase discount recorded are left out.
+ */
+export async function getAgentWholesaleQuote(
+  id: number,
+  markupRatio: string
+): Promise<
+  ApiResponse<{ markup_ratio: string; items: AgentWholesaleQuoteItem[] }>
+> {
+  const res = await api.get(`/api/user/${id}/agent/wholesale`, {
+    params: { markup_ratio: markupRatio },
+  })
   return res.data
 }
 

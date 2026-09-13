@@ -16,21 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { api } from '@/lib/api'
 
-import { DealerBilling } from '@/features/dealer/billing'
-import { CUSTOMER_TYPE } from '@/features/users/constants'
-import { useAuthStore } from '@/stores/auth-store'
+import type { AgentLedger, ApiResponse } from './types'
 
-export const Route = createFileRoute('/_authenticated/billing/')({
-  beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
-
-    // 台账只给经销商看。菜单里本来就不会出现，这里挡住的是手敲地址进来的：
-    // 客户即使知道这个路径，也不该看到别人（其实是自己）的经营数据。
-    if (auth.user?.subject_type !== CUSTOMER_TYPE.AGENT) {
-      throw redirect({ to: '/403' })
-    }
-  },
-  component: DealerBilling,
-})
+/**
+ * 取当前登录用户的经销商自助台账。
+ *
+ * 谁都能调这个地址，是不是经销商由后端判定：非经销商返回 `success: false`
+ * （HTTP 仍为 200），所以调用方必须看 `success`，不能只看有没有报错。
+ */
+export async function getAgentLedger(): Promise<ApiResponse<AgentLedger>> {
+  const res = await api.get('/api/user/self/agent/ledger')
+  return res.data
+}
