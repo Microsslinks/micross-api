@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Container } from '@/components/layout'
@@ -36,6 +36,19 @@ interface HeroProps {
   isAuthenticated?: boolean
 }
 
+/*
+ * Cinematic hero backdrops. One is picked at random per page load, so every
+ * visit can land on a different scene. `scrim` is a per-scene darkening boost
+ * (0 = default video scrim) for footage that runs brighter than the rest.
+ */
+const HERO_BACKGROUNDS = [
+  { src: '/home/home-bg/home-bg-001.mp4', scrim: 0 },
+  { src: '/home/home-bg/home-bg-002.mp4', scrim: 0 },
+  { src: '/home/home-bg/home-bg-003.mp4', scrim: 0 },
+  { src: '/home/home-bg/home-pg-004.mp4', scrim: 0 },
+  { src: '/home/home-bg/home-pg-005.mp4', scrim: 0 },
+] as const
+
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
@@ -43,6 +56,17 @@ export function Hero(props: HeroProps) {
 
   const stageRef = useRef<HTMLElement>(null)
   const reduceMotion = useReducedMotion()
+
+  // Pick once per mount so re-renders (scroll, status refresh) never swap the
+  // scene mid-view.
+  const [heroBackground] = useState(
+    () =>
+      HERO_BACKGROUNDS[
+        Math.floor(Math.random() * HERO_BACKGROUNDS.length)
+      ] as (typeof HERO_BACKGROUNDS)[number]
+  )  // Videos decode asynchronously; fade the backdrop in once frames are ready
+  // instead of flashing black over the section.
+  const [backdropReady, setBackdropReady] = useState(false)
   /*
    * The cinematic pin only holds while the hero fits one screen. Below `lg`
    * the two columns stack, so the copy, the agent grid and the terminal card
@@ -157,12 +181,29 @@ export function Hero(props: HeroProps) {
           className='pointer-events-none absolute inset-0'
           style={backdropStyle}
         >
-          <img
-            src='/home/hero-bg.png'
-            alt=''
-            draggable={false}
-            fetchPriority='high'
-            className='size-full object-cover object-center select-none'
+          {/*
+           * One random scene from the cinematic pool, cross-faded in once it
+           * can play. Deliberately NOT gated on `prefers-reduced-motion`:
+           * this is a slow, ambient marketing backdrop (muted, no camera
+           * cuts), and gating it made every visitor whose OS disables UI
+           * animations land on the static fallback. Only the scroll pin
+           * below still respects the reduced-motion preference.
+           */}
+          <video
+            key={heroBackground.src}
+            src={heroBackground.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload='auto'
+            disablePictureInPicture
+            aria-hidden
+            onCanPlay={() => setBackdropReady(true)}
+            className={cn(
+              'size-full object-cover object-center select-none transition-opacity duration-1000',
+              backdropReady ? 'opacity-100' : 'opacity-0'
+            )}
           />
         </motion.div>
 
@@ -172,10 +213,26 @@ export function Hero(props: HeroProps) {
           className='pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_40%_40%,black_20%,transparent_100%)] bg-[size:4rem_4rem] opacity-[0.06]'
         />
 
-        {/* Left scrim keeps the copy legible over the bright halo. */}
+        {/* Base scrim: near-opaque on the copy side, but stays tinted all the
+            way across so even the brightest footage reads as a dark scene. */}
         <div
           aria-hidden
-          className='pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent'
+          className='pointer-events-none absolute inset-0 bg-gradient-to-r from-black/95 via-black/75 to-black/35'
+        />
+        {/* Dedicated scrim for video backdrops: they carry bright, moving
+            scenes that fight the copy far harder than a static photo ever
+            did, so they get their own extra gradient on top of the shared
+            one. `heroBackground.scrim` darkens a specific scene further
+            (0–0.25) without touching the others; tune per entry in
+            HERO_BACKGROUNDS above. */}
+        <div
+          aria-hidden
+          className='pointer-events-none absolute inset-0'
+          style={{
+            background:
+              'linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.4) 100%)',
+            opacity: 0.85 + heroBackground.scrim,
+          }}
         />
         {/* Bottom scrim dissolves the screen instead of cutting it off. */}
         <div
