@@ -605,6 +605,11 @@ func ensureSQLiteTableColumns(tableName string, required []sqliteColumnDef) erro
 // 都重建整张表（CREATE __temp → DROP → RENAME），故建表之后不再重复迁移。
 // 后续给这三张表新增列时，需在此补 ALTER TABLE ADD COLUMN（与 subscription 表同法）。
 func migrateDiscountTables(db *gorm.DB) error {
+	// 先修索引再走 AutoMigrate：AutoMigrate 只补缺失的索引，不会替换同名但列不同的旧索引；
+	// SQLite 这三张表建过之后更是不再走 AutoMigrate，修正只能在这里做。
+	if err := fixDiscountRuleUniqueIndex(db); err != nil {
+		return err
+	}
 	if db.Dialector.Name() == "sqlite" &&
 		db.Migrator().HasTable(&DiscountPlan{}) &&
 		db.Migrator().HasTable(&DiscountRule{}) &&
@@ -614,6 +619,87 @@ func migrateDiscountTables(db *gorm.DB) error {
 		return db.AutoMigrate(&DiscountRoutingPolicy{})
 	}
 	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{})
+}
+
+// fixDiscountRuleUniqueIndex 修正 discount_rules 的唯一索引 uk_rule_plan_scope。
+// 它的本意是「同一方案内 (范围类型, 范围取值) 唯一」，但最初建表标签漏了 plan_id，
+// 建出来的是全表唯一：任何两个方案不能有同名规则——多方案定价（平台与经销商各管一片
+// 模型、一个客户挂多套）会被这个索引直接卡死。这里把旧索引换成带 plan_id 的新索引。
+// 方向是放宽约束（旧索引更严，满足旧约束的存量数据必然满足新约束），三种库都安全；
+// 规则表只有几十上百行，重建开销可以忽略。
+func fixDiscountRuleUniqueIndex(db *gorm.DB) error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&DiscountRule{}) {
+		return nil
+	}
+	if !migrator.HasIndex(&DiscountRule{}, "uk_rule_plan_scope") {
+		// 表在索引不在：上次重建中途失败，或从没建过。直接按模型定义补建。
+		return migrator.CreateIndex(&DiscountRule{}, "uk_rule_plan_scope")
+	}
+	columns, err := discountRuleUniqueIndexColumns(db)
+	if err != nil {
+		return err
+	}
+	for _, column := range columns {
+		if column == "plan_id" {
+			return nil // 已是修正后的索引
+		}
+	}
+	if err := migrator.DropIndex(&DiscountRule{}, "uk_rule_plan_scope"); err != nil {
+		return err
+	}
+	return migrator.CreateIndex(&DiscountRule{}, "uk_rule_plan_scope")
+}
+
+// discountRuleUniqueIndexColumns 返回 uk_rule_plan_scope 现在覆盖的列，三种库各问各的元数据。
+func discountRuleUniqueIndexColumns(db *gorm.DB) ([]string, error) {
+	var columns []string
+	switch db.Dialector.Name() {
+	case "sqlite":
+		// PRAGMA index_info 返回 (seqno, cid, name)，列名是 name。
+		var rows []struct {
+			Name string
+		}
+		if err := db.Raw("PRAGMA index_info('uk_rule_plan_scope')").Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			columns = append(columns, row.Name)
+		}
+	case "mysql":
+		var rows []struct {
+			ColumnName string
+		}
+		query := "SELECT COLUMN_NAME AS column_name FROM information_schema.STATISTICS " +
+			"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'discount_rules' AND INDEX_NAME = 'uk_rule_plan_scope'"
+		if err := db.Raw(query).Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			columns = append(columns, row.ColumnName)
+		}
+	case "postgres":
+		var rows []struct {
+			ColumnName string
+		}
+		query := "SELECT a.attname AS column_name FROM pg_index i " +
+			"JOIN pg_class ic ON ic.oid = i.indexrelid " +
+			"JOIN pg_class tc ON tc.oid = i.indrelid " +
+			"JOIN pg_attribute a ON a.attrelid = ic.oid AND a.attnum = ANY(i.indkey) " +
+			"WHERE tc.relname = 'discount_rules' AND ic.relname = 'uk_rule_plan_scope'"
+		if err := db.Raw(query).Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			columns = append(columns, row.ColumnName)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported dialect: %s", db.Dialector.Name())
+	}
+	for i, column := range columns {
+		columns[i] = strings.ToLower(strings.TrimSpace(column))
+	}
+	return columns, nil
 }
 
 // migrateAgentTables 迁移经销商两表（agent_profiles / customer_codes）。

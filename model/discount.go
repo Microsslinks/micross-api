@@ -91,10 +91,14 @@ func (p *DiscountPlan) NormalizeDefaults() {
 
 // DiscountRule 是方案内的模型级 / 厂商级覆盖，命中时优先于方案基础折扣。
 type DiscountRule struct {
-	Id         int    `json:"id"`
-	PlanId     int    `json:"plan_id" gorm:"type:int;not null;index:idx_rule_plan"`
-	ScopeType  string `json:"scope_type" gorm:"type:varchar(16);not null;uniqueIndex:uk_rule_plan_scope,priority:1"`
-	ScopeValue string `json:"scope_value" gorm:"type:varchar(128);not null;uniqueIndex:uk_rule_plan_scope,priority:2"`
+	Id int `json:"id"`
+	// plan_id 必须进 uk_rule_plan_scope：这个索引的本意是「同一方案内 (范围类型, 范围取值) 唯一」，
+	// IsDiscountRuleScopeDuplicated 一直按这个口径查询。最初建表标签漏了 plan_id，
+	// 建出来的是全表唯一——任何两个方案不能有同名规则，多方案定价（task-06）直接被卡死。
+	// 存量库由 fixDiscountRuleUniqueIndex 在启动时把旧索引换成这里的定义。
+	PlanId     int    `json:"plan_id" gorm:"type:int;not null;index:idx_rule_plan;uniqueIndex:uk_rule_plan_scope,priority:1"`
+	ScopeType  string `json:"scope_type" gorm:"type:varchar(16);not null;uniqueIndex:uk_rule_plan_scope,priority:2"`
+	ScopeValue string `json:"scope_value" gorm:"type:varchar(128);not null;uniqueIndex:uk_rule_plan_scope,priority:3"`
 	Discount   string `json:"discount" gorm:"type:decimal(10,6);not null"`
 	Priority   int    `json:"priority" gorm:"type:int;not null;default:0"`
 	Status     int    `json:"status" gorm:"type:int;not null;default:1"`

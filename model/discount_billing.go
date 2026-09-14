@@ -35,7 +35,7 @@ func (d BillingDiscount) Applied() bool {
 // 四种情况一律回落到 1（不打折）：
 //  1. 总开关关着——G1 内部阶段默认关，管理员显式打开后才参与计费；
 //  2. 没有客户身份（userId <= 0，例如内部调用）；
-//  3. 客户没绑方案，或绑的方案已停用（ResolveUserDiscount 会给出 1.0）；
+//  3. 客户没绑方案，或绑的方案已停用（ResolveUserDiscountMulti 会给出 1.0）；
 //  4. 折扣读不出来，或落到了 (0,1] 之外。
 //
 // 第 4 种必须记日志：折扣子系统出故障不能把整条计费链路带停，但也不能静默发生。
@@ -50,7 +50,9 @@ func ResolveBillingDiscount(userId int, modelName string) BillingDiscount {
 		return none
 	}
 
-	resolution, err := ResolveUserDiscount(userId, modelName)
+	// 多方案解析：读这个人所有生效绑定按五层裁决，当前每人至多一条生效，
+	// 行为与单方案解析一致；界面放开多挂后这里自动成为唯一计价口径。
+	resolution, err := ResolveUserDiscountMulti(userId, modelName)
 	if err != nil {
 		common.SysError(fmt.Sprintf("resolve billing discount failed, userId=%d, model=%s: %s", userId, modelName, err.Error()))
 		return none
