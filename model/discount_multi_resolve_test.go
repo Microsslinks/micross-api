@@ -339,3 +339,72 @@ func TestFixDiscountRuleUniqueIndex(t *testing.T) {
 	// 修正过的索引再跑一次应该是幂等的（不重建、不报错）。
 	require.NoError(t, fixDiscountRuleUniqueIndex(DB))
 }
+
+// TestResolveUserDiscountDetailedForModels 批量版的核心契约：一份清单一次算完，
+// 答案与逐个单查完全一致——计费（单查）与核算（批量）共用同一套代码，两张表必须对得上。
+func TestResolveUserDiscountDetailedForModels(t *testing.T) {
+	t.Run("整份清单的答案与逐个单查逐字一致", func(t *testing.T) {
+		setupResolveTest(t)
+		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
+		platformPlan := seedMultiPlan(t, "0.950000",
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+		)
+		agentPlan := seedMultiPlan(t, "0.950000",
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+		)
+		bindMultiPlan(t, user.Id, platformPlan, DiscountSourceManual)
+		bindMultiPlan(t, user.Id, agentPlan, DiscountSourceAgent)
+
+		// 输入带上重复与空白项：修剪去重之后，该有的名字一个不多一个不少。
+		resolutions, candidates, err := ResolveUserDiscountDetailedForModels(user.Id,
+			[]string{" gpt-4o ", "", "claude-3-5-sonnet", "gpt-4o", "claude-3-5-sonnet"})
+		require.NoError(t, err)
+		assert.Len(t, resolutions, 2)
+		assert.Contains(t, resolutions, "gpt-4o")
+		assert.Contains(t, resolutions, "claude-3-5-sonnet")
+
+		for _, modelName := range []string{"gpt-4o", "claude-3-5-sonnet"} {
+			singleResolution, singleCandidates, err := ResolveUserDiscountDetailed(user.Id, modelName)
+			require.NoError(t, err)
+			require.NotNil(t, singleResolution)
+			require.NotNil(t, resolutions[modelName])
+			assert.Equal(t, singleResolution.Discount, resolutions[modelName].Discount)
+			assert.Equal(t, singleResolution.Source, resolutions[modelName].Source)
+			assert.Equal(t, singleResolution.PlanId, resolutions[modelName].PlanId)
+			require.Len(t, candidates[modelName], len(singleCandidates))
+			for i := range singleCandidates {
+				assert.Equal(t, singleCandidates[i].RejectReason, candidates[modelName][i].RejectReason)
+				assert.Equal(t, singleCandidates[i].Discount, candidates[modelName][i].Discount)
+			}
+		}
+
+		// 各管一片模型：gpt-4o 归平台那条绑定，claude 归经销商那条。
+		assert.Equal(t, platformPlan.Id, resolutions["gpt-4o"].PlanId)
+		assert.Equal(t, agentPlan.Id, resolutions["claude-3-5-sonnet"].PlanId)
+	})
+
+	t.Run("没有绑定的客户整份清单按官方标价", func(t *testing.T) {
+		setupResolveTest(t)
+		user := seedResolveCustomer(t, "", "")
+
+		resolutions, candidates, err := ResolveUserDiscountDetailedForModels(user.Id, []string{"gpt-4o", "claude-3-5-sonnet"})
+		require.NoError(t, err)
+		assert.Len(t, resolutions, 2)
+		for _, resolution := range resolutions {
+			assert.Equal(t, DiscountNone, resolution.Discount)
+			assert.Equal(t, DiscountResolvedFromDefault, resolution.Source)
+		}
+		for _, list := range candidates {
+			assert.Empty(t, list)
+		}
+	})
+
+	t.Run("清单是空白时返回空结果而不是报错", func(t *testing.T) {
+		setupResolveTest(t)
+		resolutions, candidates, err := ResolveUserDiscountDetailedForModels(1, []string{" ", ""})
+		require.NoError(t, err)
+		assert.Empty(t, resolutions)
+		assert.Empty(t, candidates)
+	})
+}
+

@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import type { TFunction } from 'i18next'
 
 import {
+  CUSTOMER_AUDIT_VERDICT,
   DISCOUNT_BILLING_MODE,
   DISCOUNT_BINDING_SOURCE,
   DISCOUNT_OWNER,
@@ -41,6 +42,7 @@ export const DISCOUNT_SOURCE_LABEL_KEYS: Record<string, string> = {
   [DISCOUNT_SOURCE.VENDOR]: 'Vendor-level rule',
   [DISCOUNT_SOURCE.PLAN_BASE]: 'Plan base discount',
   [DISCOUNT_SOURCE.DEFAULT]: 'Official price',
+  [DISCOUNT_SOURCE.AGENT_WHOLESALE]: 'Dealer wholesale price',
 }
 
 /** 方案状态 → i18n 键 */
@@ -93,6 +95,36 @@ export const DISCOUNT_SIMULATE_LIMITS = {
   MODEL_NAME_MAX_LENGTH: 128,
 } as const
 
+/** 客户核算的入参限制；条数上界与后端 service.CustomerAuditMaxModels 对齐。 */
+export const DISCOUNT_CUSTOMER_AUDIT_LIMITS = {
+  MODELS_MAX_COUNT: 100,
+  /** 模型清单文本框的长度上界，防呆用的。 */
+  MODEL_LIST_MAX_LENGTH: 8000,
+} as const
+
+/** 客户核算：每个模型的结论 → i18n 键与徽章色。 */
+export const CUSTOMER_AUDIT_VERDICT_CONFIG: Record<
+  string,
+  { labelKey: string; variant: 'success' | 'warning' | 'danger' | 'neutral' }
+> = {
+  [CUSTOMER_AUDIT_VERDICT.OK]: {
+    labelKey: 'Profitable',
+    variant: 'success',
+  },
+  [CUSTOMER_AUDIT_VERDICT.LOSS]: {
+    labelKey: 'Loss-making',
+    variant: 'danger',
+  },
+  [CUSTOMER_AUDIT_VERDICT.UNKNOWN_COST]: {
+    labelKey: 'Unknown cost',
+    variant: 'warning',
+  },
+  [CUSTOMER_AUDIT_VERDICT.NO_CHANNEL]: {
+    labelKey: 'No routes',
+    variant: 'neutral',
+  },
+}
+
 // ============================================================================
 // Error Messages (i18n keys; use t(ERROR_MESSAGES.xxx) when displaying)
 // ============================================================================
@@ -103,6 +135,9 @@ export const ERROR_MESSAGES = {
   CUSTOMER_REQUIRED: 'Select a customer',
   MODEL_REQUIRED: 'Model name is required',
   MODEL_TOO_LONG: 'Model name is too long',
+  MODELS_REQUIRED: 'Model list is required',
+  MODELS_TOO_MANY: 'A single audit covers at most 100 models',
+  AUDIT_FAILED: 'Audit failed',
   PLANS_LOAD_FAILED: 'Failed to load discount plans',
   PLAN_LOAD_FAILED: 'Failed to load the discount plan',
   PLAN_SAVE_FAILED: 'Failed to save the discount plan',

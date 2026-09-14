@@ -122,9 +122,6 @@ func resolvePlanDiscount(userId int, modelName string) (*DiscountResolution, err
 // 拿货价算不出来（没线路、没录进货折扣、加价后不低于标价）时原样返回，
 // 交给上层按原价处理，绝不用一个没有依据的数字替换现有结论。
 func applyAgentWholesaleDiscount(resolution *DiscountResolution, userId int, modelName string) (*DiscountResolution, error) {
-	if resolution == nil {
-		return nil, nil
-	}
 	wholesale, err := ResolveAgentWholesale(userId, modelName)
 	if err != nil {
 		// 拿货价是叠在方案折扣之上的一层，它自己出错不该把方案折扣一起拖下水：
@@ -132,30 +129,39 @@ func applyAgentWholesaleDiscount(resolution *DiscountResolution, userId int, mod
 		common.SysError(fmt.Sprintf("解析经销商拿货价失败，客户 %d 本单按方案折扣计费：%v", userId, err))
 		return resolution, nil
 	}
+	return applyWholesaleToResolution(resolution, wholesale), nil
+}
+
+// applyWholesaleToResolution 把算好的拿货价合进解析结果（纯计算，不查库）。
+// 单模型与批量两条路共用这一段，合入规则只有一份。
+func applyWholesaleToResolution(resolution *DiscountResolution, wholesale *AgentWholesale) *DiscountResolution {
+	if resolution == nil {
+		return nil
+	}
 	if wholesale == nil {
-		return resolution, nil
+		return resolution
 	}
 	if resolution.Source == DiscountResolvedFromDefault {
 		resolution.Discount = wholesale.Discount
 		resolution.Source = DiscountResolvedFromAgentWholesale
 		resolution.Rule = nil
-		return resolution, nil
+		return resolution
 	}
 	planValue, err := decimal.NewFromString(strings.TrimSpace(resolution.Discount))
 	if err != nil {
 		// 方案折扣解析不出来属于数据异常：不猜，保持原样让上层按原价兜底。
-		return resolution, nil
+		return resolution
 	}
 	wholesaleValue, err := decimal.NewFromString(wholesale.Discount)
 	if err != nil {
-		return resolution, nil
+		return resolution
 	}
 	if wholesaleValue.LessThan(planValue) {
 		resolution.Discount = wholesale.Discount
 		resolution.Source = DiscountResolvedFromAgentWholesale
 		resolution.Rule = nil
 	}
-	return resolution, nil
+	return resolution
 }
 
 // pickDiscountRule 在规则里找第一条命中给定取值的规则。

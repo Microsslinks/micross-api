@@ -134,6 +134,63 @@ func ResolveAgentWholesale(userId int, modelName string) (*AgentWholesale, error
 	}, nil
 }
 
+// ResolveAgentWholesaleForModels 批量版：经销商身份、经营档案、候选线路各查一次，
+// 逐模型算出拿货价。给「客户档案核算」这类一次算一份清单的管理端报表用，
+// 计费热路径继续走单模型版。返回 (nil, nil) 的情形与单模型版一一对应。
+func ResolveAgentWholesaleForModels(userId int, modelNames []string) (map[string]*AgentWholesale, error) {
+	nameList := normalizeLookupValues(modelNames)
+	result := make(map[string]*AgentWholesale, len(nameList))
+	if userId <= 0 || len(nameList) == 0 {
+		return result, nil
+	}
+
+	// 身份与档案的读取口径与单模型版一致：整行读用户（分组列是保留字），
+	// 不是经销商、档案缺失、加价率坏了，一律按原价（不出现在结果里）。
+	var user User
+	if err := DB.First(&user, userId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return result, nil
+		}
+		return nil, err
+	}
+	if user.SubjectType != SubjectTypeAgent {
+		return result, nil
+	}
+	profile, err := GetAgentProfileByUserId(userId)
+	if err != nil {
+		if errors.Is(err, ErrAgentProfileNotFound) {
+			return result, nil
+		}
+		return nil, err
+	}
+	markup, err := decimal.NewFromString(strings.TrimSpace(profile.EffectiveMarkupRatio()))
+	if err != nil {
+		return result, nil
+	}
+
+	// 候选线路一次批量取回，逐模型挑最便宜的。
+	byModel, err := GetDiscountChannelCandidatesByModels(agentWholesaleGroups(user.Group), nameList)
+	if err != nil {
+		return nil, err
+	}
+	for _, modelName := range nameList {
+		lowestCost, channelName, ok := lowestCostCandidate(byModel[modelName])
+		if !ok {
+			continue
+		}
+		price := lowestCost.Mul(markup)
+		if price.LessThanOrEqual(decimal.Zero) || price.GreaterThanOrEqual(decimal.NewFromInt(1)) {
+			continue
+		}
+		result[modelName] = &AgentWholesale{
+			Discount:    price.StringFixed(6),
+			CostRatio:   lowestCost.StringFixed(6),
+			ChannelName: channelName,
+		}
+	}
+	return result, nil
+}
+
 // agentWholesaleGroups 算经销商自己消费时该看哪些分组的线路。
 // 与试算、保存前校验同源：分组为空按 default；配成 auto 的展开成全局自动分组。
 func agentWholesaleGroups(userGroup string) []string {

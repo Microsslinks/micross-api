@@ -234,6 +234,10 @@ func SetApiRouter(router *gin.Engine) {
 			// 试算：某客户 + 某模型按几折、走哪些线路、每条赚多少。只读，不落库。
 			discountAdminRoute.GET("/simulate", controller.SimulateDiscount)
 
+			// 客户档案核算：某客户 + 整份模型清单一次算完，每个模型赚不亏、
+			// 这份报价能不能签。只读，不落库。
+			discountAdminRoute.POST("/customer-audit", controller.AuditCustomerPricing)
+
 			// 保存前提示：这个方案会不会亏，答在哪些模型 / 厂商上。只读，不阻断保存。
 			discountAdminRoute.POST("/plans/:id/validate", controller.ValidateDiscountPlan)
 

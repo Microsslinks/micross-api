@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -49,37 +50,115 @@ func ResolveUserDiscountMulti(userId int, modelName string) (*DiscountResolution
 
 // ResolveUserDiscountDetailed 在多方案答案之外把全部候选（含落选者与落选原因）一并返回，
 // 供查价 / 试算解释"这个价怎么来的"。candidates 可能为空（没有任何绑定）。
+// 模型名为空串时返回 (nil, nil, nil)，计费侧据此按官方标价收——空名字没有可解析的价。
 func ResolveUserDiscountDetailed(userId int, modelName string) (*DiscountResolution, []*DiscountCandidate, error) {
-	resolution, candidates, err := resolveMultiPlanDiscount(userId, modelName)
+	modelName = strings.TrimSpace(modelName)
+	resolutions, candidates, err := ResolveUserDiscountDetailedForModels(userId, []string{modelName})
 	if err != nil {
 		return nil, nil, err
 	}
-	resolution, err = applyAgentWholesaleDiscount(resolution, userId, modelName)
-	if err != nil {
-		return nil, nil, err
-	}
-	return resolution, candidates, nil
+	return resolutions[modelName], candidates[modelName], nil
 }
 
-// resolveMultiPlanDiscount 只看折扣方案这一层（多方案版的 resolvePlanDiscount）：
-// 读全部生效绑定 → 批量取方案与规则 → 逐条解析 → 五层裁决（前四层，拿货价在外层）。
+// ResolveUserDiscountDetailedForModels 批量版：一个客户 + 一份模型清单一次算完，
+// 绑定 / 方案 / 规则 / 厂商 / 拿货价各读一次（不是每个模型来一遍），
+// 逐模型给出与单模型版完全一致的答案与候选——两条路共用同一套解析与裁决代码，
+// 不允许出现「核算一张价、扣费另一张价」。
+// 给「客户档案核算」这类管理端一次性报表用；计费热路径继续走单模型版。
+// 返回的两个 map 按修剪去重后的模型名索引，输入顺序不保留。
+func ResolveUserDiscountDetailedForModels(userId int, modelNames []string) (map[string]*DiscountResolution, map[string][]*DiscountCandidate, error) {
+	resolutions, candidates, err := resolveMultiPlanDiscountForModels(userId, modelNames)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 拿货价批量算一次，再逐模型合入——合入规则与单模型版完全一致（applyWholesaleToResolution）。
+	wholesales, err := ResolveAgentWholesaleForModels(userId, modelNames)
+	if err != nil {
+		// 拿货价是叠在方案折扣之上的一层，它自己出错不该把整份清单拖回原价：
+		// 记一笔日志，全部照方案折扣算，与单模型版同一处置。
+		common.SysError(fmt.Sprintf("解析经销商拿货价失败，客户 %d 本次核算按方案折扣：%v", userId, err))
+		wholesales = nil
+	}
+	for modelName, resolution := range resolutions {
+		resolutions[modelName] = applyWholesaleToResolution(resolution, wholesales[modelName])
+	}
+	return resolutions, candidates, nil
+}
+
+// resolveMultiPlanDiscount 单模型版（多方案版的 resolvePlanDiscount）。
+// 就是批量核心套一个模型名，防止有人在这里另写一套顺序。
 func resolveMultiPlanDiscount(userId int, modelName string) (*DiscountResolution, []*DiscountCandidate, error) {
-	resolution := &DiscountResolution{
-		Discount: DiscountNone,
-		Source:   DiscountResolvedFromDefault,
+	modelName = strings.TrimSpace(modelName)
+	resolutions, candidates, err := resolveMultiPlanDiscountForModels(userId, []string{modelName})
+	if err != nil {
+		return nil, nil, err
+	}
+	return resolutions[modelName], candidates[modelName], nil
+}
+
+// discountMultiContext 一个客户 + 一份模型清单共用的读取结果。
+// 批量与单模型两条路从同一批数据出发解析，保证答案永远一致。
+type discountMultiContext struct {
+	allBindings   []DiscountBinding // 这个客户的全部生效绑定（含窗口外的）
+	windowReasons []string          // 与 allBindings 平行：非空表示该绑定不在生效窗口内（写明原因）
+	plans         map[int]*DiscountPlan
+	rulesByPlan   map[int][]*DiscountRule
+	now           int64
+}
+
+// resolveMultiPlanDiscountForModels 批量核心（方案层）：读全部生效绑定 → 批量取方案与规则
+// → 逐模型逐条解析 → 五层裁决的前四层（拿货价在外层 ResolveUserDiscountDetailedForModels）。
+func resolveMultiPlanDiscountForModels(userId int, modelNames []string) (map[string]*DiscountResolution, map[string][]*DiscountCandidate, error) {
+	nameList := normalizeLookupValues(modelNames)
+	resolutions := make(map[string]*DiscountResolution, len(nameList))
+	candidatesByModel := make(map[string][]*DiscountCandidate, len(nameList))
+	if len(nameList) == 0 {
+		return resolutions, candidatesByModel, nil
 	}
 	if userId <= 0 {
-		return resolution, nil, nil
+		for _, name := range nameList {
+			resolutions[name] = &DiscountResolution{Discount: DiscountNone, Source: DiscountResolvedFromDefault}
+			candidatesByModel[name] = nil
+		}
+		return resolutions, candidatesByModel, nil
 	}
 
-	// 用户不存在视同没有绑定方案；数据库真出错必须报上去，不能悄悄按 1.0 计费。
-	// 与单方案解析同一口径。
+	ctx, err := loadDiscountMultiContext(userId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// 厂商名只在「这批方案里真有启用中的厂商级规则」时才查模型目录——单模型版的老规矩：
+	// 模型级命中压根不碰目录表（有些环境的目录表还没建，提前查会把整单拖回原价）。
+	vendorNames := make(map[string]string, len(nameList))
+	if ctx.hasVendorScopeRules() {
+		vendorNames, err = GetVendorNamesByModelNames(nameList)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	for _, modelName := range nameList {
+		resolutions[modelName], candidatesByModel[modelName] = ctx.resolveModel(modelName, vendorNames[modelName])
+	}
+	return resolutions, candidatesByModel, nil
+}
+
+// loadDiscountMultiContext 读一个客户的绑定（含生效窗口判定）与关联的方案、规则。
+// 用户不存在视同没有绑定方案；数据库真出错必须报上去，不能悄悄按 1.0 计费。
+// 与单方案解析同一口径。
+func loadDiscountMultiContext(userId int) (*discountMultiContext, error) {
+	ctx := &discountMultiContext{
+		plans:       make(map[int]*DiscountPlan),
+		rulesByPlan: make(map[int][]*DiscountRule),
+		now:         common.GetTimestamp(),
+	}
 	var user User
 	if err := DB.Select("id").First(&user, userId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return resolution, nil, nil
+			return ctx, nil
 		}
-		return nil, nil, err
+		return nil, err
 	}
 
 	// 绑定读取与 syncUserDiscountPlanId 同一口径：只按 subject_id + 生效状态过滤，
@@ -87,57 +166,65 @@ func resolveMultiPlanDiscount(userId int, modelName string) (*DiscountResolution
 	allBindings := make([]DiscountBinding, 0)
 	if err := DB.Where("subject_id = ? AND status = ?", userId, DiscountStatusEnabled).
 		Order("id ASC").Find(&allBindings).Error; err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	ctx.allBindings = allBindings
 
-	now := common.GetTimestamp()
-	candidates := make([]*DiscountCandidate, 0, len(allBindings))
+	// 生效时间窗口的判定与 pickActiveDiscountBinding 完全一致，对所有模型都一样，算一次就够；
+	// 窗口外的绑定仍出现在候选里（标明原因），方便回答"我上周谈的那套价怎么没生效"。
+	ctx.windowReasons = make([]string, len(allBindings))
 	planIds := make([]int, 0, len(allBindings))
 	for i := range allBindings {
-		binding := &allBindings[i]
-		candidate := &DiscountCandidate{Binding: binding}
-		// 生效时间窗口的判定与 pickActiveDiscountBinding 完全一致；
-		// 窗口外的绑定仍出现在候选里（标明原因），方便回答"我上周谈的那套价怎么没生效"。
-		if binding.EffectiveFrom > now {
-			candidate.Rejected = true
-			candidate.RejectReason = "尚未到生效时间"
-			candidates = append(candidates, candidate)
-			continue
+		switch {
+		case allBindings[i].EffectiveFrom > ctx.now:
+			ctx.windowReasons[i] = "尚未到生效时间"
+		case allBindings[i].EffectiveTo > 0 && allBindings[i].EffectiveTo <= ctx.now:
+			ctx.windowReasons[i] = "已过生效时间"
+		default:
+			planIds = append(planIds, allBindings[i].PlanId)
 		}
-		if binding.EffectiveTo > 0 && binding.EffectiveTo <= now {
-			candidate.Rejected = true
-			candidate.RejectReason = "已过生效时间"
-			candidates = append(candidates, candidate)
-			continue
-		}
-		planIds = append(planIds, binding.PlanId)
-		candidates = append(candidates, candidate)
 	}
 	if len(planIds) == 0 {
-		return resolution, candidates, nil
+		return ctx, nil
 	}
 
 	// 方案与规则各一次 IN 查询批量取回：计费热路径绝不能逐条查。
-	plans, err := getDiscountPlansByIds(planIds)
+	var err error
+	ctx.plans, err = getDiscountPlansByIds(planIds)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	rulesByPlan, err := getDiscountRulesByPlanIds(planIds)
+	ctx.rulesByPlan, err = getDiscountRulesByPlanIds(planIds)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
+	}
+	return ctx, nil
+}
+
+// resolveModel 把 context 里的绑定对一个模型逐条解析并裁决出唯一答案。
+// 逐条解析的优先级与单方案解析（resolvePlanDiscount 第 4-6 步）完全一致：
+// 模型级规则 → 厂商级规则 → 基础折扣。vendorName 为空串时跳过厂商级匹配
+// （查不到厂商与没有厂商级规则，效果一样都是跳过）。
+func (ctx *discountMultiContext) resolveModel(modelName string, vendorName string) (*DiscountResolution, []*DiscountCandidate) {
+	resolution := &DiscountResolution{
+		Discount: DiscountNone,
+		Source:   DiscountResolvedFromDefault,
+	}
+	candidates := make([]*DiscountCandidate, 0, len(ctx.allBindings))
+	for i := range ctx.allBindings {
+		candidate := &DiscountCandidate{Binding: &ctx.allBindings[i]}
+		if ctx.windowReasons[i] != "" {
+			candidate.Rejected = true
+			candidate.RejectReason = ctx.windowReasons[i]
+		}
+		candidates = append(candidates, candidate)
 	}
 
-	// 逐条解析：方案内仍是 模型级规则 → 厂商级规则 → 基础折扣，
-	// 与单方案解析（resolvePlanDiscount 第 4-6 步）同一套优先级。
-	// 厂商名只在有候选真需要它（模型级规则没命中）时才解析——查的是模型目录表，
-	// 单方案解析同样在这一步才碰它，模型级命中时压根不查，这里保持同一节奏。
-	vendorName := ""
-	vendorResolved := false
 	for _, candidate := range candidates {
 		if candidate.Rejected {
 			continue
 		}
-		plan, ok := plans[candidate.Binding.PlanId]
+		plan, ok := ctx.plans[candidate.Binding.PlanId]
 		if !ok || plan.Status != DiscountStatusEnabled {
 			// 方案停用或已删除：这条绑定对当前模型没有发言权。
 			candidate.Rejected = true
@@ -145,19 +232,12 @@ func resolveMultiPlanDiscount(userId int, modelName string) (*DiscountResolution
 			continue
 		}
 		candidate.Plan = plan
-		rules := rulesByPlan[plan.Id]
+		rules := ctx.rulesByPlan[plan.Id]
 		if rule := pickDiscountRule(rules, DiscountScopeModel, modelName); rule != nil {
 			candidate.Specificity = DiscountResolvedFromModel
 			candidate.Rule = rule
 			candidate.Discount = formatResolvedDiscount(rule.Discount)
 			continue
-		}
-		if !vendorResolved {
-			vendorName, err = resolveVendorName(modelName)
-			if err != nil {
-				return nil, nil, err
-			}
-			vendorResolved = true
 		}
 		if rule := pickDiscountRule(rules, DiscountScopeVendor, vendorName); rule != nil {
 			candidate.Specificity = DiscountResolvedFromVendor
@@ -174,10 +254,10 @@ func resolveMultiPlanDiscount(userId int, modelName string) (*DiscountResolution
 		// 所有绑定都被停用方案拖下水：按未绑定处理。快路径口径保持
 		// "仍指向 pickActiveDiscountBinding 选中的那条"，与单方案解析一致，
 		// 便于排查为什么没生效。
-		if binding := pickActiveDiscountBinding(allBindings, now); binding != nil {
+		if binding := pickActiveDiscountBinding(ctx.allBindings, ctx.now); binding != nil {
 			resolution.PlanId = binding.PlanId
 		}
-		return resolution, candidates, nil
+		return resolution, candidates
 	}
 	markDiscountCandidateRejections(candidates, winner)
 
@@ -186,7 +266,57 @@ func resolveMultiPlanDiscount(userId int, modelName string) (*DiscountResolution
 	resolution.Rule = winner.Rule
 	resolution.Plan = winner.Plan
 	resolution.PlanId = winner.Binding.PlanId
-	return resolution, candidates, nil
+	return resolution, candidates
+}
+
+// hasVendorScopeRules 判断这批方案里有没有启用中的厂商级规则，
+// 决定整份清单要不要查模型目录表。
+func (ctx *discountMultiContext) hasVendorScopeRules() bool {
+	for _, rules := range ctx.rulesByPlan {
+		for _, rule := range rules {
+			if rule.Status == DiscountStatusEnabled && rule.ScopeType == DiscountScopeVendor {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// GetVendorNamesByModelNames 批量查「模型名 → 厂商名」。
+// 与单条版 resolveVendorName 同一口径：目录里没有、没挂厂商、厂商被删的模型都不出现在
+// 结果里（调用方拿到空串，跳过厂商级匹配）。
+func GetVendorNamesByModelNames(modelNames []string) (map[string]string, error) {
+	nameList := normalizeLookupValues(modelNames)
+	result := make(map[string]string, len(nameList))
+	if len(nameList) == 0 {
+		return result, nil
+	}
+	rows := make([]Model, 0, len(nameList))
+	if err := DB.Where("model_name IN ?", nameList).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	vendorIds := make([]int, 0, len(rows))
+	for i := range rows {
+		if rows[i].VendorID > 0 {
+			vendorIds = append(vendorIds, rows[i].VendorID)
+		}
+	}
+	vendorNames := make(map[int]string, len(vendorIds))
+	if len(vendorIds) > 0 {
+		vendors := make([]Vendor, 0, len(vendorIds))
+		if err := DB.Where("id IN ?", vendorIds).Find(&vendors).Error; err != nil {
+			return nil, err
+		}
+		for i := range vendors {
+			vendorNames[vendors[i].Id] = vendors[i].Name
+		}
+	}
+	for i := range rows {
+		if name, ok := vendorNames[rows[i].VendorID]; ok {
+			result[rows[i].ModelName] = name
+		}
+	}
+	return result, nil
 }
 
 // pickWinningDiscountCandidate 按前四层裁决挑出唯一胜者。

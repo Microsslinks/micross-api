@@ -20,6 +20,8 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  AuditCustomerPricingParams,
+  CustomerAuditResult,
   DiscountBinding,
   DiscountBindingListParams,
   DiscountBindingPayload,
@@ -59,6 +61,21 @@ export async function simulateDiscount(
       model,
       channel_id: channelId,
     },
+  })
+  return res.data
+}
+
+/**
+ * 客户档案核算：一个客户 + 整份模型清单，逐模型给出折扣、最便宜线路成本、
+ * 毛利与结论，并汇总「这份报价能不能签」。只读接口。
+ */
+export async function auditCustomerPricing(
+  params: AuditCustomerPricingParams
+): Promise<ApiResponse<CustomerAuditResult>> {
+  const { userId, models } = params
+  const res = await api.post('/api/discount/admin/customer-audit', {
+    user_id: userId,
+    models,
   })
   return res.data
 }

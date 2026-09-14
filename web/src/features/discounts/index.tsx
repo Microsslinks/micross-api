@@ -16,13 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Calculator, Route as RouteIcon } from 'lucide-react'
+import { Calculator, ClipboardCheck, Route as RouteIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 
+import { DiscountsCustomerAuditDrawer } from './components/discounts-customer-audit-drawer'
 import { DiscountsDialogs } from './components/discounts-dialogs'
 import { DiscountsPrimaryButtons } from './components/discounts-primary-buttons'
 import { DiscountsProvider } from './components/discounts-provider'
@@ -47,6 +48,7 @@ function DiscountsPage() {
   const { t } = useTranslation()
   const [simulateOpen, setSimulateOpen] = useState(false)
   const [routingOpen, setRoutingOpen] = useState(false)
+  const [auditOpen, setAuditOpen] = useState(false)
 
   return (
     <>
@@ -60,6 +62,10 @@ function DiscountsPage() {
           <Button variant='outline' onClick={() => setSimulateOpen(true)}>
             <Calculator className='h-4 w-4' />
             {t('Simulate')}
+          </Button>
+          <Button variant='outline' onClick={() => setAuditOpen(true)}>
+            <ClipboardCheck className='h-4 w-4' />
+            {t('Customer Pricing Audit')}
           </Button>
           <DiscountsPrimaryButtons />
         </SectionPageLayout.Actions>
@@ -76,6 +82,10 @@ function DiscountsPage() {
       <DiscountsRoutingDrawer
         open={routingOpen}
         onOpenChange={setRoutingOpen}
+      />
+      <DiscountsCustomerAuditDrawer
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
       />
     </>
   )

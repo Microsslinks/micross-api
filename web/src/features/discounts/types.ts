@@ -26,6 +26,8 @@ export const DISCOUNT_SOURCE = {
   VENDOR: 'vendor',
   PLAN_BASE: 'plan_base',
   DEFAULT: 'default',
+  /** 经销商自己消费，按他的拿货价。 */
+  AGENT_WHOLESALE: 'agent_wholesale',
 } as const
 
 export type DiscountSource =
@@ -177,6 +179,71 @@ export interface SimulateDiscountParams {
   userId: number
   model: string
   channelId?: number
+}
+
+// ============================================================================
+// Customer pricing audit (mirrors service.CustomerPricingAuditResult)
+// ============================================================================
+
+/** 客户核算里每个模型的结论；对应 `service.CustomerAuditVerdict*`。 */
+export const CUSTOMER_AUDIT_VERDICT = {
+  /** 有过毛利底线的线路，路由能正常挑到赚钱的线。 */
+  OK: 'ok',
+  /** 已录成本的线路全过不了毛利底线，这单会亏。 */
+  LOSS: 'loss',
+  /** 有线路但没录进货折扣，成本无从谈起。 */
+  UNKNOWN_COST: 'unknown_cost',
+  /** 该客户分组下没有可用线路，客户一下单就报错。 */
+  NO_CHANNEL: 'no_channel',
+} as const
+
+export type CustomerAuditVerdict =
+  (typeof CUSTOMER_AUDIT_VERDICT)[keyof typeof CUSTOMER_AUDIT_VERDICT]
+
+/**
+ * 客户核算里一个模型的行。
+ * 成本与毛利没录进货折扣时是 `null`——「不知道」不能显示成「赚 0 元」。
+ */
+export interface CustomerAuditModel {
+  model: string
+  vendor: string
+  discount: string
+  source: string
+  plan: DiscountSimulatePlan | null
+  matched_rule: DiscountSimulateRule | null
+  channel_count: number
+  usable_count: number
+  cheapest_cost: string | null
+  gross_margin: string | null
+  verdict: string
+  /** 后端原文说明（中文），直接展示给运营看。 */
+  verdict_detail: string
+}
+
+export interface CustomerAuditSummary {
+  total: number
+  ok: number
+  loss: number
+  unknown_cost: number
+  no_channel: number
+  /** 能不能签：没有任何会亏、没有线路、成本未知的模型。 */
+  signable: boolean
+  /** 后端原文一句话结论（中文），直接展示给运营看。 */
+  conclusion: string
+}
+
+export interface CustomerAuditResult {
+  user: DiscountSimulateUser
+  min_margin_ratio: string
+  models: CustomerAuditModel[]
+  summary: CustomerAuditSummary
+  /** 后端原文提示（中文），直接展示给运营看。 */
+  warnings: string[]
+}
+
+export interface AuditCustomerPricingParams {
+  userId: number
+  models: string[]
 }
 
 export interface SearchCustomersParams {
