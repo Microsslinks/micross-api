@@ -177,6 +177,12 @@ func BindCustomerCode(customerId int, rawCode string) (*CustomerBinding, error) 
 			return err
 		}
 		if record.PlanId > 0 && planBound == 0 {
+			// 这位客户已经被挂满了：先拒绝整笔，而不是"只落归属、不带折扣"——
+			// 后者会让他以为自己拿到了号上的价，而这张号已经被扣掉一次用量。
+			// 整笔拒绝意味着什么都没发生，平台解绑一套之后他还能用同一张号。
+			if err := ensureDiscountBindingQuota(tx, DiscountSubjectUser, customerId); err != nil {
+				return err
+			}
 			// 与 BindDiscountPlan 同一口径：先写绑定事实，再重算 users.discount_plan_id 快路径。
 			// 这里不复用 BindDiscountPlan 是因为它自带事务，开不了嵌套。
 			discountBinding := &DiscountBinding{

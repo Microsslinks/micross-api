@@ -296,6 +296,8 @@ export const DISCOUNT_PLAN_LIMITS = {
   BINDING_PAGE_SIZE: 50,
   /** 绑定客户时给用户下拉取的条数。 */
   CUSTOMER_PAGE_SIZE: 50,
+  /** 一个客户最多同时挂几套方案，与后端 DiscountMaxPlansPerSubject 对齐。 */
+  MAX_BINDINGS_PER_SUBJECT: 10,
 }
 
 // ============================================================================

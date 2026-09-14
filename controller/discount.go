@@ -452,7 +452,9 @@ func GetDiscountBindings(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	subjectId, _ := strconv.Atoi(c.Query("subject_id"))
 	planId, _ := strconv.Atoi(c.Query("plan_id"))
-	bindings, total, err := model.GetDiscountBindings(c.Query("subject_type"), subjectId, planId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	// 不传 status 就是不过滤（老调用方的口径不变）；传 1 只看此刻生效的绑定。
+	status, _ := strconv.Atoi(c.Query("status"))
+	bindings, total, err := model.GetDiscountBindings(c.Query("subject_type"), subjectId, planId, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return

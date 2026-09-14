@@ -22,6 +22,17 @@ type BillingDiscount struct {
 	Source string
 	// PlanId 是命中的折扣方案 id，未打折时为 0。
 	PlanId int
+	// Rejected 是这位客户身上、这一单没用上的那几条绑定（含落选原因）。
+	// 不参与计算：只为了日志答得出"为什么不是按他另一套方案算"。
+	Rejected []BillingDiscountRejection
+}
+
+// BillingDiscountRejection 是一条挂在这个客户身上、这一单没用上的绑定。
+type BillingDiscountRejection struct {
+	PlanId   int
+	Source   string
+	Discount string
+	Reason   string
 }
 
 // Applied 表示这一单是否真的要按低于官方标价收费。
@@ -52,7 +63,8 @@ func ResolveBillingDiscount(userId int, modelName string) BillingDiscount {
 
 	// 多方案解析：读这个人所有生效绑定按五层裁决，当前每人至多一条生效，
 	// 行为与单方案解析一致；界面放开多挂后这里自动成为唯一计价口径。
-	resolution, err := ResolveUserDiscountMulti(userId, modelName)
+	// 用 Detailed 版是为了顺带拿到落选的那几条——只多带了数据，不多查一次库。
+	resolution, candidates, err := ResolveUserDiscountDetailed(userId, modelName)
 	if err != nil {
 		common.SysError(fmt.Sprintf("resolve billing discount failed, userId=%d, model=%s: %s", userId, modelName, err.Error()))
 		return none
@@ -76,8 +88,32 @@ func ResolveBillingDiscount(userId int, modelName string) BillingDiscount {
 	}
 
 	return BillingDiscount{
-		Ratio:  value,
-		Source: resolution.Source,
-		PlanId: resolution.PlanId,
+		Ratio:    value,
+		Source:   resolution.Source,
+		PlanId:   resolution.PlanId,
+		Rejected: collectRejectedBillingCandidates(candidates),
 	}
+}
+
+// collectRejectedBillingCandidates 挑出这一单落选的绑定。
+// 只挂一套方案的客户这里是空的（没人跟它抢），所以绝大多数请求不会多出这几个字段。
+func collectRejectedBillingCandidates(candidates []*DiscountCandidate) []BillingDiscountRejection {
+	rejected := make([]BillingDiscountRejection, 0, len(candidates))
+	for _, candidate := range candidates {
+		if !candidate.Rejected {
+			continue
+		}
+		reason := candidate.RejectReason
+		if reason == "" {
+			// 裁决没写明原因时也不能留空：读日志的人会以为字段坏了。
+			reason = "未被选中"
+		}
+		rejected = append(rejected, BillingDiscountRejection{
+			PlanId:   candidate.Binding.PlanId,
+			Source:   candidate.Binding.Source,
+			Discount: candidate.Discount,
+			Reason:   reason,
+		})
+	}
+	return rejected
 }

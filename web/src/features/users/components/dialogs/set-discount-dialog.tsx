@@ -38,6 +38,7 @@ import {
   getDiscountBindings,
   getDiscountPlans,
 } from '@/features/discounts/api'
+import { DISCOUNT_PLAN_LIMITS } from '@/features/discounts/constants'
 import {
   DISCOUNT_BINDING_SOURCE,
   DISCOUNT_PLAN_STATUS,
@@ -76,6 +77,9 @@ export function SetDiscountDialog({
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [unbindingId, setUnbindingId] = useState<number | null>(null)
+  // 对话框开着期间改过绑定就记一笔，等用户自己关掉时再统一刷新用户列表：
+  // 绑一次刷一次会让表格在对话框背后闪，而且可能把还没做完的连续绑定打断。
+  const [dirty, setDirty] = useState(false)
 
   const loadPlans = useCallback(async () => {
     const result = await getDiscountPlans({
@@ -87,17 +91,22 @@ export function SetDiscountDialog({
   }, [])
 
   const loadBindings = useCallback(async (userId: number) => {
+    // status 交给后端过滤：解绑过的绑定是停用状态留在库里的历史记录，
+    // 拉回来自己筛的话，攒够一页历史记录就会把还在生效的那几条挤出去，
+    // 界面会显示成"这个客户没有方案"。
     const result = await getDiscountBindings({
       subject_type: DISCOUNT_SUBJECT.USER,
       subject_id: userId,
+      status: DISCOUNT_PLAN_STATUS.ENABLED,
       page: 1,
-      page_size: 20,
+      page_size: 100,
     })
-    const items = result.success ? (result.data?.items ?? []) : []
-    setBindings(
-      items.filter((binding) => binding.status === DISCOUNT_PLAN_STATUS.ENABLED)
-    )
+    setBindings(result.success ? (result.data?.items ?? []) : [])
   }, [])
+
+  // 只认 user.id：父组件每次渲染都会传一个新对象，按对象本身依赖会让
+  // 每次刷新列表都把刚选好的方案清空。
+  const userId = user?.id ?? 0
 
   useEffect(() => {
     setSelectedPlanId('')
@@ -106,17 +115,31 @@ export function SetDiscountDialog({
       return
     }
     void loadPlans()
-    if (user) void loadBindings(user.id)
-  }, [open, user, loadPlans, loadBindings])
+    if (userId > 0) void loadBindings(userId)
+  }, [open, userId, loadPlans, loadBindings])
+
+  /** 关闭对话框是唯一刷新用户列表的时机：开着的时候连续绑，关了再一起刷新。 */
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && dirty) {
+      setDirty(false)
+      onSuccess?.()
+    }
+    onOpenChange(nextOpen)
+  }
 
   /** 方案名以方案列表为准；方案被停用后列表里没有，退回显示编号，不留空白。 */
   const planLabel = (planId: number) =>
     plans.find((plan) => plan.id === planId)?.name ||
     t('Plan #{{id}}', { id: planId })
 
+  // 后端也会拦（同一个上限），这里先拦是为了让按钮当场变灰、把原因写在旁边，
+  // 而不是让他点了才收到一句"已达上限"。
+  const atPlanLimit =
+    bindings.length >= DISCOUNT_PLAN_LIMITS.MAX_BINDINGS_PER_SUBJECT
+
   const handleBind = async () => {
     const planId = Number.parseInt(selectedPlanId, 10)
-    if (!user || !Number.isFinite(planId) || planId <= 0) return
+    if (!user || !Number.isFinite(planId) || planId <= 0 || atPlanLimit) return
     setSubmitting(true)
     try {
       const result = await createDiscountBinding({
@@ -132,8 +155,9 @@ export function SetDiscountDialog({
           t('{{username}} follows this plan now', { username: user.username })
         )
         setSelectedPlanId('')
+        setDirty(true)
         await loadBindings(user.id)
-        onSuccess?.()
+        // 不关对话框：一位客户可以同时挂多套方案，绑完让他自己关。
         return
       }
       toast.error(result.message || t('Failed to bind the discount plan'))
@@ -155,8 +179,8 @@ export function SetDiscountDialog({
             username: user.username,
           })
         )
+        setDirty(true)
         await loadBindings(user.id)
-        onSuccess?.()
         return
       }
       toast.error(result.message || t('Failed to unbind the discount plan'))
@@ -170,7 +194,7 @@ export function SetDiscountDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={
         <>
           <Percent className='h-5 w-5' />
@@ -194,7 +218,7 @@ export function SetDiscountDialog({
           </Button>
           <Button
             onClick={handleBind}
-            disabled={submitting || !selectedPlanId || !user}
+            disabled={submitting || !selectedPlanId || !user || atPlanLimit}
           >
             {t('Bind')}
           </Button>
@@ -260,11 +284,20 @@ export function SetDiscountDialog({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className='text-muted-foreground text-xs'>
-            {t(
-              'Only enabled plans are listed. One customer follows one plan at a time.'
-            )}
-          </p>
+          {atPlanLimit ? (
+            <p className='text-destructive text-xs'>
+              {t(
+                'One customer can follow at most {{plans}} plans. Unbind one before binding another.',
+                { plans: DISCOUNT_PLAN_LIMITS.MAX_BINDINGS_PER_SUBJECT }
+              )}
+            </p>
+          ) : (
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'Only enabled plans are listed. You can bind more than one plan; the pricing rules decide which one applies.'
+              )}
+            </p>
+          )}
         </div>
       </div>
     </Dialog>

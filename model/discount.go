@@ -315,7 +315,7 @@ func DeleteDiscountRule(id int) error {
 
 // ---- 客户绑定 ----
 
-func GetDiscountBindings(subjectType string, subjectId int, planId int, offset int, limit int) ([]*DiscountBinding, int64, error) {
+func GetDiscountBindings(subjectType string, subjectId int, planId int, status int, offset int, limit int) ([]*DiscountBinding, int64, error) {
 	db := DB.Model(&DiscountBinding{})
 	if subjectType = strings.TrimSpace(subjectType); subjectType != "" {
 		db = db.Where("subject_type = ?", subjectType)
@@ -325,6 +325,12 @@ func GetDiscountBindings(subjectType string, subjectId int, planId int, offset i
 	}
 	if planId > 0 {
 		db = db.Where("plan_id = ?", planId)
+	}
+	// status 传 DiscountStatusEnabled 才是"只看此刻生效的"。不传（0）表示不过滤——
+	// 注意 DiscountStatusDisabled 本身也是 0，这个口径下问不出"只看已解绑的"，
+	// 解绑记录要审计得走别的入口。
+	if status > 0 {
+		db = db.Where("status = ?", status)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
@@ -358,6 +364,11 @@ func BindDiscountPlan(binding *DiscountBinding) error {
 		}
 		if existed > 0 {
 			return ErrDiscountBindingExists
+		}
+		// 上限检查放在重复检查之后：同一条方案重复绑，该听到的是"已经绑过了"，
+		// 而不是"你的方案太多了"。
+		if err := ensureDiscountBindingQuota(tx, binding.SubjectType, binding.SubjectId); err != nil {
+			return err
 		}
 		if err := tx.Create(binding).Error; err != nil {
 			return err

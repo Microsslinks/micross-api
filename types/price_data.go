@@ -18,6 +18,18 @@ type GroupRatioInfo struct {
 	DiscountRatio  float64 // 客户折扣乘数，1 表示未打折
 	DiscountSource string  // 折扣来源（模型级／厂商级／方案基础折扣），未打折时为空
 	DiscountPlanId int     // 命中的折扣方案 id，未打折时为 0
+	// DiscountRejected 是这位客户身上、这次没用上的那几条绑定。
+	// 计费只认裁决选中的一条，但"为什么不是按他另一套算"得答得上来，
+	// 所以落选者与原因一路带到日志的 admin_info 里。单方案客户这里是空的。
+	DiscountRejected []DiscountRejection
+}
+
+// DiscountRejection 是一条挂在这个客户身上、这一单没用上的折扣绑定。
+type DiscountRejection struct {
+	PlanId   int    `json:"plan_id"`
+	Source   string `json:"source"`
+	Discount string `json:"discount"`
+	Reason   string `json:"reason"`
 }
 
 type PriceData struct {

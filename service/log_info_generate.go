@@ -121,6 +121,18 @@ func appendDiscountInfo(other map[string]interface{}, groupRatioInfo hosttypes.G
 	other["discount_plan_id"] = groupRatioInfo.DiscountPlanId
 }
 
+// appendDiscountRejectionInfo 把「这位客户身上没被选中的那几套方案」写进 admin_info。
+//
+// 放 admin_info 而不是 other：discount_ratio 这类字段是给客户自己看的（他确实按这个价付钱），
+// 而落选的是"他另一套方案谈的是几折"，那是平台内部信息，只有管理员该看得到
+// （非管理员的日志视图会剥掉整个 admin_info）。
+func appendDiscountRejectionInfo(adminInfo map[string]interface{}, groupRatioInfo hosttypes.GroupRatioInfo) {
+	if adminInfo == nil || len(groupRatioInfo.DiscountRejected) == 0 {
+		return
+	}
+	adminInfo["discount_rejected"] = groupRatioInfo.DiscountRejected
+}
+
 func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelRatio, groupRatio, completionRatio float64,
 	cacheTokens int, cacheRatio float64, modelPrice float64, userGroupRatio float64) map[string]interface{} {
 	other := make(map[string]interface{})
@@ -160,6 +172,7 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	}
 
 	AppendChannelAffinityAdminInfo(ctx, adminInfo)
+	appendDiscountRejectionInfo(adminInfo, relayInfo.PriceData.GroupRatioInfo)
 
 	other["admin_info"] = adminInfo
 	appendRequestPath(ctx, relayInfo, other)

@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/bytedance/gopkg/util/gopool"
@@ -39,19 +40,34 @@ var (
 // Quota / UsedQuota 是只读的展示字段：客户还剩多少、累计用了多少。经销商不能用这里
 // 的数字做别的事——发额度走 IssueQuotaToCustomer，改价走 SetAgentCustomerDiscount。
 type AgentCustomer struct {
-	UserId        int    `json:"user_id"`
-	Username      string `json:"username"`
-	DisplayName   string `json:"display_name"`
-	Status        int    `json:"status"`
-	CreatedAt     int64  `json:"created_at"`
-	Quota         int    `json:"quota"`
-	UsedQuota     int    `json:"used_quota"`
+	UserId      int    `json:"user_id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Status      int    `json:"status"`
+	CreatedAt   int64  `json:"created_at"`
+	Quota       int    `json:"quota"`
+	UsedQuota   int    `json:"used_quota"`
+	/** 这位客户此刻挂着的全部生效绑定，按来源优先级排序（见 buildAgentCustomerBindings） */
+	Bindings []*AgentCustomerBinding `json:"bindings"`
+	/** 下面四个是单方案时代的老字段，保留给还没切过来的调用方；新界面读 Bindings */
 	PlanId        int    `json:"plan_id"`
 	PlanName      string `json:"plan_name"`
 	PlanDiscount  string `json:"plan_discount"`
 	BindingSource string `json:"binding_source"`
 	/** 是否由经销商自己定过价（= 有 source=agent 的生效绑定），界面据此决定"恢复"按钮显不显示 */
 	PricedByMe bool `json:"priced_by_me"`
+}
+
+// AgentCustomerBinding 是这位客户身上一条正在生效的折扣绑定。
+//
+// 一个客户可以同时挂多套方案（task-06），所以台账行不能再把它压成一套价：
+// 挂了几套就摊几套，每套带上是"谁定的"，经销商才看得见全貌。
+type AgentCustomerBinding struct {
+	BindingId    int    `json:"binding_id"`
+	PlanId       int    `json:"plan_id"`
+	PlanName     string `json:"plan_name"`
+	PlanDiscount string `json:"plan_discount"`
+	Source       string `json:"source"`
 }
 
 // ListAgentCustomers 按 offset/limit 列出经销商名下的客户（与 ListCustomerCodes 同一口径）。
@@ -150,7 +166,10 @@ func listAgentCustomers(agentId int, filterUserId int, offset int, limit int) ([
 	return rows, int(total), nil
 }
 
-// buildAgentCustomer 把一行客户拼成台账行：折扣按计价口径取生效的那一条。
+// buildAgentCustomer 把一行客户拼成台账行：挂着的绑定全摊开，另外记一条"单方案口径"的生效绑定。
+//
+// 老字段（PlanId/PlanName/PlanDiscount/BindingSource）留着是为了不打断还没有切到 Bindings 的调用方，
+// 它们仍然等于"只挂一套时的那套价"。
 func buildAgentCustomer(customer *User, bindings []DiscountBinding, plans map[int]*DiscountPlan, now int64) *AgentCustomer {
 	row := &AgentCustomer{
 		UserId:      customer.Id,
@@ -160,6 +179,7 @@ func buildAgentCustomer(customer *User, bindings []DiscountBinding, plans map[in
 		CreatedAt:   customer.CreatedAt,
 		Quota:       customer.Quota,
 		UsedQuota:   customer.UsedQuota,
+		Bindings:    buildAgentCustomerBindings(bindings, plans, now),
 	}
 	active := pickActiveDiscountBinding(bindings, now)
 	if active == nil {
@@ -173,6 +193,52 @@ func buildAgentCustomer(customer *User, bindings []DiscountBinding, plans map[in
 		row.PlanDiscount = formatResolvedDiscount(plan.BaseDiscount)
 	}
 	return row
+}
+
+// buildAgentCustomerBindings 摊开这位客户此刻生效的全部绑定。
+//
+// 只有"此刻在生效窗口内"的才列出来：窗口还没开始或已经结束的绑定不是他现在的价，
+// 列出来会让经销商以为自己给的价没生效。
+//
+// 排序沿用计价挑绑定时的那套来源优先级（平台手工 > 经销商 > 套餐 > 客户号 > 迁移），
+// 同来源取新绑的那条。要注意的是计价还会先看"规则具体不具体"（某个模型单独设过规则就先用它），
+// 所以排序只表示"谁更有话语权"，不等于"这套一定在生效"——界面文案不能写成只有一套价。
+func buildAgentCustomerBindings(bindings []DiscountBinding, plans map[int]*DiscountPlan, now int64) []*AgentCustomerBinding {
+	inWindow := make([]DiscountBinding, 0, len(bindings))
+	for i := range bindings {
+		binding := bindings[i]
+		if binding.Status != DiscountStatusEnabled || binding.EffectiveFrom > now {
+			continue
+		}
+		if binding.EffectiveTo > 0 && binding.EffectiveTo <= now {
+			continue
+		}
+		inWindow = append(inWindow, binding)
+	}
+	sort.SliceStable(inWindow, func(a int, b int) bool {
+		rankA := discountSourceRank(inWindow[a].Source)
+		rankB := discountSourceRank(inWindow[b].Source)
+		if rankA != rankB {
+			return rankA < rankB
+		}
+		return inWindow[a].Id > inWindow[b].Id
+	})
+
+	rows := make([]*AgentCustomerBinding, 0, len(inWindow))
+	for i := range inWindow {
+		binding := inWindow[i]
+		row := &AgentCustomerBinding{
+			BindingId: binding.Id,
+			PlanId:    binding.PlanId,
+			Source:    binding.Source,
+		}
+		if plan, ok := plans[binding.PlanId]; ok {
+			row.PlanName = plan.Name
+			row.PlanDiscount = formatResolvedDiscount(plan.BaseDiscount)
+		}
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 // SetAgentCustomerDiscount 给一位下属客户定价：planId 传 0 表示撤掉自己定的价，让他回到

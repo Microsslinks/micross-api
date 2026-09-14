@@ -71,6 +71,7 @@ function simulateResult(
         priority: 10,
       },
     },
+    candidates: [],
     cost_known: true,
     min_margin_ratio: '0.100000',
     channels: [

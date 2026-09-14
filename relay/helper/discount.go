@@ -26,5 +26,26 @@ func ApplyUserDiscountRatio(relayInfo *relaycommon.RelayInfo, groupRatioInfo hos
 	groupRatioInfo.DiscountRatio = discount.Ratio
 	groupRatioInfo.DiscountSource = discount.Source
 	groupRatioInfo.DiscountPlanId = discount.PlanId
+	groupRatioInfo.DiscountRejected = convertDiscountRejections(discount.Rejected)
 	return groupRatioInfo
+}
+
+// convertDiscountRejections 把落选的绑定搬进 PriceData。
+//
+// 两个包各有一份同名结构（types 不允许反向依赖 model），所以转换只能在这里做。
+// 没落选时给 nil，日志里就不会多出这个字段——老请求的日志形状一个字都不变。
+func convertDiscountRejections(rejected []model.BillingDiscountRejection) []hosttypes.DiscountRejection {
+	if len(rejected) == 0 {
+		return nil
+	}
+	notes := make([]hosttypes.DiscountRejection, 0, len(rejected))
+	for _, item := range rejected {
+		notes = append(notes, hosttypes.DiscountRejection{
+			PlanId:   item.PlanId,
+			Source:   item.Source,
+			Discount: item.Discount,
+			Reason:   item.Reason,
+		})
+	}
+	return notes
 }

@@ -275,7 +275,7 @@ export function DiscountsBindingsDrawer({
             <SideDrawerSectionHeader
               title={t('Bind a customer')}
               description={t(
-                'One customer follows one plan at a time; binding replaces the previous one.'
+                'Binding adds this plan alongside the ones the customer already has; the pricing rules decide which plan applies to each model.'
               )}
             />
 

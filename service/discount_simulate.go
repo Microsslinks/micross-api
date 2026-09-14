@@ -57,16 +57,34 @@ type DiscountSimulateChannel struct {
 	PassesFloor *bool   `json:"passes_floor"`
 }
 
+// DiscountSimulateCandidate 是这位客户身上一条绑定对当前模型的报价与结局。
+//
+// 一个客户可以挂多套方案，所以"按几折"必须连"其余几套为什么没用上"一起说，
+// 否则管理员看到的是单方案时代的一个孤立数字，没法回答"我明明还给他挂了另一套"。
+// applied 为 true 的那条就是这次真正执行的；其余几条的 reject_reason 来自裁决本身，
+// 不是这里猜的。
+type DiscountSimulateCandidate struct {
+	PlanId       int    `json:"plan_id"`
+	PlanName     string `json:"plan_name"`
+	Source       string `json:"source"`
+	Specificity  string `json:"specificity"`
+	Discount     string `json:"discount"`
+	Applied      bool   `json:"applied"`
+	Rejected     bool   `json:"rejected"`
+	RejectReason string `json:"reject_reason"`
+}
+
 type DiscountSimulateResult struct {
-	User           DiscountSimulateUser       `json:"user"`
-	Model          string                     `json:"model"`
-	Vendor         string                     `json:"vendor"`
-	Plan           *DiscountSimulatePlan      `json:"plan"`
-	Resolution     DiscountSimulateResolution `json:"resolution"`
-	CostKnown      bool                       `json:"cost_known"`
-	MinMarginRatio string                     `json:"min_margin_ratio"`
-	Channels       []*DiscountSimulateChannel `json:"channels"`
-	Warnings       []string                   `json:"warnings"`
+	User           DiscountSimulateUser         `json:"user"`
+	Model          string                       `json:"model"`
+	Vendor         string                       `json:"vendor"`
+	Plan           *DiscountSimulatePlan        `json:"plan"`
+	Resolution     DiscountSimulateResolution   `json:"resolution"`
+	Candidates     []*DiscountSimulateCandidate `json:"candidates"`
+	CostKnown      bool                         `json:"cost_known"`
+	MinMarginRatio string                       `json:"min_margin_ratio"`
+	Channels       []*DiscountSimulateChannel   `json:"channels"`
+	Warnings       []string                     `json:"warnings"`
 }
 
 // SimulateDiscount 算「这个客户 + 这个模型」按几折、会走哪几条线路、每条赚多少。
@@ -102,7 +120,9 @@ func SimulateDiscount(userId int, modelName string, channelId int) (*DiscountSim
 		candidates = picked
 	}
 
-	resolution, err := model.ResolveUserDiscount(userId, modelName)
+	// 与计费同一套读法（多方案裁决）。这里曾经用单方案解析，后果是"试算显示的价"可能是
+	// 快路径上那一条绑定给的，而实际扣费走的是裁决选出来的另一条——试算说保本、真扣起来亏。
+	resolution, planCandidates, err := model.ResolveUserDiscountDetailed(userId, modelName)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +155,7 @@ func SimulateDiscount(userId int, modelName string, channelId int) (*DiscountSim
 			Source:      resolution.Source,
 			MatchedRule: buildSimulateRule(resolution),
 		},
+		Candidates:     buildSimulateCandidates(planCandidates),
 		MinMarginRatio: minMarginRatio,
 		Channels:       make([]*DiscountSimulateChannel, 0, len(candidates)),
 		Warnings:       make([]string, 0),
@@ -143,10 +164,19 @@ func SimulateDiscount(userId int, modelName string, channelId int) (*DiscountSim
 	switch {
 	case resolution.Source == model.DiscountResolvedFromAgentWholesale:
 		// 经销商自己消费按拿货价算，跟他绑没绑方案无关，不加"未绑方案"的提示。
+	case len(planCandidates) > 0 && resolution.PlanId == 0:
+		// 挂了方案却一套都用不上（全停用 / 全在生效窗口外），说的是"都不适用"，
+		// 不是"没绑方案"——后者会让运营以为自己去绑错了客户。
+		result.Warnings = append(result.Warnings, "该客户挂着的折扣方案都不适用当前模型，按官方标价试算")
 	case resolution.PlanId == 0:
 		result.Warnings = append(result.Warnings, "该客户未绑定折扣方案，按官方标价试算")
 	case resolution.Plan == nil:
 		result.Warnings = append(result.Warnings, "该客户绑定的折扣方案已停用，按官方标价试算")
+	}
+	// 挂了几套就说几套：只报一个折扣数字，运营没法解释"我明明还给他挂了另一套"。
+	if len(planCandidates) > 1 {
+		result.Warnings = append(result.Warnings, fmt.Sprintf(
+			"该客户挂了 %d 套折扣方案，已按裁决选中的那一套试算，其余见候选明细", len(planCandidates)))
 	}
 	if len(candidates) == 0 {
 		result.Warnings = append(result.Warnings, "该客户分组下此模型无可用线路")
@@ -206,6 +236,28 @@ func normalizeDiscountRatioText(raw string) string {
 		return "0.000000"
 	}
 	return value.StringFixed(6)
+}
+
+// buildSimulateCandidates 把裁决的候选原样摊给试算页：谁赢了、谁输在哪一层。
+// 顺序沿用裁决给出的顺序（赢家在前），界面上第一行就是这次真正执行的价。
+func buildSimulateCandidates(planCandidates []*model.DiscountCandidate) []*DiscountSimulateCandidate {
+	rows := make([]*DiscountSimulateCandidate, 0, len(planCandidates))
+	for _, candidate := range planCandidates {
+		row := &DiscountSimulateCandidate{
+			PlanId:       candidate.Binding.PlanId,
+			Source:       candidate.Binding.Source,
+			Specificity:  candidate.Specificity,
+			Discount:     candidate.Discount,
+			Applied:      !candidate.Rejected,
+			Rejected:     candidate.Rejected,
+			RejectReason: candidate.RejectReason,
+		}
+		if candidate.Plan != nil {
+			row.PlanName = candidate.Plan.Name
+		}
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 // buildSimulatePlan 把方案转成试算出参；未绑定或已停用时返回 nil。

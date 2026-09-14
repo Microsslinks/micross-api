@@ -31,14 +31,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -425,7 +417,6 @@ function CustomerCodeIssueDialog({
   const { t } = useTranslation()
   const [submitting, setSubmitting] = useState(false)
   const [count, setCount] = useState('1')
-  const [planId, setPlanId] = useState('0')
   const [expiredAt, setExpiredAt] = useState('')
   const [remark, setRemark] = useState('')
 
@@ -433,7 +424,6 @@ function CustomerCodeIssueDialog({
   useEffect(() => {
     if (!open) return
     setCount('1')
-    setPlanId('0')
     setExpiredAt('')
     setRemark('')
   }, [open])
@@ -452,7 +442,8 @@ function CustomerCodeIssueDialog({
     try {
       const result = await source.create({
         count: countValue,
-        plan_id: Number.parseInt(planId, 10) || 0,
+        // 号不挂方案：客户绑号只落归属，价格由平台管理员统一配（业务口径 2026-09-14）。
+        plan_id: 0,
         expired_at: expiresAt,
         remark,
       })
@@ -507,40 +498,6 @@ function CustomerCodeIssueDialog({
         />
         <p className='text-muted-foreground text-xs'>
           {t('Quantity must be between 1 and {{max}}.', { max: MAX_BATCH })}
-        </p>
-      </div>
-
-      <div className='space-y-2'>
-        <Label>{t('Discount plan')}</Label>
-        <Select
-          items={[
-            { value: '0', label: t('No discount plan') },
-            ...source.plans.map((plan) => ({
-              value: String(plan.id),
-              label: `${plan.name} · ${plan.base_discount}`,
-            })),
-          ]}
-          value={planId}
-          onValueChange={(value) => setPlanId(value ?? '0')}
-        >
-          <SelectTrigger className='w-full'>
-            <SelectValue placeholder={t('No discount plan')} />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            <SelectGroup>
-              <SelectItem value='0'>{t('No discount plan')}</SelectItem>
-              {source.plans.map((plan) => (
-                <SelectItem key={plan.id} value={String(plan.id)}>
-                  {`${plan.name} · ${plan.base_discount}`}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <p className='text-muted-foreground text-xs'>
-          {t(
-            'The customer is priced by this plan once the code is bound. Choose none to only record the dealer.'
-          )}
         </p>
       </div>
 

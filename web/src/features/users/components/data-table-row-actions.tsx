@@ -200,45 +200,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         ariaLabel={t('Open menu')}
         contentClassName='w-48'
       >
-        {isDisabled ? (
-          <DropdownMenuItem onClick={() => handleManage('enable')}>
-            {t('Enable')}
-            <DropdownMenuShortcut>
-              <Power size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem
-            onClick={() => handleManage('disable')}
-            disabled={isRoot}
-          >
-            {t('Disable')}
-            <DropdownMenuShortcut>
-              <PowerOff size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-        )}
-
-        {canManageRoles && isAdmin && !isRoot && (
-          <DropdownMenuItem onClick={() => handleManage('demote')}>
-            {t('Demote')}
-            <DropdownMenuShortcut>
-              <ArrowDown size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-        )}
-
-        {canManageRoles && !isAdmin && (
-          <DropdownMenuItem onClick={() => handleManage('promote')}>
-            {t('Promote')}
-            <DropdownMenuShortcut>
-              <ArrowUp size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-        )}
-
         {/* 给这一位客户配专属价：绑上哪套折扣方案就按哪套计价，客户类型列会
-            跟着显示成「企业折扣」。跟经销商、订阅都不是一回事，所以单独一项。 */}
+            跟着显示成「企业折扣」。跟经销商、订阅都不是一回事，所以单独一项。
+            「定价」和「经销商身份」都是生意上的归属，放在最上面一组。 */}
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault()
@@ -296,6 +260,29 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {/* 角色升降是权限体系的事，单独一组，跟上面的业务身份分开。 */}
+        <DropdownMenuSeparator />
+
+        {canManageRoles && isAdmin && !isRoot && (
+          <DropdownMenuItem onClick={() => handleManage('demote')}>
+            {t('Demote')}
+            <DropdownMenuShortcut>
+              <ArrowDown size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {canManageRoles && !isAdmin && (
+          <DropdownMenuItem onClick={() => handleManage('promote')}>
+            {t('Promote')}
+            <DropdownMenuShortcut>
+              <ArrowUp size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault()
@@ -348,7 +335,27 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuShortcut>
         </DropdownMenuItem>
 
+        {/* 禁用和删除都是危险动作，一起沉底；禁用在前，删除仍是最底下的红线。 */}
         <DropdownMenuSeparator />
+
+        {isDisabled ? (
+          <DropdownMenuItem onClick={() => handleManage('enable')}>
+            {t('Enable')}
+            <DropdownMenuShortcut>
+              <Power size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() => handleManage('disable')}
+            disabled={isRoot}
+          >
+            {t('Disable')}
+            <DropdownMenuShortcut>
+              <PowerOff size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuItem
           onClick={handleDelete}

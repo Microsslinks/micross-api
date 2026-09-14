@@ -64,6 +64,7 @@ import { searchCustomers, simulateDiscount } from '../api'
 import {
   DISCOUNT_SIMULATE_LIMITS,
   ERROR_MESSAGES,
+  getDiscountBindingSourceLabel,
   getDiscountPlanStatusLabel,
   getDiscountRuleScopeLabel,
   getDiscountSourceLabel,
@@ -345,6 +346,55 @@ export function DiscountsSimulateDrawer({
                   </p>
                 )}
               </SideDrawerSection>
+
+              {result.candidates.length > 0 && (
+                <SideDrawerSection>
+                  <SideDrawerSectionHeader
+                    title={t('Bound plans')}
+                    description={t(
+                      'Plans bound to this customer; the pricing rules pick one for each model.'
+                    )}
+                  />
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('Plan')}</TableHead>
+                        <TableHead>{t('Discount')}</TableHead>
+                        <TableHead>{t('Source')}</TableHead>
+                        <TableHead>{t('Result')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {result.candidates.map((candidate, index) => (
+                        <TableRow
+                          key={`${candidate.plan_id}-${index}`}
+                        >
+                          <TableCell>
+                            {candidate.plan_name || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {formatRatioText(candidate.discount)}
+                          </TableCell>
+                          <TableCell>
+                            {getDiscountBindingSourceLabel(t, candidate.source)}
+                          </TableCell>
+                          <TableCell>
+                            {candidate.applied ? (
+                              <StatusBadge copyable={false} variant='success'>
+                                {t('Applied')}
+                              </StatusBadge>
+                            ) : (
+                              <span className='text-muted-foreground text-xs'>
+                                {candidate.reject_reason || t('Not applied')}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </SideDrawerSection>
+              )}
 
               {!result.cost_known && (
                 <Alert>

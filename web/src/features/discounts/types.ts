@@ -138,12 +138,31 @@ export interface DiscountSimulateChannel {
   passes_floor: boolean | null
 }
 
+/**
+ * 这位客户身上一条绑定对当前模型的报价与结局。
+ * `applied` 为 true 的那条就是这次真正执行的；其余几条的 `reject_reason` 来自后端裁决。
+ */
+export interface DiscountSimulateCandidate {
+  plan_id: number
+  plan_name: string
+  /** 绑定来源（manual／agent／subscription／customer_code／migration）。 */
+  source: string
+  /** 落到哪一档：模型级规则 / 厂商级规则 / 方案基础折扣。 */
+  specificity: string
+  discount: string
+  applied: boolean
+  rejected: boolean
+  reject_reason: string
+}
+
 export interface DiscountSimulateResult {
   user: DiscountSimulateUser
   model: string
   vendor: string
   plan: DiscountSimulatePlan | null
   resolution: DiscountSimulateResolution
+  /** 该客户挂着的全部生效绑定，含落选者；没挂方案时为空。 */
+  candidates: DiscountSimulateCandidate[]
   /** 只要有一条候选线路没录进货折扣就是 false。 */
   cost_known: boolean
   /** 后台「毛利底线」，固定 6 位小数字符串。 */
@@ -366,6 +385,8 @@ export interface DiscountBindingListParams {
   subject_type?: string
   subject_id?: number
   plan_id?: number
+  /** 传 1 只看生效中的绑定；不传（0）返回全部，含已解绑的历史记录 */
+  status?: number
 }
 
 export interface DiscountValidateParams {

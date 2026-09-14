@@ -95,12 +95,27 @@ export interface CustomerCodeIssuePayload {
   remark?: string
 }
 
+/** 客户身上挂着的一条生效折扣绑定。 */
+export interface AgentCustomerBinding {
+  binding_id: number
+  plan_id: number
+  plan_name: string
+  /** 后端给的 6 位小数字符串，用 formatRatioText 显示成百分比 */
+  plan_discount: string
+  /** manual / agent / subscription / customer_code / migration */
+  source: string
+}
+
 /**
  * 「我的客户」里的一行：挂在当前经销商名下的一位客户此刻的台账。
  *
- * `plan_id` / `plan_name` / `plan_discount` 是这位客户此刻真正生效的那套价
- * （来源见 `binding_source`），`priced_by_me` 表示这套价是经销商自己定的——
- * 界面上据此决定「撤销我的定价」这个选项出不出现。
+ * `bindings` 是这位客户此刻挂着的全部生效方案——一个客户可以同时挂多套，所以这一行
+ * 不再等于一个价。它按"谁定的"排序（平台手工 > 经销商 > 套餐 > 客户号），排前的只是
+ * 话语权更大，不代表一定生效：计价还会先看规则具体不具体（哪个方案给这个模型单独设过
+ * 规则，就先用它），所以多套时界面上给的是数量，详情留给「查看价格」。
+ *
+ * `plan_id` / `plan_name` / `plan_discount` / `binding_source` 是单方案时代的老字段，
+ * 仍然返回，等于"只挂一套时的那套价"；`priced_by_me` 表示经销商自己定过价。
  */
 export interface AgentCustomer {
   user_id: number
@@ -111,6 +126,7 @@ export interface AgentCustomer {
   created_at: number
   quota: number
   used_quota: number
+  bindings: AgentCustomerBinding[]
   /** 0 表示没有生效方案（按官方标价） */
   plan_id: number
   plan_name: string

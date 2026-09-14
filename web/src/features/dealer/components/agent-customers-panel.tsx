@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { TFunction } from 'i18next'
 import { Loader2, Users } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,14 +30,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -45,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getDiscountBindingSourceLabel } from '@/features/discounts/constants'
+import { formatRatioText } from '@/features/discounts/lib/format'
 import { DISCOUNT_BINDING_SOURCE } from '@/features/discounts/types'
 import { USER_STATUSES } from '@/features/users/constants'
 import {
@@ -62,15 +56,16 @@ import {
   getAgentLedger,
   getSelfAgentCustomers,
   issueSelfAgentCustomerQuota,
-  setSelfAgentCustomerDiscount,
 } from '../api'
-import type { AgentCustomer, DealerPlanOption } from '../types'
+import type { AgentCustomer, AgentCustomerBinding } from '../types'
 
 const PAGE_SIZE = 20
 
-interface Props {
-  /** 货架：能给定下的价都在这里；平台还没给他可卖的方案时是空数组 */
-  plans: DealerPlanOption[]
+/** 一条绑定的显示名：方案名缺失（方案被删）时退回编号，不留空白。 */
+function bindingLabel(t: TFunction, binding: AgentCustomerBinding) {
+  const name = binding.plan_name || t('Plan #{{id}}', { id: binding.plan_id })
+  const discount = formatRatioText(binding.plan_discount)
+  return `${name} · ${discount}`
 }
 
 /**
@@ -79,17 +74,18 @@ interface Props {
  * 「谁是我的客户」不看客户号，只看归属：客户绑了他的号，就归到他名下。所以号被作废、
  * 被用满都不影响这份名单，人还是他的。
  *
- * 两件事在这里做：给某位客户定价（覆盖客户号带的价），以及从自己的余额里给他发额度。
- * 平台已经单独定过价的客户这里改不动——那是平台的决定，后端会拒，界面直接把按钮关掉。
+ * 这里只做一件事：从经销商自己的余额里给客户发额度。价格不在这里定——折扣方案由
+ * 平台管理员统一挂载（业务口径 2026-09-14），经销商在「查看价格」里能看到客户此刻挂着
+ * 的每一套方案和它的来路，但改不了。
  */
-export function AgentCustomersPanel({ plans }: Props) {
+export function AgentCustomersPanel() {
   const { t } = useTranslation()
   const [customers, setCustomers] = useState<AgentCustomer[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [pricingTarget, setPricingTarget] = useState<AgentCustomer | null>(null)
   const [quotaTarget, setQuotaTarget] = useState<AgentCustomer | null>(null)
+  const [detailTarget, setDetailTarget] = useState<AgentCustomer | null>(null)
 
   const load = useCallback(async (targetPage: number) => {
     setLoading(true)
@@ -116,11 +112,15 @@ export function AgentCustomersPanel({ plans }: Props) {
     )
   }
 
-  /** 没有方案或方案已停用时退回显示编号，不留空白。 */
+  /**
+   * 一个客户可以挂多套方案，所以这一列只有一个价可写的情况才把价写出来：
+   * 没挂方案 = 官方标价，挂一套 = 方案名 · 折扣，挂多套 = 只说套数（明细在「查看价格」里）。
+   */
   const priceLabel = (item: AgentCustomer) => {
-    if (item.plan_id <= 0) return t('Official price')
-    const name = item.plan_name || t('Plan #{{id}}', { id: item.plan_id })
-    return item.plan_discount ? `${name} · ${item.plan_discount}` : name
+    const bindings = item.bindings ?? []
+    if (bindings.length === 0) return t('Official price')
+    if (bindings.length === 1) return bindingLabel(t, bindings[0])
+    return t('{{plans}} plans', { plans: bindings.length })
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -176,6 +176,9 @@ export function AgentCustomersPanel({ plans }: Props) {
             {customers.map((item) => {
               const statusConfig =
                 USER_STATUSES[item.status as keyof typeof USER_STATUSES]
+              // 来源标记只在"就一套"时写：多套方案的来源各不相同，挑一条显示反而是误导。
+              const soleSource =
+                item.bindings?.length === 1 ? item.bindings[0].source : ''
               return (
                 <TableRow key={item.user_id}>
                   <TableCell>
@@ -207,31 +210,25 @@ export function AgentCustomersPanel({ plans }: Props) {
                   <TableCell>
                     <div className='flex flex-col'>
                       <span className='text-sm'>{priceLabel(item)}</span>
-                      {item.binding_source && (
-                        <span className='text-muted-foreground text-xs'>
-                          {getDiscountBindingSourceLabel(
-                            t,
-                            item.binding_source
-                          )}
-                        </span>
-                      )}
+                      {/* 平台手工定价的来源标记（「手动」）对经销商没有信息量，
+                          他要的答案挪进了「查看价格」对话框，这里不再显示。 */}
+                      {soleSource &&
+                        soleSource !== DISCOUNT_BINDING_SOURCE.MANUAL && (
+                          <span className='text-muted-foreground text-xs'>
+                            {getDiscountBindingSourceLabel(t, soleSource)}
+                          </span>
+                        )}
                     </div>
                   </TableCell>
                   <TableCell className='text-right whitespace-nowrap'>
-                    {item.binding_source === DISCOUNT_BINDING_SOURCE.MANUAL ? (
-                      <span className='text-muted-foreground text-xs'>
-                        {t('Priced by the platform')}
-                      </span>
-                    ) : (
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-7 px-2'
-                        onClick={() => setPricingTarget(item)}
-                      >
-                        {t('Set price')}
-                      </Button>
-                    )}
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-7 px-2'
+                      onClick={() => setDetailTarget(item)}
+                    >
+                      {t('View pricing')}
+                    </Button>
                     <Button
                       variant='ghost'
                       size='sm'
@@ -272,17 +269,6 @@ export function AgentCustomersPanel({ plans }: Props) {
         </div>
       )}
 
-      <PricingDialog
-        customer={pricingTarget}
-        plans={plans}
-        onOpenChange={(open) => {
-          if (!open) setPricingTarget(null)
-        }}
-        onSaved={(row) => {
-          replaceRow(row)
-          setPricingTarget(null)
-        }}
-      />
       <QuotaDialog
         customer={quotaTarget}
         onOpenChange={(open) => {
@@ -293,125 +279,93 @@ export function AgentCustomersPanel({ plans }: Props) {
           setQuotaTarget(null)
         }}
       />
+      <PricingDetailDialog
+        customer={detailTarget}
+        onOpenChange={(open) => {
+          if (!open) setDetailTarget(null)
+        }}
+      />
     </div>
   )
 }
 
-interface PricingDialogProps {
+interface PricingDetailDialogProps {
   /** null 表示关着：对话框的开关就是「有没有选中一行」 */
   customer: AgentCustomer | null
-  plans: DealerPlanOption[]
   onOpenChange: (open: boolean) => void
-  onSaved: (row: AgentCustomer) => void
 }
 
-/** 给一位客户定价：从自己的货架上挑一套方案，或撤掉自己上次定的价。 */
-function PricingDialog({
-  customer,
-  plans,
-  onOpenChange,
-  onSaved,
-}: PricingDialogProps) {
+/**
+ * 价格详情：这位客户此刻挂着的每一套方案、每套是谁定的。
+ *
+ * 一个客户可以同时挂多套（平台后台逐条挂），所以这里必须全部列出来——只列一套
+ * 会让经销商以为客户只有那一份价。多套之间由计价规则决定哪个模型用哪套，
+ * 所以底下那句话不能写成"第一套就是生效的价"。
+ *
+ * 价格由平台管理员统一挂载，经销商在这里只有看的份。
+ */
+function PricingDetailDialog({ customer, onOpenChange }: PricingDetailDialogProps) {
   const { t } = useTranslation()
-  const [planId, setPlanId] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  // 打开时回到他此刻生效的价：如果那个价本来就是经销商自己定的，选中它；
-  // 否则留空，逼他自己挑一套——不预选任何方案，避免手一滑把别人的价顶掉。
-  useEffect(() => {
-    if (!customer) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPlanId(customer.priced_by_me ? String(customer.plan_id) : '')
-  }, [customer])
-
   const name = customer?.display_name || customer?.username || ''
-  const canSave = customer !== null && planId !== '' && !saving
-
-  const handleSave = async () => {
-    if (!customer || planId === '') return
-    setSaving(true)
-    try {
-      const result = await setSelfAgentCustomerDiscount(
-        customer.user_id,
-        Number.parseInt(planId, 10)
-      )
-      if (result.success && result.data) {
-        toast.success(t('Price updated'))
-        onSaved(result.data)
-        return
-      }
-      toast.error(result.message || t('Failed to update the price'))
-    } catch (error) {
-      handleServerError(error)
-    } finally {
-      setSaving(false)
-    }
-  }
+  const bindings = customer?.bindings ?? []
 
   return (
     <Dialog
       open={customer !== null}
       onOpenChange={onOpenChange}
-      title={t('Set a price for {{name}}', { name })}
+      title={t('Pricing for {{name}}', { name })}
       description={t(
-        'Your price replaces the one on the customer code, and the customer is billed by it.'
+        'Pricing is managed by the platform. Contact the platform administrator to adjust it.'
       )}
       contentClassName='max-sm:w-[calc(100vw-1.5rem)] sm:max-w-md'
       contentHeight='auto'
       bodyClassName='space-y-4'
-      footer={
-        <>
-          <Button
-            variant='outline'
-            onClick={() => onOpenChange(false)}
-            disabled={saving}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saving && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {t('Save')}
-          </Button>
-        </>
-      }
     >
-      <div className='space-y-2'>
-        <Label>{t('Discount plan')}</Label>
-        <Select
-          items={[
-            ...plans.map((plan) => ({
-              value: String(plan.id),
-              label: `${plan.name} · ${plan.base_discount}`,
-            })),
-            ...(customer?.priced_by_me
-              ? [{ value: '0', label: t('Remove my price') }]
-              : []),
-          ]}
-          value={planId}
-          onValueChange={(value) => setPlanId(value ?? '')}
-        >
-          <SelectTrigger className='w-full'>
-            <SelectValue placeholder={t('Choose a plan')} />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            <SelectGroup>
-              {plans.map((plan) => (
-                <SelectItem key={plan.id} value={String(plan.id)}>
-                  {`${plan.name} · ${plan.base_discount}`}
-                </SelectItem>
-              ))}
-              {customer?.priced_by_me && (
-                <SelectItem value='0'>{t('Remove my price')}</SelectItem>
-              )}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      {bindings.length === 0 ? (
+        <p className='text-sm'>{t('No discount plan is bound to this customer.')}</p>
+      ) : (
+        <div className='overflow-hidden rounded-md border'>
+          <div className='bg-muted/40 flex items-center justify-between gap-3 px-3 py-1.5'>
+            <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+              {t('Discount plan')}
+            </Label>
+            <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+              {t('Base discount')}
+            </Label>
+          </div>
+          <div className='divide-y'>
+            {bindings.map((binding) => (
+              <div
+                key={binding.binding_id}
+                className='flex items-center justify-between gap-3 px-3 py-2'
+              >
+                <div className='flex min-w-0 flex-col'>
+                  <span className='truncate text-sm font-medium'>
+                    {binding.plan_name ||
+                      t('Plan #{{id}}', { id: binding.plan_id })}
+                  </span>
+                  <span className='text-muted-foreground text-xs'>
+                    {getDiscountBindingSourceLabel(t, binding.source)}
+                  </span>
+                </div>
+                <span className='text-sm font-medium tabular-nums'>
+                  {formatRatioText(binding.plan_discount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className='text-muted-foreground text-xs'>
+        {t('Individual models in the plan may carry their own discounts.')}
+      </p>
+      {bindings.length > 1 && (
         <p className='text-muted-foreground text-xs'>
           {t(
-            'Only the plans on your shelf are listed. Choosing none of them keeps the current price.'
+            'When several plans are bound, the pricing rules pick one for each model.'
           )}
         </p>
-      </div>
+      )}
     </Dialog>
   )
 }
