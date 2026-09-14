@@ -366,12 +366,8 @@ export function DiscountsSimulateDrawer({
                     </TableHeader>
                     <TableBody>
                       {result.candidates.map((candidate, index) => (
-                        <TableRow
-                          key={`${candidate.plan_id}-${index}`}
-                        >
-                          <TableCell>
-                            {candidate.plan_name || '-'}
-                          </TableCell>
+                        <TableRow key={`${candidate.plan_id}-${index}`}>
+                          <TableCell>{candidate.plan_name || '-'}</TableCell>
                           <TableCell>
                             {formatRatioText(candidate.discount)}
                           </TableCell>

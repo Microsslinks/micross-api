@@ -95,11 +95,9 @@ export const DISCOUNT_SIMULATE_LIMITS = {
   MODEL_NAME_MAX_LENGTH: 128,
 } as const
 
-/** 客户核算的入参限制；条数上界与后端 service.CustomerAuditMaxModels 对齐。 */
+/** 客户核算与查价的入参限制；条数上界与后端 service.CustomerAuditMaxModels 对齐。 */
 export const DISCOUNT_CUSTOMER_AUDIT_LIMITS = {
   MODELS_MAX_COUNT: 100,
-  /** 模型清单文本框的长度上界，防呆用的。 */
-  MODEL_LIST_MAX_LENGTH: 8000,
 } as const
 
 /** 客户核算：每个模型的结论 → i18n 键与徽章色。 */
@@ -138,6 +136,7 @@ export const ERROR_MESSAGES = {
   MODELS_REQUIRED: 'Model list is required',
   MODELS_TOO_MANY: 'A single audit covers at most 100 models',
   AUDIT_FAILED: 'Audit failed',
+  PRICE_QUERY_FAILED: 'Price lookup failed',
   PLANS_LOAD_FAILED: 'Failed to load discount plans',
   PLAN_LOAD_FAILED: 'Failed to load the discount plan',
   PLAN_SAVE_FAILED: 'Failed to save the discount plan',
@@ -153,6 +152,10 @@ export const ERROR_MESSAGES = {
   ROUTING_LOAD_FAILED: 'Failed to load the routing policy',
   ROUTING_SAVE_FAILED: 'Failed to save the routing policy',
   ROUTING_RESET_FAILED: 'Failed to reset the routing policy',
+  MODEL_LISTS_LOAD_FAILED: 'Failed to load the model lists',
+  MODEL_LIST_SAVE_FAILED: 'Failed to save the model list',
+  MODEL_LIST_DELETE_FAILED: 'Failed to delete the model list',
+  MODEL_LIST_NAME_REQUIRED: 'The list name is required',
 } as const
 
 // ============================================================================
@@ -299,6 +302,16 @@ export const DISCOUNT_PLAN_LIMITS = {
   /** 一个客户最多同时挂几套方案，与后端 DiscountMaxPlansPerSubject 对齐。 */
   MAX_BINDINGS_PER_SUBJECT: 10,
 }
+
+/** 模型清单（可复用的模型名单）的限制；长度上界与后端 `model.DiscountModelList*` 对齐。 */
+export const DISCOUNT_MODEL_LIST_LIMITS = {
+  /** 清单一次全拉：这东西本来就是几十份的量级，分页只会让人多翻几页。 */
+  PAGE_SIZE: 100,
+  /** 一份清单最多存几个模型，与后端 DiscountModelListMaxModels 对齐。 */
+  MODELS_MAX_COUNT: 100,
+  NAME_MAX_LENGTH: 64,
+  REMARK_MAX_LENGTH: 255,
+} as const
 
 // ============================================================================
 // Customer routing policy (择优策略 / 允许走亏损线路)

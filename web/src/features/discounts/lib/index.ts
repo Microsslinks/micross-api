@@ -23,6 +23,7 @@ export {
   formatMarginText,
 } from './format'
 export { normalizeRatioInput, ratioTextToInput } from './ratio'
+export { mergeModelNames, splitModelList } from './model-list'
 export {
   DISCOUNT_PLAN_FORM_DEFAULT_VALUES,
   DISCOUNT_PLAN_NAME_MAX_LENGTH,

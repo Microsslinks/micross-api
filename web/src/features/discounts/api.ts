@@ -22,10 +22,14 @@ import type {
   ApiResponse,
   AuditCustomerPricingParams,
   CustomerAuditResult,
+  CustomerPriceQueryResult,
   DiscountBinding,
   DiscountBindingListParams,
   DiscountBindingPayload,
   DiscountCustomer,
+  DiscountModelList,
+  DiscountModelListParams,
+  DiscountModelListPayload,
   DiscountPage,
   DiscountPlan,
   DiscountPlanDetail,
@@ -38,6 +42,7 @@ import type {
   DiscountSimulateResult,
   DiscountValidateParams,
   DiscountValidateResult,
+  QueryCustomerPriceParams,
   SearchCustomersParams,
   SearchCustomersResponse,
   SimulateDiscountParams,
@@ -78,6 +83,44 @@ export async function auditCustomerPricing(
     models,
   })
   return res.data
+}
+
+/**
+ * 客户查价：这个客户身上挂了哪几套价、现价按几折、命中的是哪套、其余几套输在哪一层。
+ * 只读接口。models 留空时只回价目本。
+ */
+export async function queryCustomerPrice(
+  params: QueryCustomerPriceParams
+): Promise<ApiResponse<CustomerPriceQueryResult>> {
+  const { userId, models = [] } = params
+  const res = await api.post('/api/discount/admin/price-query', {
+    user_id: userId,
+    models,
+  })
+  return res.data
+}
+
+// ============================================================================
+// Model catalog (给「模型清单」零件提供可挑的模型名)
+// ============================================================================
+
+/**
+ * 拿平台当前真正能提供服务的模型名清单——和模型广场同源
+ * （GET /api/channel/models_enabled，取自 abilities 表里启用的模型，
+ * 即挂了可用上游渠道的模型）。全量目录（/api/channel/models）不能用：
+ * 那是代码里写死的"平台认识的模型"，没渠道也能挑，会选出做不了服务的模型。
+ * 只读、不分页；零件拿它当「可挑的选项」，拿不到也不影响手输与粘贴，
+ * 所以出错时由调用方降级，这里不做兜底吞错。
+ */
+export async function getModelNameOptions(): Promise<string[]> {
+  const res = await api.get('/api/channel/models_enabled')
+  const payload = res.data as ApiResponse<string[]>
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    return []
+  }
+  return payload.data
+    .map((name) => (typeof name === 'string' ? name.trim() : ''))
+    .filter(Boolean)
 }
 
 // ============================================================================
@@ -227,6 +270,44 @@ export async function deleteDiscountRule(
   ruleId: number
 ): Promise<ApiResponse<null>> {
   const res = await api.delete(`/api/discount/admin/rules/${ruleId}`)
+  return res.data
+}
+
+// ============================================================================
+// Model lists (可复用的模型名单，给「模型清单」零件一键带入用)
+// ============================================================================
+
+/** 清单列表；keyword 按清单名与备注模糊匹配。 */
+export async function getDiscountModelLists(
+  params: DiscountModelListParams = {}
+): Promise<ApiResponse<DiscountPage<DiscountModelList>>> {
+  const res = await api.get('/api/discount/admin/model-lists', { params })
+  return res.data
+}
+
+export async function createDiscountModelList(
+  payload: DiscountModelListPayload
+): Promise<ApiResponse<DiscountModelList>> {
+  const res = await api.post('/api/discount/admin/model-lists', payload)
+  return res.data
+}
+
+export async function updateDiscountModelList(
+  listId: number,
+  payload: DiscountModelListPayload
+): Promise<ApiResponse<DiscountModelList>> {
+  const res = await api.put(
+    `/api/discount/admin/model-lists/${listId}`,
+    payload
+  )
+  return res.data
+}
+
+/** 删掉一份清单：只影响「以后还能不能一键带入」，已填进格子的模型名不受影响。 */
+export async function deleteDiscountModelList(
+  listId: number
+): Promise<ApiResponse<null>> {
+  const res = await api.delete(`/api/discount/admin/model-lists/${listId}`)
   return res.data
 }
 

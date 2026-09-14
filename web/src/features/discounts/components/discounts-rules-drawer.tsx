@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { ComboboxInput } from '@/components/ui/combobox-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -83,6 +84,7 @@ import {
   getDiscountScopeOptions,
   getDiscountStatusOptions,
 } from '../constants'
+import { useModelNameOptions } from '../hooks/use-model-name-options'
 import {
   DISCOUNT_RULE_FORM_DEFAULT_VALUES,
   buildDiscountRulePayload,
@@ -91,7 +93,11 @@ import {
   transformDiscountRuleToFormDefaults,
   type DiscountRuleFormValues,
 } from '../lib'
-import { DISCOUNT_PLAN_STATUS, type DiscountRule } from '../types'
+import {
+  DISCOUNT_PLAN_STATUS,
+  DISCOUNT_SCOPE,
+  type DiscountRule,
+} from '../types'
 import { useDiscounts } from './discounts-provider'
 
 type DiscountsRulesDrawerProps = {
@@ -105,6 +111,7 @@ export function DiscountsRulesDrawer({
 }: DiscountsRulesDrawerProps) {
   const { t } = useTranslation()
   const { currentRow } = useDiscounts()
+  const { options: modelOptions } = useModelNameOptions()
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -407,16 +414,30 @@ export function DiscountsRulesDrawer({
                 <Label htmlFor='discount-rule-scope-value'>
                   {t('Scope value')}
                 </Label>
-                <Input
-                  id='discount-rule-scope-value'
-                  value={values.scope_value}
-                  placeholder={t(
-                    'A model name or a vendor name, e.g. claude-3-5-sonnet or anthropic'
-                  )}
-                  onChange={(event) =>
-                    setField('scope_value', event.target.value)
-                  }
-                />
+                {values.scope_type === DISCOUNT_SCOPE.MODEL ? (
+                  // 模型名可以从目录里挑：写错的模型名不会报错，只会让这条规则
+                  // 永远不命中，所以这里给可选项比让人手打更安全（也可自由输入）。
+                  <ComboboxInput
+                    id='discount-rule-scope-value'
+                    options={modelOptions}
+                    value={values.scope_value}
+                    allowCustomValue
+                    placeholder={t('Search models or type a model name')}
+                    emptyText='No matching items'
+                    onValueChange={(value) => setField('scope_value', value)}
+                  />
+                ) : (
+                  <Input
+                    id='discount-rule-scope-value'
+                    value={values.scope_value}
+                    placeholder={t(
+                      'A model name or a vendor name, e.g. claude-3-5-sonnet or anthropic'
+                    )}
+                    onChange={(event) =>
+                      setField('scope_value', event.target.value)
+                    }
+                  />
+                )}
                 {errors.scope_value && (
                   <p className='text-destructive text-xs'>
                     {errors.scope_value}

@@ -615,10 +615,10 @@ func migrateDiscountTables(db *gorm.DB) error {
 		db.Migrator().HasTable(&DiscountRule{}) &&
 		db.Migrator().HasTable(&DiscountBinding{}) {
 		// 折扣三表建过就不再重复迁移（decimal 列比对不相等会让每次启动重建整张表）。
-		// 路由策略表没有 decimal 列，不受这个坑影响，所以与三表分开、每次照常迁移。
-		return db.AutoMigrate(&DiscountRoutingPolicy{})
+		// 路由策略表与模型清单表都没有 decimal 列，不受这个坑影响，所以与三表分开、每次照常迁移。
+		return db.AutoMigrate(&DiscountRoutingPolicy{}, &DiscountModelList{})
 	}
-	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{})
+	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{}, &DiscountModelList{})
 }
 
 // fixDiscountRuleUniqueIndex 修正 discount_rules 的唯一索引 uk_rule_plan_scope。

@@ -304,7 +304,10 @@ interface PricingDetailDialogProps {
  *
  * 价格由平台管理员统一挂载，经销商在这里只有看的份。
  */
-function PricingDetailDialog({ customer, onOpenChange }: PricingDetailDialogProps) {
+function PricingDetailDialog({
+  customer,
+  onOpenChange,
+}: PricingDetailDialogProps) {
   const { t } = useTranslation()
   const name = customer?.display_name || customer?.username || ''
   const bindings = customer?.bindings ?? []
@@ -322,7 +325,9 @@ function PricingDetailDialog({ customer, onOpenChange }: PricingDetailDialogProp
       bodyClassName='space-y-4'
     >
       {bindings.length === 0 ? (
-        <p className='text-sm'>{t('No discount plan is bound to this customer.')}</p>
+        <p className='text-sm'>
+          {t('No discount plan is bound to this customer.')}
+        </p>
       ) : (
         <div className='overflow-hidden rounded-md border'>
           <div className='bg-muted/40 flex items-center justify-between gap-3 px-3 py-1.5'>

@@ -238,6 +238,10 @@ func SetApiRouter(router *gin.Engine) {
 			// 这份报价能不能签。只读，不落库。
 			discountAdminRoute.POST("/customer-audit", controller.AuditCustomerPricing)
 
+			// 客户查价：某客户身上挂了几套价、现价按几折、命中的是哪套、
+			// 其余几套输在哪一层、每个模型还有几条线路、毛利多少。只读，不落库。
+			discountAdminRoute.POST("/price-query", controller.QueryCustomerPricing)
+
 			// 保存前提示：这个方案会不会亏，答在哪些模型 / 厂商上。只读，不阻断保存。
 			discountAdminRoute.POST("/plans/:id/validate", controller.ValidateDiscountPlan)
 
@@ -246,6 +250,13 @@ func SetApiRouter(router *gin.Engine) {
 			discountAdminRoute.GET("/routing", controller.GetDiscountRouting)
 			discountAdminRoute.PUT("/routing", controller.UpdateDiscountRouting)
 			discountAdminRoute.DELETE("/routing", controller.DeleteDiscountRouting)
+
+			// 模型清单：起好名字、能反复使用的模型名单（如「企业VIP标准包」= 20 个模型）。
+			// 只用来一键填「报价核算 / 客户查价」的模型清单格子，不参与计价。
+			discountAdminRoute.GET("/model-lists", controller.GetDiscountModelLists)
+			discountAdminRoute.POST("/model-lists", controller.CreateDiscountModelList)
+			discountAdminRoute.PUT("/model-lists/:id", controller.UpdateDiscountModelList)
+			discountAdminRoute.DELETE("/model-lists/:id", controller.DeleteDiscountModelList)
 		}
 
 		// Subscription payment callbacks (no auth)

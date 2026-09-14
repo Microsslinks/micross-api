@@ -46,7 +46,6 @@ import {
 import { formatTimestamp } from '@/lib/format'
 
 import { buildCustomerInviteLink } from '../lib/invite'
-
 import type {
   CustomerCode,
   CustomerCodeIssuePayload,

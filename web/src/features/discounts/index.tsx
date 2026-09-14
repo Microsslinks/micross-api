@@ -16,7 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Calculator, ClipboardCheck, Route as RouteIcon } from 'lucide-react'
+import {
+  Calculator,
+  ClipboardCheck,
+  ListChecks,
+  Route as RouteIcon,
+  SearchCheck,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -25,6 +31,8 @@ import { Button } from '@/components/ui/button'
 
 import { DiscountsCustomerAuditDrawer } from './components/discounts-customer-audit-drawer'
 import { DiscountsDialogs } from './components/discounts-dialogs'
+import { DiscountsModelListsDrawer } from './components/discounts-model-lists-drawer'
+import { DiscountsPriceQueryDrawer } from './components/discounts-price-query-drawer'
 import { DiscountsPrimaryButtons } from './components/discounts-primary-buttons'
 import { DiscountsProvider } from './components/discounts-provider'
 import { DiscountsRoutingDrawer } from './components/discounts-routing-drawer'
@@ -32,8 +40,9 @@ import { DiscountsSimulateDrawer } from './components/discounts-simulate-drawer'
 import { DiscountsTable } from './components/discounts-table'
 
 /**
- * 折扣页：管方案（折扣、规则、绑了谁），再给两个按客户的入口——
- * 试算看「按这个折扣会收多少钱、每条线路赚多少」，路由策略定「钱花在哪条线路上」。
+ * 折扣页：管方案（折扣、规则、绑了谁），再给三个按客户的入口——
+ * 查价看「他现在是什么价、身上的几套价谁赢了、为什么」，试算看「按这个折扣会收多少钱、
+ * 每条线路赚多少」，路由策略定「钱花在哪条线路上」。
  * 折扣定的是收入，路由策略定的是成本，两者放一起正好对照着用。
  */
 export function Discounts() {
@@ -49,6 +58,8 @@ function DiscountsPage() {
   const [simulateOpen, setSimulateOpen] = useState(false)
   const [routingOpen, setRoutingOpen] = useState(false)
   const [auditOpen, setAuditOpen] = useState(false)
+  const [priceQueryOpen, setPriceQueryOpen] = useState(false)
+  const [modelListsOpen, setModelListsOpen] = useState(false)
 
   return (
     <>
@@ -59,6 +70,10 @@ function DiscountsPage() {
             <RouteIcon className='h-4 w-4' />
             {t('Routing Policy')}
           </Button>
+          <Button variant='outline' onClick={() => setPriceQueryOpen(true)}>
+            <SearchCheck className='h-4 w-4' />
+            {t('Customer Price Check')}
+          </Button>
           <Button variant='outline' onClick={() => setSimulateOpen(true)}>
             <Calculator className='h-4 w-4' />
             {t('Simulate')}
@@ -66,6 +81,10 @@ function DiscountsPage() {
           <Button variant='outline' onClick={() => setAuditOpen(true)}>
             <ClipboardCheck className='h-4 w-4' />
             {t('Customer Pricing Audit')}
+          </Button>
+          <Button variant='outline' onClick={() => setModelListsOpen(true)}>
+            <ListChecks className='h-4 w-4' />
+            {t('Model Lists')}
           </Button>
           <DiscountsPrimaryButtons />
         </SectionPageLayout.Actions>
@@ -86,6 +105,14 @@ function DiscountsPage() {
       <DiscountsCustomerAuditDrawer
         open={auditOpen}
         onOpenChange={setAuditOpen}
+      />
+      <DiscountsPriceQueryDrawer
+        open={priceQueryOpen}
+        onOpenChange={setPriceQueryOpen}
+      />
+      <DiscountsModelListsDrawer
+        open={modelListsOpen}
+        onOpenChange={setModelListsOpen}
       />
     </>
   )

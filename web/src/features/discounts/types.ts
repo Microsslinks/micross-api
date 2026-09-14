@@ -265,6 +265,67 @@ export interface AuditCustomerPricingParams {
   models: string[]
 }
 
+// ============================================================================
+// Customer price check (mirrors service.CustomerPriceQueryResult)
+// ============================================================================
+
+/** 价目本里的一条规则：这套价对哪个模型／厂商改价。 */
+export interface CustomerPriceBookRule {
+  scope_type: string
+  scope_value: string
+  discount: string
+  priority: number
+  status: number
+}
+
+/**
+ * 这个客户身上的一套价（一条绑定 + 它指向的方案与规则）。
+ * `in_window` 为 false 时 `window_reason` 写明为什么没生效——价目本连没生效的价
+ * 也列出来，否则没法回答「我上周谈的那套价怎么没生效」。
+ */
+export interface CustomerPriceBookEntry {
+  binding_id: number
+  plan_id: number
+  plan_name: string
+  plan_status: number
+  source: string
+  billing_mode: string
+  base_discount: string
+  effective_from: number
+  effective_to: number
+  /** 在生效时间窗内。 */
+  in_window: boolean
+  /** 不在窗口内时的原因（后端原文，中文）。 */
+  window_reason: string
+  rules: CustomerPriceBookRule[]
+}
+
+/**
+ * 一个模型的查价行：核算行的全部字段 + 候选明细。
+ * `candidates` 里 `applied` 为 true 的那条就是这次真正执行的价，其余几条写明输在哪一层。
+ */
+export interface CustomerPriceQueryModel extends CustomerAuditModel {
+  candidates: DiscountSimulateCandidate[]
+}
+
+export interface CustomerPriceQueryResult {
+  user: DiscountSimulateUser
+  min_margin_ratio: string
+  /** 这个客户身上生效中的全部方案；没挂方案时为空。 */
+  price_book: CustomerPriceBookEntry[]
+  /** 只填了客户没填模型时为空——价目本本身就是要先看的东西。 */
+  models: CustomerPriceQueryModel[]
+  summary: CustomerAuditSummary
+  /** 后端原文提示（中文），直接展示给运营看。 */
+  warnings: string[]
+}
+
+export interface QueryCustomerPriceParams {
+  userId: number
+  /** 留空只查价目本：先看清身上有几套价，再决定问哪个模型。 */
+  models?: string[]
+}
+
 export interface SearchCustomersParams {
   keyword?: string
   p?: number
@@ -442,4 +503,35 @@ export interface DiscountRoutingPayload {
   routing_strategy: string
   allow_cost_breach: boolean
   remark: string
+}
+
+// ============================================================================
+// Model lists (可复用的模型名单；不参与计价)
+// ============================================================================
+
+/**
+ * 一份起好名字、能反复使用的模型清单（如「企业VIP标准包」），对应 `model.DiscountModelList`。
+ * 它只影响「填模型清单格子时能不能一键带入」，不影响任何客户按几折。
+ */
+export interface DiscountModelList {
+  id: number
+  name: string
+  remark: string
+  /** 名单里的模型名，顺序照录入（运营对着客户的单子核对，顺序乱了不好对）。 */
+  models: string[]
+  created_at: number
+  updated_at: number
+}
+
+/** 新建 / 更新清单的请求体：名称与名单一起给全（这一版接口不做局部更新）。 */
+export interface DiscountModelListPayload {
+  name: string
+  remark: string
+  models: string[]
+}
+
+export interface DiscountModelListParams {
+  keyword?: string
+  page?: number
+  page_size?: number
 }

@@ -58,7 +58,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { auditCustomerPricing, searchCustomers } from '../api'
@@ -72,29 +71,11 @@ import {
 } from '../constants'
 import { formatMarginText, formatRatioText } from '../lib'
 import type { CustomerAuditResult, DiscountCustomer } from '../types'
+import { ModelListField } from './model-list-field'
 
 type DiscountsCustomerAuditDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-/**
- * 把粘贴的清单文本拆成模型名数组：换行、中英文逗号、顿号都当分隔符，
- * 空白与重复项去掉，顺序保留（运营对着客户的单子一行行核对）。
- * 空格不当分隔符——模型名里允许有空格，拆碎就对不上线路了。
- */
-function parseModelList(raw: string): string[] {
-  const seen = new Set<string>()
-  const names: string[] = []
-  for (const piece of raw.split(/[\n\r,，、]/)) {
-    const name = piece.trim()
-    if (!name || seen.has(name)) {
-      continue
-    }
-    seen.add(name)
-    names.push(name)
-  }
-  return names
 }
 
 /**
@@ -111,7 +92,7 @@ export function DiscountsCustomerAuditDrawer({
   const [customers, setCustomers] = useState<DiscountCustomer[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
-  const [modelListText, setModelListText] = useState('')
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [isAuditing, setIsAuditing] = useState(false)
   const [result, setResult] = useState<CustomerAuditResult | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -148,7 +129,7 @@ export function DiscountsCustomerAuditDrawer({
       setKeyword('')
       setCustomers([])
       setSelectedCustomerId('')
-      setModelListText('')
+      setSelectedModels([])
       setResult(null)
       setFormError(null)
       return
@@ -160,7 +141,7 @@ export function DiscountsCustomerAuditDrawer({
     event.preventDefault()
 
     const customerId = Number.parseInt(selectedCustomerId, 10)
-    const models = parseModelList(modelListText)
+    const models = selectedModels
 
     if (!Number.isFinite(customerId) || customerId <= 0) {
       setFormError(t(ERROR_MESSAGES.CUSTOMER_REQUIRED))
@@ -203,9 +184,7 @@ export function DiscountsCustomerAuditDrawer({
         onOpenChange(nextOpen)
       }}
     >
-      <SheetContent
-        className={sideDrawerContentClassName('sm:max-w-[1000px]')}
-      >
+      <SheetContent className={sideDrawerContentClassName('sm:max-w-[1000px]')}>
         <SheetHeader className={sideDrawerHeaderClassName()}>
           <SheetTitle>{t('Customer Pricing Audit')}</SheetTitle>
           <SheetDescription>
@@ -282,14 +261,10 @@ export function DiscountsCustomerAuditDrawer({
 
           <SideDrawerSection>
             <SideDrawerSectionHeader title={t('Model List')} />
-            <Textarea
-              value={modelListText}
-              rows={8}
-              maxLength={DISCOUNT_CUSTOMER_AUDIT_LIMITS.MODEL_LIST_MAX_LENGTH}
-              placeholder={t(
-                'Paste the model list, one model per line. Commas are also accepted.'
-              )}
-              onChange={(event) => setModelListText(event.target.value)}
+            <ModelListField
+              value={selectedModels}
+              onChange={setSelectedModels}
+              max={DISCOUNT_CUSTOMER_AUDIT_LIMITS.MODELS_MAX_COUNT}
             />
             <p className='text-muted-foreground text-xs'>
               {t('A single audit covers at most 100 models.')}
@@ -306,14 +281,10 @@ export function DiscountsCustomerAuditDrawer({
           {result && (
             <>
               <Alert
-                variant={
-                  result.summary.signable ? 'default' : 'destructive'
-                }
+                variant={result.summary.signable ? 'default' : 'destructive'}
               >
                 <AlertTitle>{t('Conclusion')}</AlertTitle>
-                <AlertDescription>
-                  {result.summary.conclusion}
-                </AlertDescription>
+                <AlertDescription>{result.summary.conclusion}</AlertDescription>
               </Alert>
 
               {result.warnings.length > 0 && (
@@ -337,94 +308,94 @@ export function DiscountsCustomerAuditDrawer({
                   )}
                 />
                 {result.models.length === 0 ? (
-                <p className='text-muted-foreground text-sm'>
-                  {t('No models to audit.')}
-                </p>
-              ) : (
-                <div className='overflow-x-auto'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('Model')}</TableHead>
-                        <TableHead>{t('Applied Discount')}</TableHead>
-                        <TableHead>{t('Plan')}</TableHead>
-                        <TableHead>{t('Routes')}</TableHead>
-                        <TableHead>{t('Cheapest cost ratio')}</TableHead>
-                        <TableHead>{t('Gross Margin')}</TableHead>
-                        <TableHead>{t('Verdict')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {result.models.map((row) => {
-                        const verdict =
-                          CUSTOMER_AUDIT_VERDICT_CONFIG[row.verdict]
-                        return (
-                          <TableRow key={row.model}>
-                            <TableCell className='font-medium'>
-                              {row.model}
-                            </TableCell>
-                            <TableCell>
-                              <span className='font-medium'>
-                                {formatRatioText(row.discount)}
-                              </span>
-                              <p className='text-muted-foreground text-xs'>
-                                {getDiscountSourceLabel(t, row.source)}
-                              </p>
-                            </TableCell>
-                            <TableCell>
-                              {row.plan
-                                ? `${row.plan.name} · ${getDiscountPlanStatusLabel(t, row.plan.status)}`
-                                : t('No plan bound')}
-                            </TableCell>
-                            <TableCell>
-                              {row.channel_count === 0 ? (
-                                <span className='text-muted-foreground'>
-                                  {t('No routes')}
+                  <p className='text-muted-foreground text-sm'>
+                    {t('No models to audit.')}
+                  </p>
+                ) : (
+                  <div className='overflow-x-auto'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('Model')}</TableHead>
+                          <TableHead>{t('Applied Discount')}</TableHead>
+                          <TableHead>{t('Plan')}</TableHead>
+                          <TableHead>{t('Routes')}</TableHead>
+                          <TableHead>{t('Cheapest cost ratio')}</TableHead>
+                          <TableHead>{t('Gross Margin')}</TableHead>
+                          <TableHead>{t('Verdict')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {result.models.map((row) => {
+                          const verdict =
+                            CUSTOMER_AUDIT_VERDICT_CONFIG[row.verdict]
+                          return (
+                            <TableRow key={row.model}>
+                              <TableCell className='font-medium'>
+                                {row.model}
+                              </TableCell>
+                              <TableCell>
+                                <span className='font-medium'>
+                                  {formatRatioText(row.discount)}
                                 </span>
-                              ) : (
-                                `${row.usable_count}/${row.channel_count}`
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {row.cheapest_cost ? (
-                                formatRatioText(row.cheapest_cost)
-                              ) : (
-                                <span className='text-muted-foreground'>
-                                  {t('Not recorded')}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {row.gross_margin ? (
-                                formatMarginText(row.gross_margin)
-                              ) : (
-                                <span className='text-muted-foreground'>
-                                  {t('Not recorded')}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {verdict ? (
-                                <StatusBadge
-                                  copyable={false}
-                                  variant={verdict.variant}
-                                >
-                                  {t(verdict.labelKey)}
-                                </StatusBadge>
-                              ) : (
-                                row.verdict
-                              )}
-                              <p className='text-muted-foreground mt-1 max-w-[240px] text-xs'>
-                                {row.verdict_detail}
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+                                <p className='text-muted-foreground text-xs'>
+                                  {getDiscountSourceLabel(t, row.source)}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                {row.plan
+                                  ? `${row.plan.name} · ${getDiscountPlanStatusLabel(t, row.plan.status)}`
+                                  : t('No plan bound')}
+                              </TableCell>
+                              <TableCell>
+                                {row.channel_count === 0 ? (
+                                  <span className='text-muted-foreground'>
+                                    {t('No routes')}
+                                  </span>
+                                ) : (
+                                  `${row.usable_count}/${row.channel_count}`
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {row.cheapest_cost ? (
+                                  formatRatioText(row.cheapest_cost)
+                                ) : (
+                                  <span className='text-muted-foreground'>
+                                    {t('Not recorded')}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {row.gross_margin ? (
+                                  formatMarginText(row.gross_margin)
+                                ) : (
+                                  <span className='text-muted-foreground'>
+                                    {t('Not recorded')}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {verdict ? (
+                                  <StatusBadge
+                                    copyable={false}
+                                    variant={verdict.variant}
+                                  >
+                                    {t(verdict.labelKey)}
+                                  </StatusBadge>
+                                ) : (
+                                  row.verdict
+                                )}
+                                <p className='text-muted-foreground mt-1 max-w-[240px] text-xs'>
+                                  {row.verdict_detail}
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </SideDrawerSection>
             </>
           )}
