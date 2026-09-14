@@ -20,7 +20,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Code2, Eye, ShieldAlert } from 'lucide-react'
 import * as React from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
+import { useForm, useWatch, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -55,6 +55,7 @@ import {
 import { SettingsPageFormActions } from '@/features/system-settings/components/settings-page-context'
 import { SettingsSection } from '@/features/system-settings/components/settings-section'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
+import { useSystemOptions } from '@/features/system-settings/hooks/use-system-options'
 import {
   formatJsonForEditor,
   getJsonError,
@@ -64,8 +65,6 @@ import {
 import { safeNumberFieldProps } from '@/features/system-settings/utils/numeric-field'
 import { cn } from '@/lib/utils'
 
-import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
-import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import { saveWaffoPancakeConfig } from './waffo-pancake-api'
@@ -102,7 +101,6 @@ const paymentSchema = z.object({
   }, 'Provide a valid callback URL starting with http:// or https://'),
   EpayId: z.string(),
   EpayKey: z.string(),
-  Price: z.coerce.number().min(0),
   MinTopUp: z.coerce.number().min(0),
   CustomCallbackAddress: z
     .string()
@@ -239,10 +237,6 @@ export function PaymentSettingsSection({
   )
 
   const [payMethodsVisualMode, setPayMethodsVisualMode] = React.useState(true)
-  const [amountOptionsVisualMode, setAmountOptionsVisualMode] =
-    React.useState(true)
-  const [amountDiscountVisualMode, setAmountDiscountVisualMode] =
-    React.useState(true)
   const [creemProductsVisualMode, setCreemProductsVisualMode] =
     React.useState(true)
   const [showComplianceDialog, setShowComplianceDialog] = React.useState(false)
@@ -359,6 +353,21 @@ export function PaymentSettingsSection({
     },
   })
 
+  // Live preview of MinTopUp in local currency using the exchange rate from
+  // Pricing & Display (PricingSection owns the single source of truth).
+  const minTopUpValue = useWatch({ control: form.control, name: 'MinTopUp' })
+  const { data: optionsResponse } = useSystemOptions()
+  const { usdExchangeRate, minTopUpLocalAmount } = React.useMemo(() => {
+    const opt = optionsResponse?.data?.find((o) => o.key === 'USDExchangeRate')
+    const parsed = opt ? Number(opt.value) : NaN
+    const rate = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+    const usd = Number(minTopUpValue) || 0
+    return {
+      usdExchangeRate: rate,
+      minTopUpLocalAmount: rate > 0 ? usd * rate : 0,
+    }
+  }, [minTopUpValue, optionsResponse?.data])
+
   const { isSubmitting } = form.formState
 
   const setPaymentValue = React.useCallback(
@@ -421,7 +430,6 @@ export function PaymentSettingsSection({
       PayAddress: removeTrailingSlash(values.PayAddress),
       EpayId: values.EpayId.trim(),
       EpayKey: values.EpayKey.trim(),
-      Price: values.Price,
       MinTopUp: values.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(values.CustomCallbackAddress),
       PayMethods: values.PayMethods.trim(),
@@ -463,7 +471,6 @@ export function PaymentSettingsSection({
       PayAddress: removeTrailingSlash(initialRef.current.PayAddress),
       EpayId: initialRef.current.EpayId.trim(),
       EpayKey: initialRef.current.EpayKey.trim(),
-      Price: initialRef.current.Price,
       MinTopUp: initialRef.current.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(
         initialRef.current.CustomCallbackAddress
@@ -520,10 +527,6 @@ export function PaymentSettingsSection({
       updates.push({ key: 'EpayKey', value: sanitized.EpayKey })
     }
 
-    if (sanitized.Price !== initial.Price) {
-      updates.push({ key: 'Price', value: sanitized.Price })
-    }
-
     if (sanitized.MinTopUp !== initial.MinTopUp) {
       updates.push({ key: 'MinTopUp', value: sanitized.MinTopUp })
     }
@@ -540,26 +543,6 @@ export function PaymentSettingsSection({
       normalizeJsonForComparison(initial.PayMethods)
     ) {
       updates.push({ key: 'PayMethods', value: sanitized.PayMethods })
-    }
-
-    if (
-      normalizeJsonForComparison(sanitized.AmountOptions) !==
-      normalizeJsonForComparison(initial.AmountOptions)
-    ) {
-      updates.push({
-        key: 'payment_setting.amount_options',
-        value: sanitized.AmountOptions,
-      })
-    }
-
-    if (
-      normalizeJsonForComparison(sanitized.AmountDiscount) !==
-      normalizeJsonForComparison(initial.AmountDiscount)
-    ) {
-      updates.push({
-        key: 'payment_setting.amount_discount',
-        value: sanitized.AmountDiscount,
-      })
     }
 
     if (
@@ -898,37 +881,11 @@ export function PaymentSettingsSection({
                   </p>
                 </div>
 
-                <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='Price'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t('Price (local currency / USD)')}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            step='0.01'
-                            min={0}
-                            {...safeNumberFieldProps(field)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            'How much to charge for each US dollar of balance (Epay)'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='MinTopUp'
-                    render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name='MinTopUp'
+                  render={({ field }) => (
+                    <div className='grid gap-6 md:grid-cols-2'>
                       <FormItem>
                         <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
                         <FormControl>
@@ -944,9 +901,31 @@ export function PaymentSettingsSection({
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
-                </div>
+                      <FormItem>
+                        <FormLabel>
+                          {t('Equivalent top-up in local currency')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='text'
+                            readOnly
+                            value={
+                              minTopUpLocalAmount > 0
+                                ? `${minTopUpLocalAmount.toFixed(2)} CNY`
+                                : '-'
+                            }
+                            className='bg-muted cursor-default'
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Using current exchange rate {{rate}}', {
+                            rate: usdExchangeRate.toFixed(2),
+                          })}
+                        </FormDescription>
+                      </FormItem>
+                    </div>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -1010,127 +989,6 @@ export function PaymentSettingsSection({
                   )}
                 />
 
-                <div className='grid gap-6 md:grid-cols-2 md:items-start'>
-                  <FormField
-                    control={form.control}
-                    name='AmountOptions'
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className='mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-                          <FormLabel>{t('Top-up amount options')}</FormLabel>
-                          <Button
-                            type='button'
-                            variant='outline'
-                            size='sm'
-                            onClick={() =>
-                              setAmountOptionsVisualMode(
-                                !amountOptionsVisualMode
-                              )
-                            }
-                            className='w-full sm:w-auto'
-                          >
-                            {amountOptionsVisualMode ? (
-                              <>
-                                <Code2 className='mr-2 h-3 w-3' />
-                                {t('JSON Editor')}
-                              </>
-                            ) : (
-                              <>
-                                <Eye className='mr-2 h-3 w-3' />
-                                {t('Visual Editor')}
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <FormControl>
-                          {amountOptionsVisualMode ? (
-                            <AmountOptionsVisualEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                            />
-                          ) : (
-                            <JsonCodeEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              textareaRef={field.ref}
-                              placeholder='[10, 20, 50, 100]'
-                              heightClassName='h-40 min-h-40 max-h-40'
-                              aria-invalid={Boolean(
-                                form.formState.errors.AmountOptions
-                              )}
-                            />
-                          )}
-                        </FormControl>
-                        <FormDescription>
-                          {t('Preset recharge amounts (JSON array)')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='AmountDiscount'
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className='mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-                          <FormLabel>{t('Amount discount')}</FormLabel>
-                          <Button
-                            type='button'
-                            variant='outline'
-                            size='sm'
-                            onClick={() =>
-                              setAmountDiscountVisualMode(
-                                !amountDiscountVisualMode
-                              )
-                            }
-                            className='w-full sm:w-auto'
-                          >
-                            {amountDiscountVisualMode ? (
-                              <>
-                                <Code2 className='mr-2 h-3 w-3' />
-                                {t('JSON Editor')}
-                              </>
-                            ) : (
-                              <>
-                                <Eye className='mr-2 h-3 w-3' />
-                                {t('Visual Editor')}
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <FormControl>
-                          {amountDiscountVisualMode ? (
-                            <AmountDiscountVisualEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                            />
-                          ) : (
-                            <JsonCodeEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              textareaRef={field.ref}
-                              placeholder='{"100":0.95,"200":0.9}'
-                              heightClassName='h-40 min-h-40 max-h-40'
-                              aria-invalid={Boolean(
-                                form.formState.errors.AmountDiscount
-                              )}
-                            />
-                          )}
-                        </FormControl>
-                        <FormDescription>
-                          {t('Discount map by recharge amount (JSON object)')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </TabsContent>
 

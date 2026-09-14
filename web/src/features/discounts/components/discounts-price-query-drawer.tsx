@@ -131,7 +131,7 @@ function PriceBookCard({ entry }: { entry: CustomerPriceBookEntry }) {
       <ul className='text-muted-foreground mt-2 space-y-1 text-xs'>
         {entry.rules.length === 0 ? (
           // 规则已改为纯范围标记：没有规则就没有任何模型能拿到这套基础折扣。
-          <li>{t('No rules: the base discount covers no model.')}</li>
+          <li>{t('No rules: the base discount covers every model.')}</li>
         ) : (
           entry.rules.map((rule) => (
             // rule.discount 已废弃：所有规则共用 entry.base_discount，不再单独展示；

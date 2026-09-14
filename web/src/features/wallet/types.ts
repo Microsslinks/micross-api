@@ -128,6 +128,8 @@ export interface TopupInfo {
   pay_methods: PaymentMethod[]
   /** Minimum topup amount for online topup */
   min_topup: number
+  /** Maximum topup amount (int32 quota ceiling, set by backend) */
+  max_topup?: number
   /** Minimum topup amount for Stripe */
   stripe_min_topup: number
   /** Preset amount options */
@@ -228,6 +230,8 @@ export interface UserWalletData {
   id: number
   /** Username */
   username: string
+  /** Role (used to gate admin-only topup management entries) */
+  role?: number
   /** Current quota balance */
   quota: number
   /** Total used quota */

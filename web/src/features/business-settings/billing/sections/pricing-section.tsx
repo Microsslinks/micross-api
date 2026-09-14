@@ -114,7 +114,7 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
         PricingFormValues
       >,
       defaultValues,
-      onSubmit: async (_data, changedFields) => {
+      onSubmit: async (data, changedFields) => {
         for (const [key, value] of Object.entries(changedFields)) {
           if (value === undefined || value === null) continue
           if (typeof value === 'object') continue
@@ -130,6 +130,19 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
           await updateOption.mutateAsync({
             key,
             value: serialized,
+          })
+        }
+
+        // Sync Price with USDExchangeRate so recharge conversion and display
+        // always use the same rate (Price 字段位于 payment_setting_old.go，
+        // 由 getPayMoney / availableBalanceUsd 读取，仅此处统一写入)。
+        if (
+          changedFields.USDExchangeRate !== undefined &&
+          Number.isFinite(data.USDExchangeRate)
+        ) {
+          await updateOption.mutateAsync({
+            key: 'Price',
+            value: String(data.USDExchangeRate),
           })
         }
       },
@@ -251,6 +264,10 @@ export function PricingSection({ defaultValues }: PricingSectionProps) {
                     <FormDescription>
                       {t(
                         'Real exchange rate between USD and your payment gateway currency'
+                      )}
+                      {' · '}
+                      {t(
+                        'Also used to calculate recharge amounts'
                       )}
                     </FormDescription>
                     <FormMessage />

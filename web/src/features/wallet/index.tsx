@@ -16,14 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
-import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
+import { ROLE } from '@/lib/roles'
 
+import { AmountDiscountManageDialog } from './components/dialogs/amount-discount-manage-dialog'
+import { AmountOptionsManageDialog } from './components/dialogs/amount-options-manage-dialog'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
@@ -80,17 +82,21 @@ export function Wallet(props: WalletProps) {
   const [creemDialogOpen, setCreemDialogOpen] = useState(false)
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
+  const [amountOptionsDialogOpen, setAmountOptionsDialogOpen] = useState(false)
+  const [discountManageDialogOpen, setDiscountManageDialogOpen] =
+    useState(false)
 
   const { status } = useStatus()
-  const { currency } = useSystemConfig()
-  const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
+  const {
+    topupInfo,
+    presetAmounts,
+    loading: topupLoading,
+    refetch: refetchTopupInfo,
+  } = useTopupInfo()
 
-  // Calculate effective exchange rate - when display type is USD, use rate of 1
-  const effectiveUsdExchangeRate = useMemo(() => {
-    return currency?.quotaDisplayType === 'USD'
-      ? 1
-      : currency?.usdExchangeRate || 1
-  }, [currency?.quotaDisplayType, currency?.usdExchangeRate])
+  // 管理员才在快捷充值区域装配「添加充值金额 / 折扣管理」入口
+  const isAdminUser = !!user && (user.role ?? 0) >= ROLE.ADMIN
+
   const {
     amount: paymentAmount,
     calculating,
@@ -288,7 +294,6 @@ export function Wallet(props: WalletProps) {
                 topupLink={topupInfo?.topup_link}
                 loading={topupLoading}
                 priceRatio={(status?.price as number) || 1}
-                usdExchangeRate={effectiveUsdExchangeRate}
                 onOpenBilling={() => setBillingDialogOpen(true)}
                 creemProducts={topupInfo?.creem_products}
                 enableCreemTopup={topupInfo?.enable_creem_topup}
@@ -298,6 +303,9 @@ export function Wallet(props: WalletProps) {
                 waffoMinTopup={topupInfo?.waffo_min_topup}
                 onWaffoMethodSelect={handleWaffoMethodSelect}
                 enableWaffoPancakeTopup={topupInfo?.enable_waffo_pancake_topup}
+                isAdmin={isAdminUser}
+                onOpenAmountOptions={() => setAmountOptionsDialogOpen(true)}
+                onOpenDiscountManage={() => setDiscountManageDialogOpen(true)}
               />
             </div>
           </div>
@@ -314,7 +322,6 @@ export function Wallet(props: WalletProps) {
         calculating={calculating}
         processing={processing || waffoProcessing || pancakeProcessing}
         discountRate={getDiscountRate()}
-        usdExchangeRate={effectiveUsdExchangeRate}
       />
 
       <BillingHistoryDialog
@@ -329,6 +336,21 @@ export function Wallet(props: WalletProps) {
         product={selectedCreemProduct}
         processing={creemProcessing}
       />
+
+      {isAdminUser && (
+        <>
+          <AmountOptionsManageDialog
+            open={amountOptionsDialogOpen}
+            onOpenChange={setAmountOptionsDialogOpen}
+            onSaved={refetchTopupInfo}
+          />
+          <AmountDiscountManageDialog
+            open={discountManageDialogOpen}
+            onOpenChange={setDiscountManageDialogOpen}
+            onSaved={refetchTopupInfo}
+          />
+        </>
+      )}
     </>
   )
 }

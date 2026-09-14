@@ -73,7 +73,12 @@ export async function requestPaymentAmount(
 
   const response = await calculator({ amount: topupAmount })
   if (!isApiSuccess(response) || !response.data) {
-    return 0
+    // Surface the backend rejection reason (e.g. amount ceiling) instead of
+    // silently returning 0, which used to leave the customer staring at ¥0.
+    throw new Error(
+      (typeof response.data === 'string' && response.data) ||
+        i18next.t('Payment request failed')
+    )
   }
 
   return Number.parseFloat(response.data)
@@ -95,7 +100,13 @@ export function usePayment() {
         )
         setAmount(calculatedAmount)
         return calculatedAmount
-      } catch {
+      } catch (error) {
+        // Tell the customer why (e.g. amount ceiling) instead of a silent ¥0.
+        toast.error(
+          error instanceof Error && error.message
+            ? error.message
+            : i18next.t('Payment request failed')
+        )
         setAmount(0)
         return 0
       } finally {

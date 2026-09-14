@@ -19,15 +19,20 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
+  Building2,
+  Check,
   Coins,
   Code,
+  Crown,
   Database,
   Gauge,
   Globe,
   Layers,
   Link2,
+  Server,
   ShieldCheck,
   Sparkles,
+  Users,
   Zap,
 } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -275,6 +280,52 @@ function CompanyProfile() {
     },
   ]
 
+  const deployTags = [
+    t('Data stays inside your intranet'),
+    t('Unified multi-upstream access'),
+    t('Usage metering and billing'),
+    t('Department and dealer hierarchy'),
+    t('Audit logs'),
+  ]
+
+  const deployTiers = [
+    {
+      tone: 'blue' as Tone,
+      icon: <Users className='size-5' strokeWidth={1.7} />,
+      name: t('Team edition'),
+      users: t('Up to 50 users'),
+      deployPrice: '¥10,000',
+      maintPrice: '¥5,000',
+      features: [t('Version upgrades'), t('Business-hours support')],
+    },
+    {
+      tone: 'emerald' as Tone,
+      icon: <Building2 className='size-5' strokeWidth={1.7} />,
+      name: t('Enterprise edition'),
+      users: t('Up to 200 users'),
+      deployPrice: '¥30,000',
+      maintPrice: '¥15,000',
+      features: [
+        t('Regular health checks'),
+        t('Upstream onboarding guidance'),
+        t('Version upgrades'),
+      ],
+    },
+    {
+      tone: 'violet' as Tone,
+      icon: <Crown className='size-5' strokeWidth={1.7} />,
+      name: t('Flagship edition'),
+      users: t('Up to 1000 users'),
+      deployPrice: '¥80,000',
+      maintPrice: '¥40,000',
+      features: [
+        t('SLA response times'),
+        t('Dedicated support channel'),
+        t('All Enterprise benefits'),
+      ],
+    },
+  ]
+
   const milestones = [
     {
       num: '01',
@@ -506,6 +557,92 @@ function CompanyProfile() {
               )}
             </ContentCard>
           ))}
+        </div>
+      </section>
+
+      {/* 私有化部署：系统免费，按用户量收部署与运维服务费 */}
+      <section>
+        <SectionHeading
+          label={t('Private deployment')}
+          title={t('Deploy this system inside your intranet')}
+          note={t(
+            'The software itself is free — we charge only for deployment and maintenance, priced by user count.'
+          )}
+        />
+        <div className='border-border/50 bg-card shadow-card relative overflow-hidden rounded-3xl border p-6 md:p-8'>
+          <div
+            aria-hidden
+            className='bg-primary/10 pointer-events-none absolute -top-28 -right-24 size-80 rounded-full blur-3xl'
+          />
+          <div className='relative'>
+            <p className='bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold'>
+              <Server className='size-3.5' strokeWidth={2} />
+              {t('Software: free of charge (open-source based)')}
+            </p>
+            <h3 className='mt-4 text-2xl leading-snug font-bold tracking-tight md:text-3xl'>
+              <Trans
+                i18nKey='Your own <1>AI API management gateway</1>, inside your intranet'
+                components={{ 1: <span className={GRADIENT_TEXT} /> }}
+              />
+            </h3>
+            <p className='text-muted-foreground mt-4 max-w-3xl text-sm leading-relaxed'>
+              {t(
+                'The same system powering this site can be deployed entirely inside your intranet as your own AI API management gateway: unified upstream access, centralized key management, usage metering and billing, department and dealer hierarchy, and audit logs — all closed-loop inside your intranet. Your data never leaves the company.'
+              )}
+            </p>
+            <TagRow>
+              {deployTags.map((tag) => (
+                <Tag key={tag}>{tag}</Tag>
+              ))}
+            </TagRow>
+          </div>
+        </div>
+        <div className='mt-4 grid gap-4 md:grid-cols-3'>
+          {deployTiers.map((tier) => (
+            <ContentCard key={tier.name} tone={tier.tone}>
+              <CardBadge tone={tier.tone} icon={tier.icon} title={tier.name} />
+              <p className='text-muted-foreground mt-1 text-xs'>{tier.users}</p>
+              <div className='bg-muted/25 mt-4 rounded-xl p-3.5'>
+                <p className='text-base font-bold'>
+                  {tier.deployPrice}
+                  <span className='text-muted-foreground ml-1.5 text-xs font-medium'>
+                    {t('one-time deployment')}
+                  </span>
+                </p>
+                <p className='mt-1 text-base font-bold'>
+                  {tier.maintPrice}
+                  <span className='text-muted-foreground ml-1.5 text-xs font-medium'>
+                    {t('maintenance per year')}
+                  </span>
+                </p>
+              </div>
+              <ul className='mt-4 space-y-2'>
+                {tier.features.map((feature) => (
+                  <li key={feature} className='flex items-center gap-2 text-sm'>
+                    <Check
+                      className='text-primary size-4 shrink-0'
+                      strokeWidth={2}
+                    />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </ContentCard>
+          ))}
+        </div>
+        {/*
+          联系方式（地址/电话/邮箱/社交）计划做成系统设置项，
+          做好后在此处渲染具体信息；当前先放通用文案预留位置。
+        */}
+        <div className='border-border/50 bg-card mt-4 rounded-2xl border px-6 py-5 text-center'>
+          <p className='text-sm font-semibold'>
+            {t(
+              'For 1000+ users, multi-node or high-availability deployments: contact us for a quote.'
+            )}
+          </p>
+          <p className='text-muted-foreground mt-1.5 text-sm'>
+            {t('For a deployment proposal and quote, please contact us.')}
+          </p>
         </div>
       </section>
 
