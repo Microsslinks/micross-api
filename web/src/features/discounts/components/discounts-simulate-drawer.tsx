@@ -31,6 +31,7 @@ import {
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ComboboxInput } from '@/components/ui/combobox-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -69,6 +70,7 @@ import {
   getDiscountRuleScopeLabel,
   getDiscountSourceLabel,
 } from '../constants'
+import { useModelNameOptions } from '../hooks/use-model-name-options'
 import { formatMarginText, formatRatioText } from '../lib'
 import type { DiscountCustomer, DiscountSimulateResult } from '../types'
 
@@ -86,6 +88,7 @@ export function DiscountsSimulateDrawer({
   onOpenChange,
 }: DiscountsSimulateDrawerProps) {
   const { t } = useTranslation()
+  const { options } = useModelNameOptions()
   const [keyword, setKeyword] = useState('')
   const [customers, setCustomers] = useState<DiscountCustomer[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
@@ -259,10 +262,12 @@ export function DiscountsSimulateDrawer({
 
           <SideDrawerSection>
             <SideDrawerSectionHeader title={t('Model name')} />
-            <Input
+            <ComboboxInput
               value={modelName}
+              onValueChange={setModelName}
+              options={options}
               placeholder={t('Enter a model name to simulate')}
-              onChange={(event) => setModelName(event.target.value)}
+              allowCustomValue
             />
             <p className='text-muted-foreground text-xs'>
               {t(

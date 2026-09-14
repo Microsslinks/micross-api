@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import type { DiscountSimulateResult } from '../../types'
@@ -111,6 +112,14 @@ function mockApi(): void {
         },
       }
     }
+    if (url.includes('/api/channel/models_enabled')) {
+      return {
+        data: {
+          success: true,
+          data: ['gpt-4o', 'claude-sonnet-4'],
+        },
+      }
+    }
     if (url.includes('/api/discount/admin/simulate')) {
       simulateCalls += 1
       return { data: { success: true, data: simulatePayload } }
@@ -120,16 +129,22 @@ function mockApi(): void {
 }
 
 async function pickCustomer(): Promise<void> {
-  fireEvent.click(screen.getByRole('combobox'))
+  // 页面上有两个 combobox：客户选择器在前、模型名输入框在后，取第一个。
+  fireEvent.click(screen.getAllByRole('combobox')[0])
   const option = await screen.findByRole('option', { name: 'alice (Alice)' })
   fireEvent.click(option)
 }
 
 async function renderDrawer(withCustomer = true): Promise<void> {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   render(
-    <I18nextProvider i18n={i18n}>
-      <DiscountsSimulateDrawer open onOpenChange={() => undefined} />
-    </I18nextProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <DiscountsSimulateDrawer open onOpenChange={() => undefined} />
+      </I18nextProvider>
+    </QueryClientProvider>
   )
   if (withCustomer) {
     await pickCustomer()
