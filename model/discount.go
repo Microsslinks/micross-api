@@ -90,6 +90,12 @@ func (p *DiscountPlan) NormalizeDefaults() {
 }
 
 // DiscountRule 是方案内的模型级 / 厂商级覆盖，命中时优先于方案基础折扣。
+//
+// 历史上 rule.Discount 字段曾承载「这条规则专属的折扣」（同方案内不同模型可不同价）。
+// 现已废弃：规则改为纯范围标记——命中时按方案基础折扣（plan.BaseDiscount）出价，
+// 不再用 rule.Discount。字段保留是为了不破坏存量库 schema；新建/更新路径不再写它，
+// 解析路径也以 plan.BaseDiscount 为准。后续如确需恢复「同方案内按规则区分价格」的能力，
+// 再从这行注释往下展开。
 type DiscountRule struct {
 	Id int `json:"id"`
 	// plan_id 必须进 uk_rule_plan_scope：这个索引的本意是「同一方案内 (范围类型, 范围取值) 唯一」，
@@ -99,11 +105,13 @@ type DiscountRule struct {
 	PlanId     int    `json:"plan_id" gorm:"type:int;not null;index:idx_rule_plan;uniqueIndex:uk_rule_plan_scope,priority:1"`
 	ScopeType  string `json:"scope_type" gorm:"type:varchar(16);not null;uniqueIndex:uk_rule_plan_scope,priority:2"`
 	ScopeValue string `json:"scope_value" gorm:"type:varchar(128);not null;uniqueIndex:uk_rule_plan_scope,priority:3"`
-	Discount   string `json:"discount" gorm:"type:decimal(10,6);not null"`
-	Priority   int    `json:"priority" gorm:"type:int;not null;default:0"`
-	Status     int    `json:"status" gorm:"type:int;not null;default:1"`
-	CreatedAt  int64  `json:"created_at" gorm:"bigint"`
-	UpdatedAt  int64  `json:"updated_at" gorm:"bigint"`
+	// Discount 字段废弃，保留列以兼容存量数据。解析与计费均不再读取，
+	// NormalizeDefaults / Update 都已不再写它——上层如果误填也会被忽略。
+	Discount  string `json:"discount" gorm:"type:decimal(10,6);not null"`
+	Priority  int    `json:"priority" gorm:"type:int;not null;default:0"`
+	Status    int    `json:"status" gorm:"type:int;not null;default:1"`
+	CreatedAt int64  `json:"created_at" gorm:"bigint"`
+	UpdatedAt int64  `json:"updated_at" gorm:"bigint"`
 }
 
 func (DiscountRule) TableName() string {
@@ -122,6 +130,10 @@ func (r *DiscountRule) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
+// NormalizeDefaults 补全零值口径。注意：rule.Discount 已是废弃字段，
+// 不再被任何上层写入（controller/discount.go 的 applyDiscountRuleRequest 已停写），
+// 这里保留兜底 "0" 只是为了让存量库零值行也能正常 SELECT/Update，不被解析器读到空串。
+// priority / status / scope_* 字段的兜底仍由 controller 在请求层补齐——保持原行为不动。
 func (r *DiscountRule) NormalizeDefaults() {
 	if r.Discount == "" {
 		r.Discount = "0"
@@ -302,10 +314,12 @@ func (r *DiscountRule) Insert() error {
 }
 
 // Update 更新规则。规则改挂到方案下面没有意义，故 plan_id 不在可更新列里。
+// discount 字段已废弃，不再写入：保留列是历史包袱，解析/计费均按 plan.BaseDiscount 出价。
+// 旧库里残留的 rule.Discount 值会被原样保留，直到运营侧主动清理；线上不会再被任何路径覆写。
 func (r *DiscountRule) Update() error {
 	r.NormalizeDefaults()
 	return DB.Model(&DiscountRule{}).Where("id = ?", r.Id).
-		Select("scope_type", "scope_value", "discount", "priority", "status", "updated_at").
+		Select("scope_type", "scope_value", "priority", "status", "updated_at").
 		Updates(r).Error
 }
 

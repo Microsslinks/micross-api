@@ -337,6 +337,8 @@ export function DiscountsSimulateDrawer({
                   </span>
                 </div>
                 {result.resolution.matched_rule && (
+                  // 规则命中时按方案基础折扣出价：上面的「Applied Discount」已经展示数字，
+                  // 这里只说清「命中的是哪条规则的哪个范围」。rule.Discount 已废弃，不再单独展示。
                   <p className='text-muted-foreground text-xs'>
                     {t('Matched Rule')}
                     {': '}

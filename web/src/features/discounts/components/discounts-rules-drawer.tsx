@@ -88,7 +88,6 @@ import { useModelNameOptions } from '../hooks/use-model-name-options'
 import {
   DISCOUNT_RULE_FORM_DEFAULT_VALUES,
   buildDiscountRulePayload,
-  formatRatioText,
   getDiscountRuleFormSchema,
   transformDiscountRuleToFormDefaults,
   type DiscountRuleFormValues,
@@ -269,7 +268,7 @@ export function DiscountsRulesDrawer({
             <SideDrawerSectionHeader
               title={t('Rules')}
               description={t(
-                'The first matching rule wins; the highest priority is checked first.'
+                'Rules set which models receive the plan base discount. The first matching rule wins; the highest priority is checked first.'
               )}
             />
 
@@ -285,7 +284,7 @@ export function DiscountsRulesDrawer({
                 {isLoading
                   ? t('Loading...')
                   : t(
-                      'No rules yet. Every model falls back to the base discount.'
+                      'No rules yet. The base discount is not applied to any model.'
                     )}
               </p>
             )}
@@ -295,7 +294,6 @@ export function DiscountsRulesDrawer({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('Scope')}</TableHead>
-                    <TableHead>{t('Discount')}</TableHead>
                     <TableHead>{t('Priority')}</TableHead>
                     <TableHead>{t('Status')}</TableHead>
                     <TableHead>{t('Actions')}</TableHead>
@@ -310,9 +308,6 @@ export function DiscountsRulesDrawer({
                         <span className='font-mono text-xs'>
                           {rule.scope_value}
                         </span>
-                      </TableCell>
-                      <TableCell className='font-mono text-sm'>
-                        {formatRatioText(rule.discount)}
                       </TableCell>
                       <TableCell>{rule.priority}</TableCell>
                       <TableCell>
@@ -443,21 +438,6 @@ export function DiscountsRulesDrawer({
                     {errors.scope_value}
                   </p>
                 )}
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='discount-rule-discount'>{t('Discount')}</Label>
-                <Input
-                  id='discount-rule-discount'
-                  value={values.discount}
-                  onChange={(event) => setField('discount', event.target.value)}
-                />
-                {errors.discount && (
-                  <p className='text-destructive text-xs'>{errors.discount}</p>
-                )}
-                <p className='text-muted-foreground text-xs'>
-                  {t('A ratio between 0 and 1: 0.3 means 30% of the price.')}
-                </p>
               </div>
 
               <div className='space-y-2'>

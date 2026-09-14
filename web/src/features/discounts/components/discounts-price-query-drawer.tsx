@@ -130,17 +130,18 @@ function PriceBookCard({ entry }: { entry: CustomerPriceBookEntry }) {
       </p>
       <ul className='text-muted-foreground mt-2 space-y-1 text-xs'>
         {entry.rules.length === 0 ? (
-          <li>{t('No rules: the base discount covers every model.')}</li>
+          // 规则已改为纯范围标记：没有规则就没有任何模型能拿到这套基础折扣。
+          <li>{t('No rules: the base discount covers no model.')}</li>
         ) : (
           entry.rules.map((rule) => (
+            // rule.discount 已废弃：所有规则共用 entry.base_discount，不再单独展示；
+            // 想看具体折扣看卡片顶部的「Base discount」一行。
             <li
-              key={`${entry.binding_id}-${rule.scope_type}-${rule.scope_value}-${rule.priority}-${rule.discount}`}
+              key={`${entry.binding_id}-${rule.scope_type}-${rule.scope_value}-${rule.priority}`}
             >
               {getDiscountRuleScopeLabel(t, rule.scope_type)}
               {' · '}
               {rule.scope_value}
-              {' · '}
-              {formatRatioText(rule.discount)}
               {rule.status === 0 && ` · ${t('Disabled')}`}
             </li>
           ))

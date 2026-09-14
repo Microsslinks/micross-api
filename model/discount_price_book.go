@@ -78,17 +78,22 @@ func GetCustomerPriceBook(userId int) ([]*CustomerPriceBookEntry, error) {
 			WindowReason:  ctx.windowReasons[i],
 			Rules:         make([]*CustomerPriceBookRule, 0),
 		}
+		// rule.Discount 已废弃：每个规则不再携带自己的折扣，命中时一律按 plan.BaseDiscount 出价。
+		// 价格册里的规则展示也跟随这个口径：所有规则共享 entry.BaseDiscount。
+		// 方案缺失（已删除）时回落到 rule.Discount 的历史值——理论不会发生，价格册不会列出已删除方案。
+		ruleDiscount := formatResolvedDiscount(DiscountNone)
 		if plan, ok := plans[binding.PlanId]; ok {
 			entry.PlanName = plan.Name
 			entry.PlanStatus = plan.Status
 			entry.BillingMode = plan.BillingMode
 			entry.BaseDiscount = formatResolvedDiscount(plan.BaseDiscount)
+			ruleDiscount = entry.BaseDiscount
 		}
 		for _, rule := range rulesByPlan[binding.PlanId] {
 			entry.Rules = append(entry.Rules, &CustomerPriceBookRule{
 				ScopeType:  rule.ScopeType,
 				ScopeValue: rule.ScopeValue,
-				Discount:   formatResolvedDiscount(rule.Discount),
+				Discount:   ruleDiscount,
 				Priority:   rule.Priority,
 				Status:     rule.Status,
 			})

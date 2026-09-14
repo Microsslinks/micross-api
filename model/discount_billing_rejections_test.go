@@ -24,12 +24,13 @@ func TestResolveBillingDiscountCarriesRejectedBindings(t *testing.T) {
 
 		discount := ResolveBillingDiscount(user.Id, "gpt-4o")
 
-		assert.InDelta(t, 0.3, discount.Ratio, 1e-9)
+		// rule.Discount 已废弃：胜者命中模型级规则时按方案基础折扣（0.9）出价。
+		assert.InDelta(t, 0.9, discount.Ratio, 1e-9)
 		assert.Equal(t, winner.Id, discount.PlanId)
 		require.Len(t, discount.Rejected, 1)
 		assert.Equal(t, loser.Id, discount.Rejected[0].PlanId)
 		assert.Equal(t, DiscountSourceSubscription, discount.Rejected[0].Source)
-		assert.Equal(t, "0.500000", discount.Rejected[0].Discount)
+		assert.Equal(t, "0.500000", discount.Rejected[0].Discount, "落选者带的折扣仍是它解析到的折扣（基础折扣 0.5）")
 		assert.Contains(t, discount.Rejected[0].Reason, "具体度")
 	})
 

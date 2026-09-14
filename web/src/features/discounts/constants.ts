@@ -190,10 +190,15 @@ export const DISCOUNT_SUBJECT_LABEL_KEYS: Record<string, string> = {
   [DISCOUNT_SUBJECT.AGENT]: 'Agent',
 }
 
-/** 保存前检查的原因码 → i18n 键 */
+/**
+ * 保存前检查的原因码 → i18n 键。
+ *
+ * 「规则折扣低于方案最低折扣」(BELOW_MIN_DISCOUNT) 已随 rule.Discount 一起废弃：
+ * 规则改为纯范围标记后，最低折扣只与基础折扣（plan.BaseDiscount）比较，
+ * 校验阶段不再逐条规则比一遍（详见 service/discount_validate.go 头部注释）。
+ * 旧的后端响应里如果还残留这个 reason，仍会原样显示（见 lookupLabel 的回退逻辑）。
+ */
 export const DISCOUNT_VIOLATION_REASON_LABEL_KEYS: Record<string, string> = {
-  [DISCOUNT_VIOLATION_REASON.BELOW_MIN_DISCOUNT]:
-    'Discount is below the plan minimum',
   [DISCOUNT_VIOLATION_REASON.MIN_ABOVE_BASE]:
     'Plan minimum is above its base discount',
   [DISCOUNT_VIOLATION_REASON.COST_BREACH]: 'Cost exceeds the profit floor',

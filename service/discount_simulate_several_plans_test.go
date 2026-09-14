@@ -14,6 +14,7 @@ import (
 
 // 客户挂了多套方案时，试算要把"没用上的那几套"一并说清楚，并且与计费算出同一个折扣。
 // 老实现只读快路径上那一条绑定：界面显示的价可能根本不是这一单真扣的价。
+// rule.Discount 已废弃：胜出方案的命中规则（gpt-4o）按方案基础折扣（plan.BaseDiscount=0.9）出价。
 func TestSimulateDiscountWithSeveralBoundPlans(t *testing.T) {
 	setupDiscountSimulateTest(t)
 	setting := operation_setting.GetDiscountSetting()
@@ -50,10 +51,10 @@ func TestSimulateDiscountWithSeveralBoundPlans(t *testing.T) {
 	result, err := SimulateDiscount(user.Id, "gpt-4o", 0)
 	require.NoError(t, err)
 
-	// 与计费同一口径：试算说按 0.3 折，ResolveBillingDiscount 就乘 0.3。
-	assert.Equal(t, "0.300000", result.Resolution.Discount)
+	// 与计费同一口径：胜出方案命中模型级规则，按方案基础折扣 0.9 出价。
+	assert.Equal(t, "0.900000", result.Resolution.Discount)
 	billing := model.ResolveBillingDiscount(user.Id, "gpt-4o")
-	assert.InDelta(t, 0.3, billing.Ratio, 1e-9)
+	assert.InDelta(t, 0.9, billing.Ratio, 1e-9)
 	require.NotNil(t, result.Plan)
 	assert.Equal(t, winner.Id, result.Plan.Id)
 	assert.Equal(t, winner.Id, billing.PlanId)
@@ -66,7 +67,8 @@ func TestSimulateDiscountWithSeveralBoundPlans(t *testing.T) {
 		case winner.Id:
 			assert.True(t, candidate.Applied)
 			assert.False(t, candidate.Rejected)
-			assert.Equal(t, "0.300000", candidate.Discount)
+			// rule.Discount 已废弃：胜者命中规则按方案基础折扣（0.9）出价。
+			assert.Equal(t, "0.900000", candidate.Discount)
 			assert.Equal(t, model.DiscountSourceManual, candidate.Source)
 			assert.Equal(t, model.DiscountResolvedFromModel, candidate.Specificity)
 			applied++

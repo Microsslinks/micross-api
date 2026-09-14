@@ -14,6 +14,11 @@ import (
 
 // 折扣解析要一次读用户、方案、规则、模型目录、厂商五张表，这里给每个子测试一份干净的 SQLite。
 // 用的是全局 DB，所以子测试之间必须隔离，收尾要还原回去（与 discount_test.go 同一套做法）。
+//
+// 注：本测试套件里规则的 Discount 字段全部写成 0.900000（与方案基础折扣对齐）。
+// rule.Discount 已废弃——规则改为纯范围标记，命中时一律按 plan.BaseDiscount 出价。
+// 解析时不再读 rule.Discount，这里只是为了与「测试数据应该自洽」的旧约定保持一致，
+// 让代码里残留的旧值不会继续误导将来的读者。
 func setupResolveTest(t *testing.T) {
 	t.Helper()
 	previousDB, previousLogDB := DB, LOG_DB
@@ -92,13 +97,13 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.300000", Priority: 100, Status: DiscountStatusEnabled},
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Priority: 1, Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.900000", Priority: 100, Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Priority: 1, Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.800000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 		assert.Equal(t, DiscountResolvedFromModel, resolution.Source)
 		require.NotNil(t, resolution.Rule)
 		assert.Equal(t, "gpt-4o", resolution.Rule.ScopeValue)
@@ -110,12 +115,12 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.300000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.300000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 		assert.Equal(t, DiscountResolvedFromVendor, resolution.Source)
 		require.NotNil(t, resolution.Rule)
 		assert.Equal(t, "OpenAI", resolution.Rule.ScopeValue)
@@ -125,7 +130,7 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "Anthropic", Discount: "0.300000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "Anthropic", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "gpt-4o")
@@ -140,12 +145,12 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "Anthropic", "claude-3-5-sonnet")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.600000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "claude-3-5-sonnet")
 		require.NoError(t, err)
-		assert.Equal(t, "0.600000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 		assert.Equal(t, DiscountResolvedFromModel, resolution.Source)
 	})
 
@@ -154,13 +159,13 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "0.700000", Status: DiscountStatusEnabled},
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.650000", Priority: 9, Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Priority: 9, Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.650000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 	})
 
 	// priority 一样时取先创建的那条（id 更小），避免"同分时结果随机"。
@@ -168,20 +173,20 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "0.700000", Status: DiscountStatusEnabled},
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.650000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.700000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 	})
 
 	t.Run("停用的规则不参与解析", func(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		plan := bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.500000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 		// 规则得"先建后停"：直接插 Status=0 会被 GORM 的 default 标签掰回 1，
 		// 走 Update 才是运营实际经历的路径。
@@ -198,7 +203,7 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		plan := bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		plan.Status = DiscountStatusDisabled
@@ -229,7 +234,7 @@ func TestResolveUserDiscount(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.300000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeVendor, ScopeValue: "OpenAI", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		resolution, err := ResolveUserDiscount(user.Id, "not-in-catalog")

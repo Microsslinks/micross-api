@@ -13,6 +13,11 @@ import (
 
 // 多方案解析测试。环境与 discount_resolve_test.go 共用一套搭法
 // （setupResolveTest / seedResolveCustomer），这里只补「按指定来源建方案并绑定」的夹具。
+//
+// 注：本套测试里规则的 Discount 字段保持与方案基础折扣一致。
+// rule.Discount 已废弃——规则改为纯范围标记，命中时一律按 plan.BaseDiscount 出价。
+// 解析/裁决不再读 rule.Discount（详见 discount_resolve.go / discount_resolve.go 头部注释）；
+// 这里把测试数据里的 Discount 都对齐 plan.BaseDiscount，避免将来读者继续按"规则自带折扣"理解。
 
 // multiPlanSeq 兜底唯一性：Windows 时钟分辨率下连续建方案会撞出同一个纳秒时间戳，
 // 光靠 UnixNano 撞过 discount_plans 的 (owner, name) 唯一索引。
@@ -60,7 +65,7 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		bindResolvePlan(t, user.Id, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 
 		single, err := ResolveUserDiscount(user.Id, "gpt-4o")
@@ -71,7 +76,7 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		assert.Equal(t, single.Discount, multi.Discount)
 		assert.Equal(t, single.Source, multi.Source)
 		assert.Equal(t, single.PlanId, multi.PlanId)
-		assert.Equal(t, "0.800000", multi.Discount)
+		assert.Equal(t, "0.900000", multi.Discount)
 		assert.Equal(t, DiscountResolvedFromModel, multi.Source)
 	})
 
@@ -82,10 +87,10 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "Anthropic", "claude-3-5-sonnet")
 		platformPlan := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
 		agentPlan := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
 		codePlan := seedMultiPlan(t, "0.950000")
 		bindMultiPlan(t, user.Id, platformPlan, DiscountSourceManual)
@@ -94,7 +99,7 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 
 		resolution, candidates, err := ResolveUserDiscountDetailed(user.Id, "claude-3-5-sonnet")
 		require.NoError(t, err)
-		assert.Equal(t, "0.900000", resolution.Discount)
+		assert.Equal(t, "0.950000", resolution.Discount)
 		assert.Equal(t, DiscountResolvedFromModel, resolution.Source)
 		assert.Equal(t, agentPlan.Id, resolution.PlanId)
 		require.NotNil(t, resolution.Rule)
@@ -103,7 +108,7 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		// 平台方案对 GPT 有模型级规则，调 gpt-4o 时换它赢——各管一片模型。
 		resolution, _, err = ResolveUserDiscountDetailed(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.800000", resolution.Discount)
+		assert.Equal(t, "0.950000", resolution.Discount)
 		assert.Equal(t, platformPlan.Id, resolution.PlanId)
 
 		// 客户号方案只有基础折扣，两头都轮不到它。
@@ -121,17 +126,17 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		platformPlan := seedMultiPlan(t, "1.000000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.950000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "1.000000", Status: DiscountStatusEnabled},
 		)
 		agentPlan := seedMultiPlan(t, "1.000000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "0.850000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-*", Discount: "1.000000", Status: DiscountStatusEnabled},
 		)
 		bindMultiPlan(t, user.Id, platformPlan, DiscountSourceManual)
 		bindMultiPlan(t, user.Id, agentPlan, DiscountSourceAgent)
 
 		resolution, candidates, err := ResolveUserDiscountDetailed(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.950000", resolution.Discount)
+		assert.Equal(t, "1.000000", resolution.Discount)
 		assert.Equal(t, platformPlan.Id, resolution.PlanId)
 
 		for _, candidate := range candidates {
@@ -146,18 +151,18 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 	t.Run("同具体度同来源时取更便宜的那套", func(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
-		expensive := seedMultiPlan(t, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
+		expensive := seedMultiPlan(t, "0.950000",
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
-		cheap := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+		cheap := seedMultiPlan(t, "0.900000",
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 		bindMultiPlan(t, user.Id, expensive, DiscountSourceManual)
 		bindMultiPlan(t, user.Id, cheap, DiscountSourceManual)
 
 		resolution, candidates, err := ResolveUserDiscountDetailed(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.800000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 		assert.Equal(t, cheap.Id, resolution.PlanId)
 
 		for _, candidate := range candidates {
@@ -173,10 +178,10 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		older := seedMultiPlan(t, "0.900000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
-		newer := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+		newer := seedMultiPlan(t, "0.900000",
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.900000", Status: DiscountStatusEnabled},
 		)
 		olderBinding := bindMultiPlan(t, user.Id, older, DiscountSourceManual)
 		newerBinding := bindMultiPlan(t, user.Id, newer, DiscountSourceManual)
@@ -184,7 +189,7 @@ func TestResolveUserDiscountMulti(t *testing.T) {
 
 		resolution, _, err := ResolveUserDiscountDetailed(user.Id, "gpt-4o")
 		require.NoError(t, err)
-		assert.Equal(t, "0.800000", resolution.Discount)
+		assert.Equal(t, "0.900000", resolution.Discount)
 		assert.Equal(t, newer.Id, resolution.PlanId)
 	})
 
@@ -284,7 +289,7 @@ func TestResolveBillingDiscountMulti(t *testing.T) {
 		user := seedResolveCustomer(t, "Anthropic", "claude-3-5-sonnet")
 		platformPlan := seedMultiPlan(t, "0.950000")
 		agentPlan := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
 		bindMultiPlan(t, user.Id, platformPlan, DiscountSourceManual)
 		bindMultiPlan(t, user.Id, agentPlan, DiscountSourceAgent)
@@ -292,7 +297,7 @@ func TestResolveBillingDiscountMulti(t *testing.T) {
 		discount := ResolveBillingDiscount(user.Id, "claude-3-5-sonnet")
 
 		assert.True(t, discount.Applied())
-		assert.InDelta(t, 0.9, discount.Ratio, 1e-9)
+		assert.InDelta(t, 0.95, discount.Ratio, 1e-9)
 		assert.Equal(t, DiscountResolvedFromModel, discount.Source)
 		assert.Equal(t, agentPlan.Id, discount.PlanId)
 	})
@@ -312,12 +317,12 @@ func TestFixDiscountRuleUniqueIndex(t *testing.T) {
 	planA := seedMultiPlan(t, "1.000000")
 	require.NoError(t, (&DiscountRule{
 		PlanId: planA.Id, ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o",
-		Discount: "0.950000", Status: DiscountStatusEnabled,
+		Discount: "1.000000", Status: DiscountStatusEnabled,
 	}).Insert())
 	planB := seedMultiPlan(t, "1.000000")
 	require.Error(t, (&DiscountRule{
 		PlanId: planB.Id, ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o",
-		Discount: "0.900000", Status: DiscountStatusEnabled,
+		Discount: "1.000000", Status: DiscountStatusEnabled,
 	}).Insert(), "换索引前同名规则应该撞全表唯一约束")
 
 	// 跑启动迁移里的修正：索引换成带 plan_id 的新定义。
@@ -329,11 +334,11 @@ func TestFixDiscountRuleUniqueIndex(t *testing.T) {
 	// 换完后第二个方案的同名规则能写进去，方案内重复仍然被拦。
 	require.NoError(t, (&DiscountRule{
 		PlanId: planB.Id, ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o",
-		Discount: "0.900000", Status: DiscountStatusEnabled,
+		Discount: "1.000000", Status: DiscountStatusEnabled,
 	}).Insert())
 	require.Error(t, (&DiscountRule{
 		PlanId: planB.Id, ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o",
-		Discount: "0.850000", Status: DiscountStatusEnabled,
+		Discount: "1.000000", Status: DiscountStatusEnabled,
 	}).Insert(), "同一方案内的重复规则仍然要被拦")
 
 	// 修正过的索引再跑一次应该是幂等的（不重建、不报错）。
@@ -347,10 +352,10 @@ func TestResolveUserDiscountDetailedForModels(t *testing.T) {
 		setupResolveTest(t)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
 		platformPlan := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
 		agentPlan := seedMultiPlan(t, "0.950000",
-			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.900000", Status: DiscountStatusEnabled},
+			&DiscountRule{ScopeType: DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.950000", Status: DiscountStatusEnabled},
 		)
 		bindMultiPlan(t, user.Id, platformPlan, DiscountSourceManual)
 		bindMultiPlan(t, user.Id, agentPlan, DiscountSourceAgent)
@@ -407,4 +412,3 @@ func TestResolveUserDiscountDetailedForModels(t *testing.T) {
 		assert.Empty(t, candidates)
 	})
 }
-

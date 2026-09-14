@@ -15,8 +15,6 @@ import (
 
 // 保存前提示的原因码。全部是提示，不是否决——运营看到「这单会亏」后确认，仍然可以保存。
 const (
-	// DiscountViolationBelowMinDiscount 规则折扣低于方案最低折扣。
-	DiscountViolationBelowMinDiscount = "below_min_discount"
 	// DiscountViolationMinAboveBase 方案最低折扣高于基础折扣（写入口已拦，这里复核）。
 	DiscountViolationMinAboveBase = "min_above_base"
 	// DiscountViolationCostBreach 规则范围内最便宜的进货价都高于毛利底线，这一档会亏。
@@ -59,6 +57,9 @@ type DiscountValidateResult struct {
 // 都是真实业务，系统只负责先把话说清楚（01-simulate-api.md §5.2）。
 // userId 大于 0 时按该客户的分组挑可用线路，否则按 default 分组；
 // channelId 大于 0 时只看这一条线路，用于「改完这条线路的进货价，先验一验」。
+//
+// 注意：规则（rule.Discount）已废弃，本函数按方案基础折扣（plan.BaseDiscount）出价；
+// 仍按规则遍历是因为不同规则覆盖的模型对应不同进货价，毛利判断要按范围分做。
 func ValidateDiscountPlan(planId int, userId int, channelId int) (*DiscountValidateResult, error) {
 	plan, err := model.GetDiscountPlanById(planId)
 	if err != nil {
@@ -120,28 +121,15 @@ func ValidateDiscountPlan(planId int, userId int, channelId int) (*DiscountValid
 	}
 
 	channelUsed := false
+	// rule.Discount 已废弃——规则改为纯范围标记，命中时按方案基础折扣（plan.BaseDiscount）出价。
+	// 校验也不再读 rule.Discount：方案基础折扣若低于最低折扣，写入时已被 ValidateDiscountFloor 拦下。
+	// 这里只针对「每条规则的覆盖范围」判断可买性与毛利底线，不同规则的覆盖范围仍可能顶到不同
+	// 的进货价，所以仍是按规则遍历，只是每条规则都套用同一个 plan.BaseDiscount。
 	for _, rule := range rules {
 		if rule.Status != model.DiscountStatusEnabled {
 			continue
 		}
 		scopeValue := strings.TrimSpace(rule.ScopeValue)
-		discount, err := decimal.NewFromString(strings.TrimSpace(rule.Discount))
-		if err != nil {
-			result.Warnings = append(result.Warnings,
-				fmt.Sprintf("规则「%s」的折扣无法解析，已跳过这条规则", scopeValue))
-			continue
-		}
-
-		if discount.LessThan(minDiscount) {
-			result.Violations = append(result.Violations, &DiscountValidateViolation{
-				ScopeType:         rule.ScopeType,
-				ScopeValue:        scopeValue,
-				Discount:          discount.StringFixed(6),
-				Reason:            DiscountViolationBelowMinDiscount,
-				Detail:            fmt.Sprintf("低于方案最低折扣 %s", minDiscount.StringFixed(6)),
-				AvailableChannels: []string{},
-			})
-		}
 
 		// 成本层：规则作用范围内最便宜的那条线路都顶不住，这一档就是会亏。
 		// 取「最低进货折扣」与「至少有一条线路满足 cost_ratio ≤ 折扣 − 底线」是同一件事。
@@ -153,7 +141,7 @@ func ValidateDiscountPlan(planId int, userId int, channelId int) (*DiscountValid
 			result.Violations = append(result.Violations, &DiscountValidateViolation{
 				ScopeType:         rule.ScopeType,
 				ScopeValue:        scopeValue,
-				Discount:          discount.StringFixed(6),
+				Discount:          baseDiscount.StringFixed(6),
 				Reason:            DiscountViolationNoChannel,
 				Detail:            "模型目录里没有这条规则覆盖的模型，这条规则打不到任何真实模型",
 				AvailableChannels: []string{},
@@ -202,7 +190,7 @@ func ValidateDiscountPlan(planId int, userId int, channelId int) (*DiscountValid
 			result.Violations = append(result.Violations, &DiscountValidateViolation{
 				ScopeType:         rule.ScopeType,
 				ScopeValue:        scopeValue,
-				Discount:          discount.StringFixed(6),
+				Discount:          baseDiscount.StringFixed(6),
 				Reason:            DiscountViolationNoChannel,
 				Detail:            "这条规则覆盖的模型在当前分组下没有可用线路",
 				AvailableChannels: []string{},
@@ -216,12 +204,12 @@ func ValidateDiscountPlan(planId int, userId int, channelId int) (*DiscountValid
 			continue
 		}
 
-		floor := discount.Sub(minMargin)
+		floor := baseDiscount.Sub(minMargin)
 		if lowestCost.GreaterThan(floor) {
 			result.Violations = append(result.Violations, &DiscountValidateViolation{
 				ScopeType:  rule.ScopeType,
 				ScopeValue: scopeValue,
-				Discount:   discount.StringFixed(6),
+				Discount:   baseDiscount.StringFixed(6),
 				Reason:     DiscountViolationCostBreach,
 				Detail: fmt.Sprintf("最低可用进货折扣 %s，高于毛利底线 %s",
 					lowestCost.StringFixed(6), floor.StringFixed(6)),

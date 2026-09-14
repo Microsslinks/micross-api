@@ -43,6 +43,10 @@ func ResolveUserDiscount(userId int, modelName string) (*DiscountResolution, err
 
 // resolvePlanDiscount 只看折扣方案这一层，是 ResolveUserDiscount 的前半段。
 // 优先级：模型级规则 → 厂商级规则 → 方案基础折扣 → 官方标价（1.0）。
+//
+// 命中规则时按方案基础折扣（plan.BaseDiscount）出价，rule.Discount 已废弃：
+// 规则改为纯范围标记后，同方案内所有规则的折扣数完全相同，差异只在覆盖范围。
+// 要让某批模型不同价请开新方案。
 func resolvePlanDiscount(userId int, modelName string) (*DiscountResolution, error) {
 	resolution := &DiscountResolution{
 		Discount: DiscountNone,
@@ -89,15 +93,17 @@ func resolvePlanDiscount(userId int, modelName string) (*DiscountResolution, err
 		return nil, err
 	}
 
-	// 第 4 步：模型级规则。
+	// 第 4 步：模型级规则。命中时按方案基础折扣出价——rule.Discount 已废弃，
+	// 规则改为纯范围标记，同方案内所有规则共享 plan.BaseDiscount。
 	if rule := pickDiscountRule(rules, DiscountScopeModel, modelName); rule != nil {
 		resolution.Source = DiscountResolvedFromModel
 		resolution.Rule = rule
-		resolution.Discount = formatResolvedDiscount(rule.Discount)
+		resolution.Discount = formatResolvedDiscount(plan.BaseDiscount)
 		return resolution, nil
 	}
 
 	// 第 5 步：厂商级规则。厂商名顺着 模型名 → 模型目录 → 厂商 取。
+	// 同上，命中时也按方案基础折扣出价。
 	vendorName, err := resolveVendorName(modelName)
 	if err != nil {
 		return nil, err
@@ -105,7 +111,7 @@ func resolvePlanDiscount(userId int, modelName string) (*DiscountResolution, err
 	if rule := pickDiscountRule(rules, DiscountScopeVendor, vendorName); rule != nil {
 		resolution.Source = DiscountResolvedFromVendor
 		resolution.Rule = rule
-		resolution.Discount = formatResolvedDiscount(rule.Discount)
+		resolution.Discount = formatResolvedDiscount(plan.BaseDiscount)
 		return resolution, nil
 	}
 

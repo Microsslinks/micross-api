@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// 注：本套测试里规则的 Discount 字段不再决定校验结果——rule.Discount 已废弃，
+// 命中时按 plan.BaseDiscount 出价，校验也按 plan.BaseDiscount 与进货折扣比较毛利底线。
+// 测试数据里的 Discount 字段保留下来只是为了让结构体可正常 Insert，写什么值都无所谓，
+// 真正算账的是 plan.BaseDiscount。所以下面「该报击穿」的用例会用「进货价 > 方案基础折扣」来构造，
+// 而不是「进货价 > 规则折扣」。
+
 // seedValidatePlan 建一个方案（可指定最低折扣）加它的规则。
 // 校验是方案级的，不需要绑定客户，所以这里不建绑定。
 func seedValidatePlan(t *testing.T, baseDiscount string, minDiscount string, rules ...*model.DiscountRule) *model.DiscountPlan {
@@ -41,30 +47,11 @@ func findValidateViolation(result *DiscountValidateResult, reason string) *Disco
 	return nil
 }
 
-// 验收口径 4：规则折扣低于方案最低折扣 → 报 below_min_discount，并指出是该条规则。
-func TestValidateDiscountBelowMinDiscount(t *testing.T) {
-	setupDiscountSimulateTest(t)
-	seedSimulateCustomer(t, "OpenAI", "gpt-4o")
-	// 进货 0.15 低于折扣 0.2，成本层没意见，这样这条用例只暴露折扣层的问题。
-	seedSimulateChannel(t, "便宜线路", costRatioPtr("0.15"), []string{"default"}, "gpt-4o")
-	plan := seedValidatePlan(t, "0.900000", "0.500000",
-		&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.200000", Status: model.DiscountStatusEnabled},
-	)
-
-	result, err := ValidateDiscountPlan(plan.Id, 0, 0)
-	require.NoError(t, err)
-
-	assert.False(t, result.Passed)
-	require.Len(t, result.Violations, 1)
-	violation := result.Violations[0]
-	assert.Equal(t, model.DiscountScopeModel, violation.ScopeType)
-	assert.Equal(t, "gpt-4o", violation.ScopeValue, "要指出是哪条规则")
-	assert.Equal(t, "0.200000", violation.Discount)
-	assert.Equal(t, DiscountViolationBelowMinDiscount, violation.Reason)
-	assert.Contains(t, violation.Detail, "0.500000")
-	assert.Empty(t, violation.AvailableChannels)
-}
-
+// 「规则折扣低于方案最低折扣」这条校验口径已随 rule.Discount 一起废弃——
+// 规则改为纯范围标记，命中时一律按 plan.BaseDiscount 出价；最低折扣（plan.MinDiscount）
+// 只能与基础折扣比较（由 ValidateDiscountFloor 在写入口把关），校验阶段不再逐条规则比一遍。
+// 保留这段注释便于以后回看 spec 演化。
+//
 // 方案最低折扣高于基础折扣：写入口已经拦过，这里是复核，出一个方案级的提示。
 func TestValidateDiscountMinAboveBase(t *testing.T) {
 	setupDiscountSimulateTest(t)
@@ -83,11 +70,13 @@ func TestValidateDiscountMinAboveBase(t *testing.T) {
 	assert.Contains(t, violation.Detail, "0.300000")
 }
 
-// 验收口径 7：规则折扣低于进货成本 → 报 cost_breach 并把最低进货折扣与毛利底线都摆出来。
+// 验收口径 7：方案基础折扣低于进货成本 → 报 cost_breach 并把最低进货折扣与毛利底线都摆出来。
+// rule.Discount 已废弃，校验按 plan.BaseDiscount 与进货折扣比较。
 func TestValidateDiscountCostBreach(t *testing.T) {
 	setupDiscountSimulateTest(t)
 	seedSimulateCustomer(t, "OpenAI", "gpt-4o")
-	seedSimulateChannel(t, "偏贵线路", costRatioPtr("0.32"), []string{"default"}, "gpt-4o")
+	// 进货 0.95 高于方案基础折扣 0.9，会击穿毛利底线（min_margin=0）。
+	seedSimulateChannel(t, "偏贵线路", costRatioPtr("0.950000"), []string{"default"}, "gpt-4o")
 	plan := seedValidatePlan(t, "0.900000", "0",
 		&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.300000", Status: model.DiscountStatusEnabled},
 	)
@@ -100,10 +89,11 @@ func TestValidateDiscountCostBreach(t *testing.T) {
 	violation := result.Violations[0]
 	assert.Equal(t, model.DiscountScopeModel, violation.ScopeType)
 	assert.Equal(t, "gpt-4o", violation.ScopeValue)
-	assert.Equal(t, "0.300000", violation.Discount)
+	// violation.Discount 现在是方案基础折扣，不再是规则折扣。
+	assert.Equal(t, "0.900000", violation.Discount)
 	assert.Equal(t, DiscountViolationCostBreach, violation.Reason)
-	assert.Contains(t, violation.Detail, "0.320000", "要让运营看到最低进货折扣")
-	assert.Contains(t, violation.Detail, "0.300000", "也要看到他按什么底线判的")
+	assert.Contains(t, violation.Detail, "0.950000", "要让运营看到最低进货折扣")
+	assert.Contains(t, violation.Detail, "0.900000", "也要看到他按什么底线判的")
 	assert.Equal(t, []string{"偏贵线路"}, violation.AvailableChannels)
 }
 
@@ -123,7 +113,7 @@ func TestValidateDiscountPassesWhenCheapestLineCoversCost(t *testing.T) {
 	result, err := ValidateDiscountPlan(plan.Id, 0, 0)
 	require.NoError(t, err)
 
-	assert.True(t, result.Passed, "0.27 ≤ 0.30，至少有一条线路顶得住")
+	assert.True(t, result.Passed, "0.27 ≤ 0.90，至少有一条线路顶得住")
 	assert.Empty(t, result.Violations)
 	assert.Empty(t, result.Warnings)
 	assert.Equal(t, "0.000000", result.MinMarginRatio)
@@ -192,8 +182,9 @@ func TestValidateDiscountWithWildcardScope(t *testing.T) {
 		var vendor model.Vendor
 		require.NoError(t, model.DB.Where("name = ?", "Anthropic").First(&vendor).Error)
 		require.NoError(t, model.DB.Create(&model.Model{ModelName: "claude-3-opus", VendorID: vendor.Id, Status: 1}).Error)
-		seedSimulateChannel(t, "Anthropic 偏贵线路", costRatioPtr("0.45"), []string{"default"}, "claude-3-5-sonnet")
-		seedSimulateChannel(t, "Anthropic 更贵线路", costRatioPtr("0.32"), []string{"default"}, "claude-3-opus")
+		// 两条线路的进货折扣都高于方案基础折扣 0.9，必然击穿毛利底线（min_margin=0）。
+		seedSimulateChannel(t, "Anthropic 偏贵线路", costRatioPtr("0.950000"), []string{"default"}, "claude-3-5-sonnet")
+		seedSimulateChannel(t, "Anthropic 更贵线路", costRatioPtr("0.970000"), []string{"default"}, "claude-3-opus")
 		plan := seedValidatePlan(t, "0.900000", "0",
 			&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "claude-*", Discount: "0.300000", Status: model.DiscountStatusEnabled},
 		)
@@ -205,7 +196,7 @@ func TestValidateDiscountWithWildcardScope(t *testing.T) {
 		violation := findValidateViolation(result, DiscountViolationCostBreach)
 		require.NotNil(t, violation)
 		assert.Equal(t, "claude-*", violation.ScopeValue)
-		assert.Contains(t, violation.Detail, "0.320000")
+		assert.Contains(t, violation.Detail, "0.950000", "要让运营看到最低进货折扣")
 		assert.Equal(t, []string{"Anthropic 偏贵线路", "Anthropic 更贵线路"}, violation.AvailableChannels)
 	})
 }
@@ -233,7 +224,8 @@ func TestValidateDiscountForSpecifiedChannel(t *testing.T) {
 	setupDiscountSimulateTest(t)
 	seedSimulateCustomer(t, "OpenAI", "gpt-4o")
 	seedSimulateChannel(t, "便宜线路", costRatioPtr("0.27"), []string{"default"}, "gpt-4o")
-	pricey := seedSimulateChannel(t, "偏贵线路", costRatioPtr("0.40"), []string{"default"}, "gpt-4o")
+	// 偏贵线路的进货折扣高于方案基础折扣 0.9；onlyPricey 这条用例依赖这个差额。
+	pricey := seedSimulateChannel(t, "偏贵线路", costRatioPtr("0.950000"), []string{"default"}, "gpt-4o")
 	otherModelChannel := seedSimulateChannel(t, "别的模型的线路", costRatioPtr("0.50"), []string{"default"}, "gpt-4o-mini")
 	plan := seedValidatePlan(t, "0.900000", "0",
 		&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.300000", Status: model.DiscountStatusEnabled},
@@ -241,7 +233,7 @@ func TestValidateDiscountForSpecifiedChannel(t *testing.T) {
 
 	all, err := ValidateDiscountPlan(plan.Id, 0, 0)
 	require.NoError(t, err)
-	assert.True(t, all.Passed, "看全部线路时最低进货 0.27 ≤ 0.30")
+	assert.True(t, all.Passed, "看全部线路时最低进货 0.27 ≤ 0.90")
 
 	onlyPricey, err := ValidateDiscountPlan(plan.Id, 0, pricey.Id)
 	require.NoError(t, err)
@@ -296,7 +288,8 @@ func TestValidateDiscountUsesCustomerGroup(t *testing.T) {
 	user := seedSimulateCustomer(t, "OpenAI", "gpt-4o")
 	require.NoError(t, model.DB.Model(&model.User{}).Where("id = ?", user.Id).
 		Updates(map[string]interface{}{"group": "vip"}).Error)
-	seedSimulateChannel(t, "只给 VIP 的线路", costRatioPtr("0.32"), []string{"vip"}, "gpt-4o")
+	// VIP 线路进货折扣高于方案基础折扣 0.9：会击穿毛利底线。
+	seedSimulateChannel(t, "只给 VIP 的线路", costRatioPtr("0.950000"), []string{"vip"}, "gpt-4o")
 	plan := seedValidatePlan(t, "0.900000", "0",
 		&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.300000", Status: model.DiscountStatusEnabled},
 	)
@@ -310,6 +303,6 @@ func TestValidateDiscountUsesCustomerGroup(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, withUser.Passed)
 	violation := findValidateViolation(withUser, DiscountViolationCostBreach)
-	require.NotNil(t, violation, "vip 分组下这条线路 0.32 > 0.30，会亏")
+	require.NotNil(t, violation, "vip 分组下这条线路 0.95 > 0.9，会亏")
 	assert.Equal(t, []string{"只给 VIP 的线路"}, violation.AvailableChannels)
 }

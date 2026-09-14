@@ -25,12 +25,10 @@ import {
   type DiscountRule,
   type DiscountRulePayload,
 } from '../types'
-import { normalizeRatioInput, ratioTextToInput } from './ratio'
 
 export type DiscountRuleFormValues = {
   scope_type: string
   scope_value: string
-  discount: string
   priority: number
   status: number
 }
@@ -40,7 +38,6 @@ export const DISCOUNT_RULE_SCOPE_VALUE_MAX_LENGTH = 128
 export const DISCOUNT_RULE_FORM_DEFAULT_VALUES: DiscountRuleFormValues = {
   scope_type: DISCOUNT_SCOPE.MODEL,
   scope_value: '',
-  discount: '',
   priority: 0,
   status: DISCOUNT_PLAN_STATUS.ENABLED,
 }
@@ -56,12 +53,8 @@ export function getDiscountRuleFormSchema(t: TFunction) {
         DISCOUNT_RULE_SCOPE_VALUE_MAX_LENGTH,
         t('Scope value must be at most 128 characters')
       ),
-    discount: z
-      .string()
-      .refine(
-        normalizeRatioInputCheck,
-        t('Discount must be a number greater than 0 and at most 1')
-      ),
+    // rule.Discount 字段已废弃：规则改为纯范围标记，命中时按方案基础折扣出价。
+    // 表单不再接收折扣输入，命中率仍然由 priority 决定。
     priority: z
       .number()
       .int()
@@ -73,17 +66,12 @@ export function getDiscountRuleFormSchema(t: TFunction) {
   })
 }
 
-function normalizeRatioInputCheck(raw: string): boolean {
-  return normalizeRatioInput(raw) !== null
-}
-
 export function buildDiscountRulePayload(
   values: DiscountRuleFormValues
 ): DiscountRulePayload {
   return {
     scope_type: values.scope_type,
     scope_value: values.scope_value.trim(),
-    discount: normalizeRatioInput(values.discount) ?? '',
     priority: values.priority,
     status: values.status,
   }
@@ -95,7 +83,6 @@ export function transformDiscountRuleToFormDefaults(
   return {
     scope_type: rule.scope_type || DISCOUNT_SCOPE.MODEL,
     scope_value: rule.scope_value ?? '',
-    discount: ratioTextToInput(rule.discount),
     priority: rule.priority ?? 0,
     status: rule.status,
   }

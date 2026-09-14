@@ -149,6 +149,9 @@ afterEach(() => {
 
 describe('discount plan drawer', () => {
   test('shows the loss before saving and only saves on a second click', async () => {
+    // 「规则折扣低于方案最低折扣」已随 rule.Discount 一起废弃——
+    // 校验不再逐条规则比一遍，只剩 cost_breach / no_channel / min_above_base 三档。
+    // 这里用 cost_breach 演示「先看到亏损提示，确认后再保存」的二次确认流程。
     validatePayload = validateResult({
       passed: false,
       violations: [
@@ -156,8 +159,8 @@ describe('discount plan drawer', () => {
           scope_type: 'model',
           scope_value: 'gpt-4o',
           discount: '0.900000',
-          reason: 'below_min_discount',
-          detail: '规则折扣 0.900000 高于方案最低折扣 0.500000',
+          reason: 'cost_breach',
+          detail: '最低可用进货折扣 0.950000，高于毛利底线 0.900000',
           available_channels: ['primary'],
         },
       ],
@@ -174,10 +177,10 @@ describe('discount plan drawer', () => {
     expect(validateCalls).toBe(1)
     expect(updateCalls).toBe(0)
     expect(
-      screen.getByText('Discount is below the plan minimum')
+      screen.getByText('Cost exceeds the profit floor')
     ).toBeInTheDocument()
     expect(
-      screen.getByText('规则折扣 0.900000 高于方案最低折扣 0.500000')
+      screen.getByText('最低可用进货折扣 0.950000，高于毛利底线 0.900000')
     ).toBeInTheDocument()
     expect(screen.getByText('Save anyway')).toBeInTheDocument()
 

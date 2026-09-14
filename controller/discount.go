@@ -291,9 +291,12 @@ func DeleteDiscountPlan(c *gin.Context) {
 type discountRuleRequest struct {
 	ScopeType  *string `json:"scope_type"`
 	ScopeValue *string `json:"scope_value"`
-	Discount   *string `json:"discount"`
-	Priority   *int    `json:"priority"`
-	Status     *int    `json:"status"`
+	// Discount 字段已废弃——规则改为纯范围标记，命中时按方案基础折扣（plan.BaseDiscount）出价。
+	// 保留 JSON 字段是为了不破坏老客户端：仍会被解析进来，但 applyDiscountRuleRequest 不再写入、
+	// 不再校验，存库时也不会被任何路径覆盖。前端表单已停止发送该字段。
+	Discount *string `json:"discount"`
+	Priority *int    `json:"priority"`
+	Status   *int    `json:"status"`
 }
 
 func applyDiscountRuleRequest(rule *model.DiscountRule, req *discountRuleRequest) error {
@@ -323,18 +326,9 @@ func applyDiscountRuleRequest(rule *model.DiscountRule, req *discountRuleRequest
 	if rule.Status != model.DiscountStatusEnabled && rule.Status != model.DiscountStatusDisabled {
 		return errors.New("状态只能是 0（停用）或 1（启用）")
 	}
-	discount := rule.Discount
-	if req.Discount != nil {
-		discount = *req.Discount
-	}
-	if strings.TrimSpace(discount) == "" {
-		return errors.New("折扣不能为空")
-	}
-	normalized, err := model.NormalizeDiscount(discount)
-	if err != nil {
-		return err
-	}
-	rule.Discount = normalized
+	// discount 字段已废弃：以前在这里 normalize + 写入；现在规则不再携带折扣，
+	// 命中时按 plan.BaseDiscount 出价（见 discount_resolve.go / discount_multi_resolve.go）。
+	// rule.Discount 仍保留 DB 列（model.DiscountRule 注释里有写），但本函数不再写它。
 	return nil
 }
 

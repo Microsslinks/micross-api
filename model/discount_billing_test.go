@@ -87,7 +87,7 @@ func TestResolveBillingDiscount(t *testing.T) {
 		assert.Equal(t, plan.Id, discount.PlanId)
 	})
 
-	t.Run("命中模型级规则：用规则折扣", func(t *testing.T) {
+	t.Run("命中模型级规则：按方案基础折扣（rule.Discount 已废弃）", func(t *testing.T) {
 		setupResolveTest(t)
 		setBillingDiscountSwitch(t, true)
 		user := seedResolveCustomer(t, "OpenAI", "gpt-4o")
@@ -100,7 +100,9 @@ func TestResolveBillingDiscount(t *testing.T) {
 
 		discount := ResolveBillingDiscount(user.Id, "gpt-4o")
 
-		assert.InDelta(t, 0.7, discount.Ratio, 1e-9)
+		// rule.Discount 已废弃：命中规则时按方案基础折扣出价（plan.BaseDiscount = 0.9）。
+		// rule.Discount 字段保留在这里仅为让结构体可正常 Insert，写什么值都不影响计费。
+		assert.InDelta(t, 0.9, discount.Ratio, 1e-9)
 		assert.True(t, discount.Applied())
 		assert.Equal(t, DiscountResolvedFromModel, discount.Source)
 		assert.Equal(t, plan.Id, discount.PlanId)

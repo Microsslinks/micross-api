@@ -76,9 +76,11 @@ export const DISCOUNT_BINDING_SOURCE = {
 /**
  * 保存前检查里后端给的原因码；对应 `service.DiscountViolationReason*`。
  * 界面上认识的翻译成中文，没见过的原样显示。
+ *
+ * 注：「规则折扣低于方案最低折扣」(below_min_discount) 已随 rule.Discount 一起废弃——
+ * 规则改为纯范围标记后，最低折扣只与基础折扣比较（写入口把关），不再逐条规则比一遍。
  */
 export const DISCOUNT_VIOLATION_REASON = {
-  BELOW_MIN_DISCOUNT: 'below_min_discount',
   MIN_ABOVE_BASE: 'min_above_base',
   COST_BREACH: 'cost_breach',
   NO_CHANNEL: 'no_channel',
@@ -115,6 +117,10 @@ export interface DiscountSimulateRule {
   id: number
   scope_type: string
   scope_value: string
+  /**
+   * 命中规则按方案基础折扣出价：此字段现在等同于 resolution.discount / entry.base_discount。
+   * 留作展示参考；与 rule.Discount（后端已废弃）的概念已不再对应。
+   */
   discount: string
   priority: number
 }
@@ -269,7 +275,11 @@ export interface AuditCustomerPricingParams {
 // Customer price check (mirrors service.CustomerPriceQueryResult)
 // ============================================================================
 
-/** 价目本里的一条规则：这套价对哪个模型／厂商改价。 */
+/**
+ * 价目本里的一条规则：这套价对哪个模型／厂商改价。
+ * rule.Discount 已废弃：本字段现在等同于 entry.base_discount（同方案内全部规则同值）。
+ * 留作展示参考；做 UI 时建议改读 entry.base_discount，避免按"规则自带折扣"理解。
+ */
 export interface CustomerPriceBookRule {
   scope_type: string
   scope_value: string
@@ -418,7 +428,7 @@ export interface DiscountPlanPayload {
 export interface DiscountRulePayload {
   scope_type: string
   scope_value: string
-  discount: string
+  /** 规则已改为纯范围标记，命中时按方案基础折扣出价。表单不再接收折扣输入。 */
   priority: number
   status: number
 }

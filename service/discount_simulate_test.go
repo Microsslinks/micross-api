@@ -152,6 +152,9 @@ func costRatioPtr(value string) *string {
 }
 
 // 验收口径 1、5：命中模型级规则的客户 + 线路录了进货价 → 折扣、毛利、是否达标三者一起给对。
+// rule.Discount 已废弃：命中规则时按方案基础折扣（plan.BaseDiscount）出价。
+// 这条用例特意把 plan.BaseDiscount 设成 0.9，让命中后客户付费按 0.9 算——
+// 验证「规则命中不影响价格，只影响范围」这件事能在试算里走通。
 func TestSimulateDiscountWithKnownCost(t *testing.T) {
 	setupDiscountSimulateTest(t)
 	user := seedSimulateCustomer(t, "OpenAI", "gpt-4o")
@@ -163,7 +166,7 @@ func TestSimulateDiscountWithKnownCost(t *testing.T) {
 	result, err := SimulateDiscount(user.Id, "gpt-4o", 0)
 	require.NoError(t, err)
 
-	assert.Equal(t, "0.300000", result.Resolution.Discount)
+	assert.Equal(t, "0.900000", result.Resolution.Discount, "rule.Discount 已废弃：命中规则时按方案基础折扣出价")
 	assert.Equal(t, model.DiscountResolvedFromModel, result.Resolution.Source)
 	require.NotNil(t, result.Resolution.MatchedRule)
 	assert.Equal(t, "gpt-4o", result.Resolution.MatchedRule.ScopeValue)
@@ -181,9 +184,9 @@ func TestSimulateDiscountWithKnownCost(t *testing.T) {
 	require.NotNil(t, calculated.CostRatio)
 	assert.Equal(t, "0.270000", *calculated.CostRatio)
 	require.NotNil(t, calculated.GrossMargin)
-	assert.Equal(t, "0.111111", *calculated.GrossMargin, "客户 0.30 / 进货 0.27 − 1")
+	assert.Equal(t, "2.333333", *calculated.GrossMargin, "客户 0.90 / 进货 0.27 − 1")
 	require.NotNil(t, calculated.PassesFloor)
-	assert.True(t, *calculated.PassesFloor, "0.27 <= 0.30 − 0")
+	assert.True(t, *calculated.PassesFloor, "0.27 <= 0.90 − 0")
 }
 
 // 验收口径 6：线路没录进货折扣 → 三个值字段都是 null、cost_known 为 false、接口不报错且指明是哪条线路。

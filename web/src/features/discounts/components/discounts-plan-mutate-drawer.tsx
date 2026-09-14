@@ -341,7 +341,7 @@ export function DiscountsPlanMutateDrawer({
             <SideDrawerSectionHeader
               title={t('Discounts')}
               description={t(
-                'Discounts are ratios between 0 and 1: 0.3 means the customer pays 30% of the official price.'
+                'Discounts are ratios between 0 and 1: 0.3 means the customer pays 30% of the official price. Rules set which models receive the base discount.'
               )}
             />
 
@@ -360,7 +360,9 @@ export function DiscountsPlanMutateDrawer({
                 </p>
               )}
               <p className='text-muted-foreground text-xs'>
-                {t('Used when no rule matches the model.')}
+                {t(
+                  'The discount applied to every model covered by a rule. Add rules in the next step to scope which models receive this price.'
+                )}
               </p>
             </div>
 

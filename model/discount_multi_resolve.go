@@ -205,6 +205,10 @@ func loadDiscountMultiContext(userId int) (*discountMultiContext, error) {
 // 逐条解析的优先级与单方案解析（resolvePlanDiscount 第 4-6 步）完全一致：
 // 模型级规则 → 厂商级规则 → 基础折扣。vendorName 为空串时跳过厂商级匹配
 // （查不到厂商与没有厂商级规则，效果一样都是跳过）。
+//
+// 命中规则时按方案基础折扣（plan.BaseDiscount）出价，rule.Discount 已废弃：
+// 规则改为纯范围标记后，同方案内所有规则的折扣数完全相同，差异只在覆盖范围。
+// 要让某批模型不同价请开新方案。
 func (ctx *discountMultiContext) resolveModel(modelName string, vendorName string) (*DiscountResolution, []*DiscountCandidate) {
 	resolution := &DiscountResolution{
 		Discount: DiscountNone,
@@ -236,13 +240,13 @@ func (ctx *discountMultiContext) resolveModel(modelName string, vendorName strin
 		if rule := pickDiscountRule(rules, DiscountScopeModel, modelName); rule != nil {
 			candidate.Specificity = DiscountResolvedFromModel
 			candidate.Rule = rule
-			candidate.Discount = formatResolvedDiscount(rule.Discount)
+			candidate.Discount = formatResolvedDiscount(plan.BaseDiscount)
 			continue
 		}
 		if rule := pickDiscountRule(rules, DiscountScopeVendor, vendorName); rule != nil {
 			candidate.Specificity = DiscountResolvedFromVendor
 			candidate.Rule = rule
-			candidate.Discount = formatResolvedDiscount(rule.Discount)
+			candidate.Discount = formatResolvedDiscount(plan.BaseDiscount)
 			continue
 		}
 		candidate.Specificity = DiscountResolvedFromPlanBase
