@@ -33,7 +33,6 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { SettingsPageFormActions } from '../components/settings-page-context'
-import { SettingsSection } from '../components/settings-section'
 
 import { ClaudeSettingsCard, type ClaudeTabHandle } from './claude-settings-card'
 import {
@@ -134,7 +133,7 @@ export function ModelsConfigTabs({ defaults }: ModelsConfigTabsProps) {
   }
 
   return (
-    <SettingsSection title={t('Model Configuration')} showHeader>
+    <>
       <Tabs value={activeTab} onValueChange={handleTabRequest}>
         <div className='flex flex-wrap items-center justify-between gap-3 border-b pb-2'>
           <TabsList variant='line'>
@@ -200,6 +199,6 @@ export function ModelsConfigTabs({ defaults }: ModelsConfigTabsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SettingsSection>
+    </>
   )
 }
