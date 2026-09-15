@@ -112,6 +112,9 @@ export function Wallet(props: WalletProps) {
 
   // 管理员才在快捷充值区域装配「添加充值金额 / 折扣管理」入口
   const isAdminUser = !!user && (user.role ?? 0) >= ROLE.ADMIN
+  // 签到奖励卡的读写走 /api/option/（RootAuth），门槛需提至超管，
+  // 否则普管打开钱包页会触发 403 toast 后再消失。
+  const isSuperAdminUser = !!user && (user.role ?? 0) >= ROLE.SUPER_ADMIN
 
   const {
     amount: paymentAmount,
@@ -344,7 +347,7 @@ export function Wallet(props: WalletProps) {
               loading={affiliateLoading || userLoading}
             />
 
-            {isAdminUser && <CheckinAdminCard />}
+            {isSuperAdminUser && <CheckinAdminCard />}
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
