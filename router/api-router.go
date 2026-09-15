@@ -265,6 +265,16 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", anonymousRequestBodyLimit, controller.SubscriptionEpayReturn)
 
+		// 签到设置的管理员专用接口：业务管理定位是管理员即可操作，
+		// 但签到配置存在选项库里，通用 /api/option/ 是 RootAuth，
+		// 这里只放行 checkin_setting 白名单键。
+		checkinAdminRoute := apiRouter.Group("/checkin")
+		checkinAdminRoute.Use(middleware.AdminAuth())
+		{
+			checkinAdminRoute.GET("/setting", controller.GetAdminCheckinSetting)
+			checkinAdminRoute.PUT("/setting", controller.UpdateAdminCheckinSetting)
+		}
+
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
 		{

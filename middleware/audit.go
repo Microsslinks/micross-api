@@ -51,6 +51,10 @@ var auditRouteActions = map[string]string{
 	"POST /api/option/rest_model_ratio":         "option.reset_ratio",
 	"DELETE /api/option/channel_affinity_cache": "option.clear_affinity_cache",
 
+	// 签到设置（管理员；成功路径由 handler 手动埋点，
+	// 此条兜底覆盖校验失败等未走到埋点的请求）
+	"PUT /api/checkin/setting": "checkin_setting.update",
+
 	// 自定义 OAuth（root）
 	"POST /api/custom-oauth-provider/":      "custom_oauth.create",
 	"PUT /api/custom-oauth-provider/:id":    "custom_oauth.update",
