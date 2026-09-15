@@ -24,6 +24,7 @@ import {
   applyAuthRotation,
   clearAuthentication,
   refreshAuthentication,
+  shouldNotifySessionExpired,
 } from '@/lib/auth-session'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
@@ -118,14 +119,18 @@ api.interceptors.response.use(
         }
 
         if (outcome.kind === 'anonymous' || outcome.kind === 'out_of_sync') {
-          if (!skipErrorHandler) toast.error(t('Session expired!'))
+          if (!skipErrorHandler && shouldNotifySessionExpired()) {
+            toast.error(t('Session expired!'))
+          }
           redirectToSignIn()
         }
       } else if (config?.authRetry) {
         clearAuthentication(false)
-        if (!skipErrorHandler) toast.error(t('Session expired!'))
+        if (!skipErrorHandler && shouldNotifySessionExpired()) {
+          toast.error(t('Session expired!'))
+        }
         redirectToSignIn()
-      } else if (!skipErrorHandler) {
+      } else if (!skipErrorHandler && shouldNotifySessionExpired()) {
         toast.error(t('Session expired!'))
       }
     } else if (!skipErrorHandler) {

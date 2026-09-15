@@ -77,6 +77,28 @@ const authClient = axios.create({
 const refreshRaceDelays = [80, 200, 500] as const
 let refreshPromise: Promise<RefreshOutcome> | null = null
 let authEpoch = 0
+// 「会话过期」提示的去重闸：401 并发爆发时（logout 后多个在飞请求一齐回 401），
+// 三个 http-client 拦截器会同时弹 toast。refreshPromise 本身已经 dedup 网络请求，
+// 但 toast.error 没有去重——用这个 flag 把它补上。applyAuthBundle 复位。
+let sessionExpiredNotified = false
+
+/**
+ * 同一会话过期事件只通知一次：返回 true 表示这是首次，应当弹 toast；
+ * 返回 false 表示本次会话过期事件已经被其它并发请求通知过，应当跳过。
+ */
+export function shouldNotifySessionExpired(): boolean {
+  if (sessionExpiredNotified) return false
+  sessionExpiredNotified = true
+  return true
+}
+
+/**
+ * 会话被重新建立（登录 / refresh / rotation 成功）后复位闸门，
+ * 下一次会话过期事件就能再次正常通知用户。
+ */
+export function resetSessionExpiredNotification(): void {
+  sessionExpiredNotified = false
+}
 
 class AuthRefreshSupersededError extends Error {
   constructor() {
@@ -149,6 +171,7 @@ export function applyAuthBundle(
   bundle: AuthBundle,
   synchronizeTabs = true
 ): void {
+  resetSessionExpiredNotification()
   const previousSID = useAuthStore.getState().auth.session?.sid
   authEpoch += 1
   useAuthStore.getState().auth.setBundle(bundle)
