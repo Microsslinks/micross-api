@@ -360,6 +360,7 @@ export type OperationsSettings = {
   DefaultCollapseSidebar: boolean
   DemoSiteEnabled: boolean
   SelfUseModeEnabled: boolean
+  Notice: string
   QuotaRemindThreshold: string
   SMTPServer: string
   SMTPPort: string

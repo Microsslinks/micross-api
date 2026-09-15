@@ -33,13 +33,15 @@ import { WorkerSettingsSection } from '../integrations/worker-settings-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
 import { PerformanceSection } from '../maintenance/performance-section'
 import { UpdateCheckerSection } from '../maintenance/update-checker-section'
+import { NoticeSection } from './sections/notice-section'
 import type { OperationsSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 
 /*
  * 分节顺序即侧边栏展示顺序（「运行和运维」分组里排在「运行状态」之后）：
  * 先观测链路（性能 → 监控与告警 → 日志维护），再通知与出口通道
- * （SMTP → Worker 代理），实例级行为开关殿前，版本与更新收尾。
+ * （SMTP → Worker 代理），实例级行为开关殿前，运营通告、系统公告放在
+ * 行为开关之后、版本与更新收尾。
  * 折扣策略已迁往业务管理 → 计费与定价（与客户折扣方案作伴）。
  * 调整顺序前先同步 system-settings.config.ts 的注释。
  */
@@ -148,6 +150,14 @@ const OPERATIONS_SECTIONS = [
           SelfUseModeEnabled: settings.SelfUseModeEnabled,
         }}
       />
+    ),
+  },
+  {
+    id: 'notice',
+    titleKey: 'System Notice',
+    icon: Bell,
+    build: (settings: OperationsSettings) => (
+      <NoticeSection defaultValue={settings.Notice ?? ''} />
     ),
   },
   {

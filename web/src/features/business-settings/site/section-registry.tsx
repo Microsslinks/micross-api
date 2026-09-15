@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Bell, Info, LayoutTemplate, Menu } from 'lucide-react'
+import { Info, LayoutTemplate, Menu } from 'lucide-react'
 
 import type { SiteSettings } from '@/features/system-settings/types'
 import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
@@ -28,7 +28,6 @@ import {
   serializeSidebarModulesAdmin,
 } from './sections/config'
 import { HeaderNavigationSection } from './sections/header-navigation-section'
-import { NoticeSection } from './sections/notice-section'
 import { SidebarModulesSection } from './sections/sidebar-modules-section'
 import { SystemInfoSection } from './sections/system-info-section'
 
@@ -85,14 +84,6 @@ const SITE_SECTIONS = [
           'legal.privacy_policy': settings['legal.privacy_policy'],
         }}
       />
-    ),
-  },
-  {
-    id: 'notice',
-    titleKey: 'System Notice',
-    icon: Bell,
-    build: (settings: SiteSettings) => (
-      <NoticeSection defaultValue={settings.Notice ?? ''} />
     ),
   },
   {
