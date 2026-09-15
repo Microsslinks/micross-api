@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -71,15 +73,43 @@ func ValidateSSRFProtectedFetchURL(urlStr string) error {
 	return validateURLWithCurrentFetchSetting(urlStr, true)
 }
 
+// rejectIPv6 aborts IPv6 connection attempts at the dial stage. Go 1.27
+// removed the DisableIPv6 field on net.Dialer, so we use ControlContext to
+// refuse IPv6 sockets after they are created. Combined with Happy Eyeballs
+// fallback, this causes the dialer to fail IPv6 attempts immediately and
+// proceed with IPv4 only. This is a workaround for hosts whose IPv6 path
+// is unreachable (e.g., curl -6 returns "Network is unreachable") but
+// whose IPv4 path is healthy.
+func rejectIPv6(ctx context.Context, network, address string, c syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		host = address
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.To4() == nil {
+		return errors.New("IPv6 is disabled on this transport")
+	}
+	return nil
+}
+
 func newRelayHTTPTransport() *http.Transport {
 	var transport *http.Transport
+	// Force IPv4 for all outbound relay traffic. The host's IPv6 path is
+	// unreachable (curl -6 returns "Network is unreachable"); without this
+	// guard Go's Happy Eyeballs can attempt IPv6, hit "Network is
+	// unreachable", and treat it as a hard failure that aborts the entire
+	// dial before falling back to IPv4. rejectIPv6 ensures the IPv6
+	// attempt fails immediately so the dialer proceeds to IPv4.
+	dialer := &net.Dialer{
+		Timeout:         30 * time.Second,
+		KeepAlive:       30 * time.Second,
+		ControlContext:  rejectIPv6,
+		FallbackDelay:   50 * time.Millisecond,
+	}
 	if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok && defaultTransport != nil {
 		transport = defaultTransport.Clone()
+		// Override the cloned transport's dialer so the IPv6 guard takes effect.
+		transport.DialContext = dialer.DialContext
 	} else {
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
 		transport = &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
 			DialContext:           dialer.DialContext,
@@ -269,8 +299,9 @@ func configureProxyTransport(transport *http.Transport, proxyURL *url.URL) error
 	case "socks5", "socks5h":
 		transport.Proxy = nil
 		forwardDialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:        30 * time.Second,
+			KeepAlive:      30 * time.Second,
+			ControlContext: rejectIPv6,
 		}
 		dialer, err := proxy.FromURL(proxyURL, forwardDialer)
 		if err != nil {
