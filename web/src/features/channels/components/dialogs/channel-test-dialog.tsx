@@ -59,19 +59,6 @@ import {
 } from '@/components/drawer-layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -106,8 +93,6 @@ import {
   formatResponseTime,
   handleTestChannel,
 } from '../../lib'
-
-import { ChannelChatTester } from './channel-chat-tester'
 import type {
   Channel,
   GetChannelsResponse,
@@ -349,7 +334,6 @@ function ChannelTestDialogContent({
   > | null>(null)
   const [endpointType, setEndpointType] = useState('auto')
   const [isStreamTest, setIsStreamTest] = useState(false)
-  const [mode, setMode] = useState<'chat' | 'batch'>('chat')
   const [searchTerm, setSearchTerm] = useState('')
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -417,7 +401,6 @@ function ChannelTestDialogContent({
     batchStopRequestedRef.current = true
     setEndpointType('auto')
     setIsStreamTest(false)
-    setMode('chat')
     setSearchTerm('')
     setTestResults({})
     setRowSelection({})
@@ -1010,112 +993,64 @@ function ChannelTestDialogContent({
         }
       >
         <div className='max-h-[78vh] space-y-4 overflow-y-auto py-4 pr-1'>
-          <div className='flex items-center justify-between gap-2'>
-            <span className='text-muted-foreground text-sm'>
-              {t('Channel: {{name}}', { name: currentRow.name })}
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    type='button'
-                    className='gap-1.5'
-                  />
-                }
+          <div className='grid gap-4 md:grid-cols-2'>
+            <div className='grid gap-2'>
+              <Label htmlFor='endpoint-type'>{t('Endpoint Type')}</Label>
+              <Select
+                items={endpointSelectItems}
+                value={endpointType}
+                onValueChange={handleEndpointTypeChange}
               >
-                {t('Settings')}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end' className='min-w-56'>
-                <DropdownMenuLabel>{t('Mode')}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={mode}
-                  onValueChange={(v) => setMode(v as 'chat' | 'batch')}
+                <SelectTrigger id='endpoint-type' className='w-full min-w-0'>
+                  <SelectValue
+                    className='min-w-0 truncate'
+                    placeholder={t('Auto detect (default)')}
+                  />
+                </SelectTrigger>
+                <SelectContent
+                  alignItemWithTrigger={false}
+                  className={endpointSelectContentClass}
                 >
-                  <DropdownMenuRadioItem value='chat'>
-                      {t('Quick Test')}
-                    </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='batch'>
-                      {t('Analyze data')}
-                    </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span className='min-w-0 truncate'>
-                      {t('Endpoint Type')}:{' '}
-                      {endpointSelectItems.find(
-                        (item) => item.value === endpointType,
-                      )?.label ?? t('Auto detect (default)')}
-                    </span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className='min-w-56'>
-                      <DropdownMenuRadioGroup
-                        value={endpointType}
-                        onValueChange={handleEndpointTypeChange}
+                  <SelectGroup>
+                    {endpointSelectItems.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className={endpointSelectItemClass}
                       >
-                        {endpointSelectItems.map((option) => (
-                          <DropdownMenuRadioItem
-                            key={option.value}
-                            value={option.value}
-                            className={endpointSelectItemClass}
-                          >
-                            <span className='min-w-0 leading-snug break-words whitespace-normal'>
-                              {option.label}
-                            </span>
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger
-                    disabled={streamDisabled}
-                    className={streamDisabled ? 'opacity-50' : undefined}
-                  >
-                    <span className='min-w-0 truncate'>
-                      {t('Stream Mode')}:{' '}
-                      {effectiveStreamTest
-                        ? t('Enabled')
-                        : t('Disabled')}
-                    </span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className='min-w-40 p-1'>
-                      <div className='flex items-center gap-2 px-2 py-1.5 text-sm'>
-                        <Switch
-                          checked={effectiveStreamTest}
-                          onCheckedChange={setIsStreamTest}
-                          disabled={streamDisabled}
-                        />
-                        <span>
-                          {effectiveStreamTest
-                            ? t('Enabled')
-                            : t('Disabled')}
+                        <span className='min-w-0 leading-snug break-words whitespace-normal'>
+                          {option.label}
                         </span>
-                      </div>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className='text-muted-foreground text-xs'>
+                {t(
+                  'Override the endpoint used for testing. Leave empty to auto detect.'
+                )}
+              </p>
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='stream-toggle'>{t('Stream Mode')}</Label>
+              <div className='flex items-center gap-2'>
+                <Switch
+                  id='stream-toggle'
+                  checked={effectiveStreamTest}
+                  onCheckedChange={setIsStreamTest}
+                  disabled={streamDisabled}
+                />
+                <span className='text-sm'>
+                  {effectiveStreamTest ? t('Enabled') : t('Disabled')}
+                </span>
+              </div>
+              <p className='text-muted-foreground text-xs'>
+                {t('Enable streaming mode for the test request.')}
+              </p>
+            </div>
           </div>
 
-          {mode === 'chat' ? (
-            <div className='flex h-[68vh] min-h-0 flex-col'>
-              <ChannelChatTester
-                channelId={currentChannelId}
-                channelDisplayName={currentRow.name}
-                models={models}
-                defaultModel={defaultTestModel || undefined}
-                endpointType={endpointType}
-                stream={effectiveStreamTest}
-              />
-            </div>
-          ) : (
           <div className='space-y-3 max-sm:has-[div[role="toolbar"]]:pb-16'>
             <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
               <div className='min-w-0 space-y-2'>
@@ -1224,7 +1159,6 @@ function ChannelTestDialogContent({
 
             <TestModelsBulkActions table={table} />
           </div>
-          )}
         </div>
       </Dialog>
       <ConfirmDialog

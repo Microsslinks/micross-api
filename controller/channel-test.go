@@ -40,11 +40,6 @@ type testResult struct {
 	context     *gin.Context
 	localErr    error
 	newAPIError *types.NewAPIError
-	// responseContent is populated when the test is run with
-	// IncludeResponse=true. It carries parsed chat fields (content,
-	// reasoning_content, usage, finish_reason) so the admin chat UI
-	// can render the model's reply without a separate request.
-	responseContent map[string]any
 }
 
 func normalizeChannelTestEndpoint(channel *model.Channel, endpointType string) string {
@@ -76,21 +71,6 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 }
 
 func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
-	return testChannelWithOptions(ctx, channel, testUserID, testModel, endpointType, isStream, testChannelOptions{})
-}
-
-type testChannelOptions struct {
-	// Messages overrides the default "hi" probe so the admin chat UI can
-	// drive a real conversation. Only OpenAI Chat Completions requests are
-	// overridden; other formats still fall back to the default probe.
-	Messages []dto.Message
-	// IncludeResponse tells the test runner to extract chat fields (content,
-	// reasoning_content, usage, finish_reason) from the relayed response
-	// and surface them in the HTTP reply for the admin chat UI.
-	IncludeResponse bool
-}
-
-func testChannelWithOptions(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool, opts testChannelOptions) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -248,18 +228,6 @@ func testChannelWithOptions(ctx context.Context, channel *model.Channel, testUse
 	}
 
 	request := buildTestRequest(testModel, endpointType, channel, isStream)
-
-	if len(opts.Messages) > 0 {
-		// Override the default "hi" probe with the admin-supplied messages.
-		// Only OpenAI Chat Completions requests are mutable here; other
-		// formats keep the synthetic probe so admin-only paths never break.
-		if openAIReq, ok := request.(*dto.GeneralOpenAIRequest); ok {
-			openAIReq.Messages = opts.Messages
-			// Bump the hardcoded 16-token cap so chat replies are not
-			// truncated to a single trailing token.
-			openAIReq.MaxTokens = lo.ToPtr(uint(2048))
-		}
-	}
 
 	info, err := relaycommon.GenRelayInfo(c, relayFormat, request, nil)
 
@@ -541,86 +509,11 @@ func testChannelWithOptions(ctx context.Context, channel *model.Channel, testUse
 		Other:            other,
 	})
 	common.SysLog(fmt.Sprintf("testing channel #%d, response: \n%s", channel.Id, string(respBody)))
-
-	out := testResult{
+	return testResult{
 		context:     c,
 		localErr:    nil,
 		newAPIError: nil,
 	}
-	if opts.IncludeResponse {
-		out.responseContent = extractChatTestResponse(respBody, isStream)
-	}
-	return out
-}
-
-// extractChatTestResponse parses the relayed response body and pulls out the
-// fields the admin chat UI needs to render the model's reply. Handles both
-// single-shot JSON responses and SSE-style streaming chunks.
-func extractChatTestResponse(respBody []byte, isStream bool) map[string]any {
-	result := map[string]any{}
-
-	if isStream {
-		var content, reasoning strings.Builder
-		var usage map[string]any
-		var finishReason string
-
-		for _, raw := range bytes.Split(respBody, []byte{'\n'}) {
-			line := bytes.TrimSpace(raw)
-			if !bytes.HasPrefix(line, []byte("data:")) {
-				continue
-			}
-			payload := bytes.TrimSpace(bytes.TrimPrefix(line, []byte("data:")))
-			if len(payload) == 0 || bytes.Equal(payload, []byte("[DONE]")) {
-				continue
-			}
-
-			if c := gjson.GetBytes(payload, "choices.0.delta.content"); c.Exists() && c.Type == gjson.String {
-				content.WriteString(c.String())
-			}
-			if r := gjson.GetBytes(payload, "choices.0.delta.reasoning_content"); r.Exists() && r.Type == gjson.String {
-				reasoning.WriteString(r.String())
-			}
-			if u := gjson.GetBytes(payload, "usage"); u.Exists() && u.Type != gjson.Null {
-				if m, ok := u.Value().(map[string]any); ok {
-					usage = m
-				}
-			}
-			if fr := gjson.GetBytes(payload, "choices.0.finish_reason"); fr.Exists() && fr.Type == gjson.String && fr.String() != "" {
-				finishReason = fr.String()
-			}
-		}
-
-		if content.Len() > 0 {
-			result["content"] = content.String()
-		}
-		if reasoning.Len() > 0 {
-			result["reasoning_content"] = reasoning.String()
-		}
-		if usage != nil {
-			result["usage"] = usage
-		}
-		if finishReason != "" {
-			result["finish_reason"] = finishReason
-		}
-		return result
-	}
-
-	// Non-streaming: single JSON object.
-	if c := gjson.GetBytes(respBody, "choices.0.message.content"); c.Exists() && c.Type == gjson.String {
-		result["content"] = c.String()
-	}
-	if r := gjson.GetBytes(respBody, "choices.0.message.reasoning_content"); r.Exists() && r.Type == gjson.String {
-		result["reasoning_content"] = r.String()
-	}
-	if u := gjson.GetBytes(respBody, "usage"); u.Exists() && u.Type != gjson.Null {
-		if m, ok := u.Value().(map[string]any); ok {
-			result["usage"] = m
-		}
-	}
-	if fr := gjson.GetBytes(respBody, "choices.0.finish_reason"); fr.Exists() && fr.Type == gjson.String {
-		result["finish_reason"] = fr.String()
-	}
-	return result
 }
 
 func attachTestBillingRequestInput(info *relaycommon.RelayInfo, request dto.Request) error {
@@ -941,17 +834,6 @@ func buildTestRequest(model string, endpointType string, channel *model.Channel,
 	return testRequest
 }
 
-// chatTestRequest is the body shape for POST /api/channel/test/:id when the
-// admin chat UI sends a real conversation. GET (the legacy batch-test path)
-// sends no body and gets the default "hi" probe.
-type chatTestRequest struct {
-	Model           string        `json:"model"`
-	Messages        []dto.Message `json:"messages"`
-	EndpointType    string        `json:"endpoint_type"`
-	Stream          bool          `json:"stream"`
-	IncludeResponse bool          `json:"include_response"`
-}
-
 func TestChannel(c *gin.Context) {
 	channelId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -966,34 +848,14 @@ func TestChannel(c *gin.Context) {
 			return
 		}
 	}
+	//defer func() {
+	//	if channel.ChannelInfo.IsMultiKey {
+	//		go func() { _ = channel.SaveChannelInfo() }()
+	//	}
+	//}()
 	testModel := c.Query("model")
 	endpointType := c.Query("endpoint_type")
 	isStream, _ := strconv.ParseBool(c.Query("stream"))
-	includeResponse, _ := strconv.ParseBool(c.Query("include_response"))
-
-	opts := testChannelOptions{
-		IncludeResponse: includeResponse,
-	}
-	// POST body (chat UI): model/messages/endpoint_type/stream/...
-	if c.Request.Method == http.MethodPost && c.Request.ContentLength > 0 {
-		var body chatTestRequest
-		if bindErr := c.ShouldBindJSON(&body); bindErr == nil {
-			if strings.TrimSpace(body.Model) != "" {
-				testModel = strings.TrimSpace(body.Model)
-			}
-			if strings.TrimSpace(body.EndpointType) != "" {
-				endpointType = strings.TrimSpace(body.EndpointType)
-			}
-			if len(body.Messages) > 0 {
-				opts.Messages = body.Messages
-				// Chat UI controls streaming itself; default true so the
-				// chat reply shows up immediately.
-				isStream = body.Stream
-			}
-			opts.IncludeResponse = opts.IncludeResponse || body.IncludeResponse
-		}
-	}
-
 	testUserID, err := resolveChannelTestUserID(c)
 	if err != nil {
 		common.ApiError(c, err)
@@ -1004,7 +866,7 @@ func TestChannel(c *gin.Context) {
 	if c.Request != nil {
 		requestCtx = c.Request.Context()
 	}
-	result := testChannelWithOptions(requestCtx, channel, testUserID, testModel, endpointType, isStream, opts)
+	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream)
 	if result.localErr != nil {
 		resp := gin.H{
 			"success": false,
@@ -1014,9 +876,6 @@ func TestChannel(c *gin.Context) {
 		if result.newAPIError != nil {
 			resp["error_code"] = result.newAPIError.GetErrorCode()
 		}
-		if opts.IncludeResponse && len(result.responseContent) > 0 {
-			resp["response"] = result.responseContent
-		}
 		c.JSON(http.StatusOK, resp)
 		return
 	}
@@ -1025,27 +884,19 @@ func TestChannel(c *gin.Context) {
 	go channel.UpdateResponseTime(milliseconds)
 	consumedTime := float64(milliseconds) / 1000.0
 	if result.newAPIError != nil {
-		resp := gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"success":    false,
 			"message":    result.newAPIError.Error(),
 			"time":       consumedTime,
 			"error_code": result.newAPIError.GetErrorCode(),
-		}
-		if opts.IncludeResponse && len(result.responseContent) > 0 {
-			resp["response"] = result.responseContent
-		}
-		c.JSON(http.StatusOK, resp)
+		})
 		return
 	}
-	resp := gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
 		"time":    consumedTime,
-	}
-	if opts.IncludeResponse && len(result.responseContent) > 0 {
-		resp["response"] = result.responseContent
-	}
-	c.JSON(http.StatusOK, resp)
+	})
 }
 
 // channelTestSummary records the outcome of one channel test cycle so the
