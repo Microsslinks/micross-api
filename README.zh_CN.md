@@ -65,6 +65,21 @@
 
 ## 🤝 我们信任的合作伙伴
 
+> [!NOTE]
+> **关于本分支（MicrossAPI / Microsslink 微观互联）**
+>
+> 本仓库是 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的二次衍生项目。上游 Go module path、`LICENSE`、`NOTICE`、`THIRD-PARTY-LICENSES.md` **按上游 AGPLv3 §7 署名要求原样保留**；本页所有徽标与链接仍指向原项目。
+>
+> 本分支在上游之上新增的能力：
+>
+> - **分层售卖** —— 客户折扣锚定官方价（按模型 / 按厂商）、经销商差价、邀请佣金
+> - **成本路由** —— 上游线路成本会击穿客户折扣的，**在计费前就剔掉**
+> - **多方案定价** —— 同一客户最多同时挂 10 套折扣方案，按 5 层规则裁决（具体度 → 谁拍板 → 谁便宜 → 谁新 → 与拿货价比便宜）
+> - **经销商（P3）** —— 经销商主体、客户号、经销商台账、我的客户（给下属改价 / 发额度）
+> - **前端重塑** —— `/playground` 玻璃顶栏、统一控制台、多币种钱包、首页视频大片
+>
+> 一页总览：[`.docs/summary.md`](./.docs/summary.md) ｜ 全量计划与版本台账：[`.docs/master-plan.md`](./.docs/master-plan.md)
+
 <p align="center">
   <em>排名不分先后</em>
 </p>

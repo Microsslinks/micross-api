@@ -2,6 +2,9 @@
 
 本文档定义前端项目的开发规范与最佳实践，供开发与 AI 助手共同遵循。具体依赖与脚本以 `package.json` 为准。
 
+> [!IMPORTANT]
+> 本仓库是 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的二次衍生项目，作为 **MicrossAPI / Microsslink 微观互联** 维护。上游 LICENSE / NOTICE 保留不变。改造脉络见 `../.docs/master-plan.md`（中文）。
+
 ---
 
 ## 一、项目概览

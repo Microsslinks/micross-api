@@ -65,6 +65,21 @@
 
 ## 🤝 Trusted Partners
 
+> [!NOTE]
+> **About this fork (MicrossAPI / Microsslink 微观互联)**
+>
+> This repository is maintained as a derivative of [QuantumNous/new-api](https://github.com/QuantumNous/new-api). The upstream Go module path, `LICENSE`, `NOTICE`, and `THIRD-PARTY-LICENSES.md` are preserved unchanged, in compliance with the upstream AGPLv3 §7 attribution requirements. All upstream badges and links on this page point to the original project.
+>
+> What this fork adds on top of upstream:
+>
+> - **Tiered API resale** — customer discounts anchored on the official price (per-model or per-vendor), reseller spread, invite commission
+> - **Cost-aware routing** — upstream channels whose cost would breach a customer discount are filtered out before they can be billed
+> - **Multi-plan pricing** — a single customer may hold up to 10 active discount plans simultaneously, resolved by a 5-tier rule (specificity → who decided → cheaper → newer → cheaper than wholesale)
+> - **Reseller (P3)** — agents, customer codes, customer-management console, my-customers view with per-customer re-pricing and quota top-up
+> - **Frontend rebrand** — glassmorphic header on `/playground`, unified console, multi-currency wallet, video hero on the public home page
+>
+> One-page overview: [`.docs/summary.md`](./.docs/summary.md) (zh-CN). Full plan and version ledger: [`.docs/master-plan.md`](./.docs/master-plan.md) (zh-CN).
+
 <p align="center">
   <em>No particular order</em>
 </p>

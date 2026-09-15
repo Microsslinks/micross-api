@@ -65,6 +65,21 @@
 
 ## 🤝 Partenaires de confiance
 
+> [!NOTE]
+> **À propos de ce fork (MicrossAPI / Microsslink 微观互联)**
+>
+> Ce dépôt est maintenu comme un projet dérivé de [QuantumNous/new-api](https://github.com/QuantumNous/new-api). Le chemin de module Go, `LICENSE`, `NOTICE` et `THIRD-PARTY-LICENSES.md` sont conservés à l'identique, conformément aux exigences d'attribution AGPLv3 §7 du projet amont. Tous les badges et liens de cette page pointent vers le projet original.
+>
+> Ce que ce fork ajoute au projet amont :
+>
+> - **Revente par paliers** — remises clients indexées sur le prix officiel (par modèle ou par fournisseur), marge revendeur, commission de parrainage
+> - **Routage conscient du coût** — les canaux amont dont le coût dépasserait la remise client sont filtrés avant la facturation
+> - **Tarifs multi-plans** — un client peut détenir jusqu'à 10 plans de remise actifs simultanément, résolus par une règle à 5 niveaux
+> - **Revendeur (P3)** — agents, codes client, console revendeur, vue « mes clients » avec re-tarification et recharge de quota par sous-client
+> - **Refonte du frontend** — en-tête en glassmorphisme sur `/playground`, console unifiée, portefeuille multi-devises, hero vidéo sur la page d'accueil
+>
+> Vue d'une page : [`.docs/summary.md`](./.docs/summary.md) (zh-CN). Plan complet : [`.docs/master-plan.md`](./.docs/master-plan.md) (zh-CN).
+
 <p align="center">
   <em>Sans ordre particulier</em>
 </p>

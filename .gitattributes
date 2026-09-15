@@ -11,6 +11,10 @@ VERSION text eol=lf
 *.yml text eol=lf
 *.toml text eol=lf
 *.md text eol=lf
+*.example text eol=lf
+*.service text eol=lf
+Dockerfile* text eol=lf
+makefile text eol=lf
 
 # JavaScript/TypeScript files
 *.js text eol=lf

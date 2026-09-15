@@ -1,10 +1,13 @@
-# AGENTS.md — Project Conventions for new-api
+# AGENTS.md — Project Conventions for MicrossAPI
 
 DO NOT send optional commentary
 
 ## Overview
 
 This is an AI API gateway/proxy built with Go. It aggregates 40+ upstream AI providers (OpenAI, Claude, Gemini, Azure, AWS Bedrock, etc.) behind a unified API, with user management, billing, rate limiting, and an admin dashboard.
+
+> [!IMPORTANT]
+> This repository is a derivative of [QuantumNous/new-api](https://github.com/QuantumNous/new-api) maintained as **MicrossAPI / Microsslink 微观互联**. The upstream Go module path (`github.com/QuantumNous/new-api`), `LICENSE`, `NOTICE`, and `THIRD-PARTY-LICENSES.md` are preserved unchanged per upstream AGPLv3 §7. See [`.docs/master-plan.md`](./.docs/master-plan.md) (zh-CN) for the full plan of changes.
 
 ## Tech Stack
 
