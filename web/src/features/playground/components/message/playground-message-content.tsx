@@ -156,6 +156,12 @@ export function PlaygroundMessageContent({
               className={cn(getMessageContentStyles())}
             >
               <Response final={isMessageFinal}>{displayContent}</Response>
+              {!isMessageFinal && (
+                <span
+                  aria-hidden='true'
+                  className='bg-primary/80 ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[2px] animate-pulse rounded-full align-middle'
+                />
+              )}
             </MessageContent>
           )}
           <MessageMetadata alignment={alignment} message={message} />

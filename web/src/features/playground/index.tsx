@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { PlaygroundChat } from './components/chat/playground-chat'
+import { PlaygroundHeader } from './components/header/playground-header'
 import { PlaygroundInput } from './components/input/playground-input'
 import {
   useChatHandler,
@@ -76,6 +77,29 @@ export function Playground() {
 
   return (
     <div className='relative flex size-full min-h-0 flex-col overflow-hidden'>
+      {/* Subtle radial gradient backdrop — primary tint, follow theme */}
+      <div
+        aria-hidden='true'
+        className='from-primary/5 via-transparent to-primary/3 pointer-events-none absolute inset-0 bg-gradient-to-br'
+      />
+      <div
+        aria-hidden='true'
+        className='from-primary/4 pointer-events-none absolute top-0 left-1/2 h-[420px] w-[860px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] via-transparent to-transparent blur-3xl'
+      />
+
+      <PlaygroundHeader
+        models={models}
+        modelValue={config.model}
+        onModelChange={(value) => updateConfig('model', value)}
+        isModelLoading={isLoadingModels}
+        groups={groups}
+        groupValue={config.group}
+        onGroupChange={(value) => updateConfig('group', value)}
+        hasMessages={messages.length > 0}
+        onClearMessages={handleClearMessages}
+        isGenerating={isGenerating}
+      />
+
       {/* Full-width scroll container: scrolling works even over side whitespace */}
       <div className='flex min-h-0 flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
@@ -94,25 +118,17 @@ export function Playground() {
       </div>
 
       {/* Input area: center content and constrain to the same container width */}
-      <div className='mx-auto w-full max-w-4xl'>
+      <div className='relative mx-auto w-full max-w-4xl'>
         <PlaygroundInput
           config={config}
           disabled={isGenerating}
-          groups={groups}
-          groupValue={config.group}
           isGenerating={isGenerating}
-          isModelLoading={isLoadingModels}
-          modelValue={config.model}
           models={models}
-          onGroupChange={(value) => updateConfig('group', value)}
           onConfigChange={updateConfig}
-          onClearMessages={handleClearMessages}
-          onModelChange={(value) => updateConfig('model', value)}
           onParameterEnabledChange={updateParameterEnabled}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
           parameterEnabled={parameterEnabled}
-          hasMessages={messages.length > 0}
         />
       </div>
     </div>

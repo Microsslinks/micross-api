@@ -25,14 +25,10 @@ import {
   PromptInputTextarea,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
+import { cn } from '@/lib/utils'
 
 import { getSubmittableInputText } from '../../lib'
-import type {
-  ModelOption,
-  GroupOption,
-  ParameterEnabled,
-  PlaygroundConfig,
-} from '../../types'
+import type { ModelOption, ParameterEnabled, PlaygroundConfig } from '../../types'
 import { PlaygroundInputControls } from './playground-input-controls'
 import { PlaygroundInputTools } from './playground-input-tools'
 
@@ -43,18 +39,10 @@ interface PlaygroundInputProps {
   disabled?: boolean
   isGenerating?: boolean
   models: ModelOption[]
-  modelValue: string
-  onModelChange: (value: string) => void
-  isModelLoading?: boolean
-  groups: GroupOption[]
-  groupValue: string
-  onGroupChange: (value: string) => void
-  hasMessages?: boolean
   onConfigChange: <K extends keyof PlaygroundConfig>(
     key: K,
     value: PlaygroundConfig[K]
   ) => void
-  onClearMessages?: () => void
   onParameterEnabledChange: (
     key: keyof ParameterEnabled,
     value: boolean
@@ -69,15 +57,7 @@ export function PlaygroundInput({
   disabled,
   isGenerating,
   models,
-  modelValue,
-  onModelChange,
-  isModelLoading = false,
-  groups,
-  groupValue,
-  onGroupChange,
-  hasMessages = false,
   onConfigChange,
-  onClearMessages,
   onParameterEnabledChange,
   parameterEnabled,
 }: PlaygroundInputProps) {
@@ -93,44 +73,43 @@ export function PlaygroundInput({
   }
 
   return (
-    <div className='grid shrink-0 gap-4 px-1 md:pb-4'>
+    <div className='grid shrink-0 gap-2 px-1 pb-4 md:pb-6'>
       <PromptInput
         className='relative'
-        groupClassName='bg-background/95 dark:bg-background/80 border-border/70 shadow-[0_18px_60px_-32px_rgba(0,0,0,0.65)] ring-1 ring-foreground/5 rounded-xl overflow-hidden transition-all duration-200 focus-within:border-primary/45 focus-within:ring-primary/15 focus-within:shadow-[0_22px_70px_-34px_rgba(0,0,0,0.75)]'
+        groupClassName={cn(
+          'bg-background/95 dark:bg-background/80 border-border/70',
+          'shadow-[0_18px_60px_-32px_rgba(0,0,0,0.65)] ring-1 ring-foreground/5',
+          'rounded-2xl overflow-hidden transition-all duration-200',
+          'focus-within:border-primary/45 focus-within:ring-primary/20',
+          'focus-within:shadow-[0_22px_70px_-30px_rgba(0,0,0,0.75)]',
+          'focus-within:shadow-primary/10'
+        )}
         onSubmit={handleSubmit}
       >
         <PromptInputTextarea
+          autoCapitalize='off'
           autoComplete='off'
           autoCorrect='off'
-          autoCapitalize='off'
-          spellCheck={false}
-          className='min-h-20 px-5 pt-4 pb-3 leading-7 md:min-h-24 md:text-base'
+          className='min-h-22 px-5 pt-4 pb-2 text-[0.95rem] leading-7 md:min-h-26 md:text-base'
           disabled={disabled}
           onChange={(event) => setText(event.target.value)}
-          placeholder={t('Ask anything')}
+          placeholder={t('Ask anything — press Enter to send')}
+          spellCheck={false}
           value={text}
         />
 
-        <PromptInputFooter className='border-border/60 bg-muted/20 dark:bg-muted/10 border-t px-3 py-2.5 backdrop-blur'>
+        <PromptInputFooter className='border-border/60 bg-muted/20 dark:bg-muted/10 border-t px-2 py-2 backdrop-blur'>
           <PlaygroundInputControls
             disabled={disabled}
-            groups={groups}
-            groupValue={groupValue}
             isGenerating={isGenerating}
-            isModelLoading={isModelLoading}
             models={models}
-            modelValue={modelValue}
-            onGroupChange={onGroupChange}
-            onModelChange={onModelChange}
             onStop={onStop}
             text={text}
             tools={
               <PlaygroundInputTools
                 config={config}
                 disabled={disabled}
-                hasMessages={hasMessages}
                 onConfigChange={onConfigChange}
-                onClearMessages={onClearMessages}
                 onParameterEnabledChange={onParameterEnabledChange}
                 parameterEnabled={parameterEnabled}
               />
@@ -138,6 +117,18 @@ export function PlaygroundInput({
           />
         </PromptInputFooter>
       </PromptInput>
+
+      <div className='text-muted-foreground/70 flex items-center justify-center gap-3 text-[10px] tracking-wide uppercase'>
+        <kbd className='bg-muted/60 text-muted-foreground/80 rounded border border-border/60 px-1.5 py-0.5 font-mono'>
+          Enter
+        </kbd>
+        <span>{t('to send')}</span>
+        <span className='text-muted-foreground/40'>·</span>
+        <kbd className='bg-muted/60 text-muted-foreground/80 rounded border border-border/60 px-1.5 py-0.5 font-mono'>
+          Shift + Enter
+        </kbd>
+        <span>{t('for newline')}</span>
+      </div>
     </div>
   )
 }

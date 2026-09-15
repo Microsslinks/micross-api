@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { BotIcon, UserIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +27,11 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Loader } from '@/components/ai-elements/loader'
 import { Message } from '@/components/ai-elements/message'
+import {
+  Avatar,
+  AvatarFallback,
+} from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 
 import {
   getChatMessageRenderState,
@@ -126,13 +132,44 @@ export function PlaygroundChat({
       : null
     const alignment = getMessageAlignment(message, messageLayoutMode)
     const isSourceVisible = sourceMessageKeys.has(message.key)
+    const isAssistant = message.from === 'assistant'
 
     return (
       <Message
-        className='group flex-row-reverse py-2.5'
+        className={cn(
+          'group py-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none',
+          isAssistant
+            ? 'flex-row justify-start'
+            : 'flex-row-reverse justify-end'
+        )}
         from={message.from}
         key={message.key}
       >
+        <Avatar
+          aria-label={isAssistant ? t('Assistant') : t('You')}
+          className={cn(
+            'size-8 ring-1 ring-border/70 shadow-sm transition-transform group-hover:scale-[1.02]',
+            isAssistant
+              ? 'bg-gradient-to-br from-primary/30 via-primary/15 to-primary/5'
+              : 'bg-muted'
+          )}
+        >
+          <AvatarFallback
+            className={cn(
+              'border-0 bg-transparent text-sm font-medium',
+              isAssistant
+                ? 'text-primary'
+                : 'text-foreground/80'
+            )}
+          >
+            {isAssistant ? (
+              <BotIcon className='size-4' />
+            ) : (
+              <UserIcon className='size-4' />
+            )}
+          </AvatarFallback>
+        </Avatar>
+
         <div className='w-full min-w-0 flex-1 basis-full'>
           {isEditing ? (
             <PlaygroundMessageEditor
@@ -215,7 +252,9 @@ export function PlaygroundChat({
     <Conversation>
       {/* Remove outer padding; apply padding to inner centered container to align with input */}
       <ConversationContent className='p-0'>
-        <div className='mx-auto w-full max-w-4xl px-4 py-4'>{chatContent}</div>
+        <div className='mx-auto w-full max-w-4xl space-y-1 px-4 py-6 md:py-8'>
+          {chatContent}
+        </div>
       </ConversationContent>
       <ConversationScrollButton />
     </Conversation>
