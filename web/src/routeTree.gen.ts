@@ -43,7 +43,6 @@ import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedDiscountsIndexRouteImport } from './routes/_authenticated/discounts/index'
-import { Route as AuthenticatedEarningsIndexRouteImport } from './routes/_authenticated/earnings/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
@@ -252,12 +251,6 @@ const AuthenticatedDiscountsIndexRoute =
   AuthenticatedDiscountsIndexRouteImport.update({
     id: '/discounts/',
     path: '/discounts/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedEarningsIndexRoute =
-  AuthenticatedEarningsIndexRouteImport.update({
-    id: '/earnings/',
-    path: '/earnings/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedErrorsErrorRoute =
@@ -485,7 +478,6 @@ export interface FileRoutesByFullPath {
   '/customers/': typeof AuthenticatedCustomersIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/discounts/': typeof AuthenticatedDiscountsIndexRoute
-  '/earnings/': typeof AuthenticatedEarningsIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/plans/': typeof AuthenticatedPlansIndexRoute
@@ -550,7 +542,6 @@ export interface FileRoutesByTo {
   '/customers': typeof AuthenticatedCustomersIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/discounts': typeof AuthenticatedDiscountsIndexRoute
-  '/earnings': typeof AuthenticatedEarningsIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/plans': typeof AuthenticatedPlansIndexRoute
@@ -620,7 +611,6 @@ export interface FileRoutesById {
   '/_authenticated/customers/': typeof AuthenticatedCustomersIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/discounts/': typeof AuthenticatedDiscountsIndexRoute
-  '/_authenticated/earnings/': typeof AuthenticatedEarningsIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/plans/': typeof AuthenticatedPlansIndexRoute
@@ -689,7 +679,6 @@ export interface FileRouteTypes {
     | '/customers/'
     | '/dashboard/'
     | '/discounts/'
-    | '/earnings/'
     | '/keys/'
     | '/models/'
     | '/plans/'
@@ -754,7 +743,6 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/discounts'
-    | '/earnings'
     | '/keys'
     | '/models'
     | '/plans'
@@ -823,7 +811,6 @@ export interface FileRouteTypes {
     | '/_authenticated/customers/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/discounts/'
-    | '/_authenticated/earnings/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/plans/'
@@ -1112,13 +1099,6 @@ declare module '@tanstack/react-router' {
       path: '/discounts'
       fullPath: '/discounts/'
       preLoaderRoute: typeof AuthenticatedDiscountsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/earnings/': {
-      id: '/_authenticated/earnings/'
-      path: '/earnings'
-      fullPath: '/earnings/'
-      preLoaderRoute: typeof AuthenticatedEarningsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/errors/$error': {
@@ -1466,7 +1446,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCustomersIndexRoute: typeof AuthenticatedCustomersIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDiscountsIndexRoute: typeof AuthenticatedDiscountsIndexRoute
-  AuthenticatedEarningsIndexRoute: typeof AuthenticatedEarningsIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedPlansIndexRoute: typeof AuthenticatedPlansIndexRoute
@@ -1496,7 +1475,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCustomersIndexRoute: AuthenticatedCustomersIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedDiscountsIndexRoute: AuthenticatedDiscountsIndexRoute,
-  AuthenticatedEarningsIndexRoute: AuthenticatedEarningsIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedPlansIndexRoute: AuthenticatedPlansIndexRoute,

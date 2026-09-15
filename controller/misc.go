@@ -49,6 +49,15 @@ func GetStatus(c *gin.Context) {
 
 	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
+	siteContact := system_setting.GetSiteContactSettings()
+	siteSocial := system_setting.GetSiteSocialSettings()
+	siteContent := system_setting.GetSiteContentSettings()
+
+	// 页脚自定义 HTML：仅在开关开启时下发，关闭则回落默认页脚
+	footerHtml := ""
+	if siteContent.FooterEnabled {
+		footerHtml = common.Footer
+	}
 
 	data := gin.H{
 		"version":                     common.Version,
@@ -66,7 +75,7 @@ func GetStatus(c *gin.Context) {
 		"theme":                       "default",
 		"system_name":                 common.SystemName,
 		"logo":                        common.Logo,
-		"footer_html":                 common.Footer,
+		"footer_html":                 footerHtml,
 		"icp":                         common.Icp,
 		"wechat_qrcode":               common.WeChatAccountQRCodeImageURL,
 		"wechat_login":                common.WeChatAuthEnabled,
@@ -121,8 +130,31 @@ func GetStatus(c *gin.Context) {
 		"passkey_user_verification":   passkeySetting.UserVerification,
 		"passkey_attachment":          passkeySetting.AttachmentPreference,
 		"setup":                       constant.Setup,
-		"user_agreement_enabled":      legalSetting.UserAgreement != "",
-		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
+		"user_agreement_enabled":      siteContent.UserAgreementEnabled && legalSetting.UserAgreement != "",
+		"privacy_policy_enabled":      siteContent.PrivacyPolicyEnabled && legalSetting.PrivacyPolicy != "",
+		"home_page_content_enabled":   siteContent.HomePageContentEnabled,
+		"about_enabled":               siteContent.AboutEnabled,
+
+		// 站点联系方式与社交媒体（页脚/关于页展示）
+		"site_contact": gin.H{
+			"company_name":  siteContact.CompanyName,
+			"phone":         siteContact.Phone,
+			"email":         siteContact.Email,
+			"address":       siteContact.Address,
+			"service_hours": siteContact.ServiceHours,
+		},
+		"site_social": gin.H{
+			"wechat_qrcode": siteSocial.WechatQrcode,
+			"qq_group":      siteSocial.QQGroup,
+			"telegram":      siteSocial.Telegram,
+			"discord":       siteSocial.Discord,
+			"github":        siteSocial.GitHub,
+			"twitter":       siteSocial.Twitter,
+			"youtube":       siteSocial.YouTube,
+			"bilibili":      siteSocial.Bilibili,
+			"whatsapp":      siteSocial.WhatsApp,
+			"custom_links":  siteSocial.CustomLinks,
+		},
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
 	}
 

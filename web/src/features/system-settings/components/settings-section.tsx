@@ -23,6 +23,12 @@ import { useSuppressSettingsSectionHeader } from './settings-page-context'
 type SettingsSectionProps = {
   title: string
   titleProps?: React.HTMLAttributes<HTMLHeadingElement>
+  /**
+   * Force the section header to render even when the page suppresses
+   * section headers (e.g. merged into a form-based settings page where
+   * the section needs its own visual separation).
+   */
+  showHeader?: boolean
   children: React.ReactNode
   className?: string
 }
@@ -30,6 +36,7 @@ type SettingsSectionProps = {
 export function SettingsSection({
   title,
   titleProps,
+  showHeader = false,
   children,
   className,
 }: SettingsSectionProps) {
@@ -37,7 +44,7 @@ export function SettingsSection({
 
   return (
     <section className={cn('flex flex-col gap-4', className)}>
-      {!suppressHeader && (
+      {(!suppressHeader || showHeader) && (
         <div className='flex flex-col gap-1'>
           <h3
             {...titleProps}

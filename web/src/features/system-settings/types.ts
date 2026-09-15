@@ -120,6 +120,26 @@ export type SiteSettings = {
   HeaderNavModules: string
   SidebarModulesAdmin: string
   'general_setting.docs_link': string
+  'site_contact.company_name': string
+  'site_contact.phone': string
+  'site_contact.email': string
+  'site_contact.address': string
+  'site_contact.service_hours': string
+  'site_social.wechat_qrcode': string
+  'site_social.qq_group': string
+  'site_social.telegram': string
+  'site_social.discord': string
+  'site_social.github': string
+  'site_social.twitter': string
+  'site_social.youtube': string
+  'site_social.bilibili': string
+  'site_social.whatsapp': string
+  'site_social.custom_links': string
+  'site_content.home_page_content_enabled': boolean
+  'site_content.about_enabled': boolean
+  'site_content.footer_enabled': boolean
+  'site_content.user_agreement_enabled': boolean
+  'site_content.privacy_policy_enabled': boolean
 }
 
 export type AuthSettings = {
@@ -332,9 +352,8 @@ export type BillingSettings = {
   // section (saved via /api/option/waffo-pancake/save).
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
-  'checkin_setting.enabled': boolean
-  'checkin_setting.min_quota': number
-  'checkin_setting.max_quota': number
+  'discount_setting.min_margin_ratio': string
+  'discount_setting.enable_billing_discount': boolean
 }
 
 export type OperationsSettings = {
@@ -367,8 +386,6 @@ export type OperationsSettings = {
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'hour' | 'minute' | '5min'
   'perf_metrics_setting.retention_days': number
-  'discount_setting.min_margin_ratio': string
-  'discount_setting.enable_billing_discount': boolean
 }
 
 export type SecuritySettings = {

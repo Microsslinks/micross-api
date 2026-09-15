@@ -35,6 +35,8 @@ export interface ApiResponse<T = unknown> {
 export type TopupInfoResponse = ApiResponse<TopupInfo>
 export type RedemptionResponse = ApiResponse<number>
 export type AmountResponse = ApiResponse<string>
+export type CheckinSettingResponse = ApiResponse<CheckinSetting>
+export type UpdateCheckinSettingResponse = ApiResponse<CheckinSetting>
 export type PaymentResponse = ApiResponse<Record<string, unknown>> & {
   url?: string
 }
@@ -119,10 +121,16 @@ export interface WaffoPayMethod {
 /**
  * Topup configuration information
  */
+/** Check-in reward setting (admin-scoped endpoint) */
+export interface CheckinSetting {
+  enabled: boolean
+  min_quota: number
+  max_quota: number
+}
+
 export interface TopupInfo {
   /** Whether online topup is enabled */
-  enable_online_topup: boolean
-  /** Whether Stripe topup is enabled */
+  enable_online_topup: boolean  /** Whether Stripe topup is enabled */
   enable_stripe_topup: boolean
   /** Available payment methods */
   pay_methods: PaymentMethod[]

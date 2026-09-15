@@ -457,7 +457,7 @@ export function RechargeFormCard({
                               ? `${method.name}. ${disabledReason}`
                               : method.name
                           }
-                          className='border-success/50 bg-success/10 text-success hover:border-success hover:bg-success/20 min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left disabled:border-input disabled:bg-muted disabled:text-muted-foreground'
+                          className='border-success bg-success hover:border-success hover:bg-success/90 dark:border-success dark:bg-success dark:hover:border-success dark:hover:bg-success/90 min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left disabled:border-input disabled:bg-muted disabled:text-muted-foreground'
                         >
                           {paymentLoading === method.type ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
@@ -561,7 +561,7 @@ export function RechargeFormCard({
                                 ? `${method.name}. ${disabledReason}`
                                 : method.name
                             }
-                            className='border-success/50 bg-success/10 text-success hover:border-success hover:bg-success/20 min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left disabled:border-input disabled:bg-muted disabled:text-muted-foreground'
+                            className='border-success bg-success hover:border-success hover:bg-success/90 dark:border-success dark:bg-success dark:hover:border-success dark:hover:bg-success/90 min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left disabled:border-input disabled:bg-muted disabled:text-muted-foreground'
                           >
                             {methodIcon}
                             <span className='flex min-w-0 flex-col items-start gap-0.5'>

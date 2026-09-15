@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Magnet,
   MessageCircle,
-  Rocket,
   Route,
   Settings2,
   Sparkles,
@@ -27,7 +26,6 @@ import {
 } from 'lucide-react'
 
 import { ChannelAffinitySection } from '../general/channel-affinity'
-import { IoNetDeploymentSettingsSection } from '../integrations/ionet-deployment-settings-section'
 import type { ModelSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 import { ClaudeSettingsCard } from './claude-settings-card'
@@ -181,19 +179,6 @@ const MODELS_SECTIONS = [
             settings['channel_affinity_setting.default_ttl_seconds'],
           'channel_affinity_setting.rules':
             settings['channel_affinity_setting.rules'],
-        }}
-      />
-    ),
-  },
-  {
-    id: 'model-deployment',
-    titleKey: 'Model Deployment',
-    icon: Rocket,
-    build: (settings: ModelSettings) => (
-      <IoNetDeploymentSettingsSection
-        defaultValues={{
-          enabled: settings['model_deployment.ionet.enabled'],
-          apiKey: settings['model_deployment.ionet.api_key'],
         }}
       />
     ),

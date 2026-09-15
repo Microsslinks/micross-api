@@ -18,19 +18,19 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Banknote,
-  CalendarCheck,
   Calculator,
   CreditCard,
+  Scale,
   Users,
   Wallet,
 } from 'lucide-react'
 
+import { DiscountSettingSection } from '@/features/system-settings/pricing/discount-setting-section'
 import { RatioSettingsCard } from '@/features/system-settings/models/ratio-settings-card'
 import type { BillingSettings } from '@/features/system-settings/types'
 import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
 import { parseCurrencyDisplayType } from '@/lib/currency'
 
-import { CheckinSettingsSection } from './sections/checkin-settings-section'
 import { PaymentSettingsSection } from './sections/payment/payment-settings-section'
 import { PricingSection } from './sections/pricing-section'
 import { QuotaSettingsSection } from './sections/quota-settings-section'
@@ -199,15 +199,19 @@ const BILLING_SECTIONS = [
     ),
   },
   {
-    id: 'checkin',
-    titleKey: 'Check-in Rewards',
-    icon: CalendarCheck,
+    // 折扣策略（总开关 + 毛利底线）放在分节末尾，紧挨侧边栏里排在
+    // 其后的「客户折扣方案」（/discounts）顶层入口，两者天然是一对。
+    // 图标用天平（Scale）呼应「毛利底线」，与折扣方案的 % 号区分。
+    id: 'discount',
+    titleKey: 'Discount Policy',
+    icon: Scale,
     build: (settings: BillingSettings) => (
-      <CheckinSettingsSection
+      <DiscountSettingSection
         defaultValues={{
-          enabled: settings['checkin_setting.enabled'],
-          minQuota: settings['checkin_setting.min_quota'],
-          maxQuota: settings['checkin_setting.max_quota'],
+          'discount_setting.min_margin_ratio':
+            settings['discount_setting.min_margin_ratio'] ?? '0',
+          'discount_setting.enable_billing_discount':
+            settings['discount_setting.enable_billing_discount'] ?? false,
         }}
       />
     ),

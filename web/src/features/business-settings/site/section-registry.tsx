@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Bell, BookOpen, Info, LayoutTemplate, Menu } from 'lucide-react'
+import { Bell, Info, LayoutTemplate, Menu } from 'lucide-react'
 
 import type { SiteSettings } from '@/features/system-settings/types'
 import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
@@ -27,7 +27,6 @@ import {
   serializeHeaderNavModules,
   serializeSidebarModulesAdmin,
 } from './sections/config'
-import { DocsLinkSection } from './sections/docs-link-section'
 import { HeaderNavigationSection } from './sections/header-navigation-section'
 import { NoticeSection } from './sections/notice-section'
 import { SidebarModulesSection } from './sections/sidebar-modules-section'
@@ -44,14 +43,46 @@ const SITE_SECTIONS = [
           SystemName: settings.SystemName,
           Logo: settings.Logo,
           Icp: settings.Icp,
-          Footer: settings.Footer,
-          About: settings.About,
-          HomePageContent: settings.HomePageContent,
           ServerAddress: settings.ServerAddress,
-          legal: {
-            user_agreement: settings['legal.user_agreement'],
-            privacy_policy: settings['legal.privacy_policy'],
+          general_setting: {
+            docs_link: settings['general_setting.docs_link'],
           },
+          site_contact: {
+            company_name: settings['site_contact.company_name'],
+            phone: settings['site_contact.phone'],
+            email: settings['site_contact.email'],
+            address: settings['site_contact.address'],
+            service_hours: settings['site_contact.service_hours'],
+          },
+          site_social: {
+            wechat_qrcode: settings['site_social.wechat_qrcode'],
+            qq_group: settings['site_social.qq_group'],
+            telegram: settings['site_social.telegram'],
+            discord: settings['site_social.discord'],
+            github: settings['site_social.github'],
+            twitter: settings['site_social.twitter'],
+            youtube: settings['site_social.youtube'],
+            bilibili: settings['site_social.bilibili'],
+            whatsapp: settings['site_social.whatsapp'],
+            custom_links: settings['site_social.custom_links'],
+          },
+          site_content: {
+            home_page_content_enabled:
+              settings['site_content.home_page_content_enabled'],
+            about_enabled: settings['site_content.about_enabled'],
+            footer_enabled: settings['site_content.footer_enabled'],
+            user_agreement_enabled:
+              settings['site_content.user_agreement_enabled'],
+            privacy_policy_enabled:
+              settings['site_content.privacy_policy_enabled'],
+          },
+        }}
+        contentValues={{
+          HomePageContent: settings.HomePageContent,
+          About: settings.About,
+          Footer: settings.Footer,
+          'legal.user_agreement': settings['legal.user_agreement'],
+          'legal.privacy_policy': settings['legal.privacy_policy'],
         }}
       />
     ),
@@ -78,16 +109,6 @@ const SITE_SECTIONS = [
         />
       )
     },
-  },
-  {
-    id: 'docs-link',
-    titleKey: 'Documentation Link',
-    icon: BookOpen,
-    build: (settings: SiteSettings) => (
-      <DocsLinkSection
-        defaultValue={settings['general_setting.docs_link'] ?? ''}
-      />
-    ),
   },
   {
     id: 'sidebar-modules',

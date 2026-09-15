@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type TFunction } from 'i18next'
-import { Activity, Box, ServerCog, Shield, Wrench } from 'lucide-react'
+import type { TFunction } from 'i18next'
+import { Activity, Box, ServerCog, Shield } from 'lucide-react'
 
 import { getAuthSectionNavItems } from '@/features/system-settings/auth/section-registry.tsx'
 import { getModelsSectionNavItems } from '@/features/system-settings/models/section-registry.tsx'
@@ -36,6 +36,12 @@ import type { NavGroup, SidebarView } from '../types'
  * content, access policy) lives in the Business Management view instead,
  * including upstream supply: channels and the model catalog are commercial
  * assets guarded by the `admin` role, so they live there.
+ *
+ * The former standalone "Operations" group is merged into "Runtime &
+ * Operations": Runtime Status stays first as the workspace landing page,
+ * then the operations sections follow in registry order (performance →
+ * monitoring → logs → email → worker → behavior → updates). Discount
+ * policy moved to Business Management → Billing & Pricing.
  */
 function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
   return [
@@ -48,25 +54,18 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
           icon: ServerCog,
           items: [
             { title: t('Runtime Status'), url: '/system-info', icon: Activity },
+            ...getOperationsSectionNavItems(t),
           ],
         },
         {
           title: t('Authentication & Security'),
           icon: Shield,
-          items: [
-            ...getAuthSectionNavItems(t),
-            ...getSecuritySectionNavItems(t),
-          ],
+          items: [...getAuthSectionNavItems(t), ...getSecuritySectionNavItems(t)],
         },
         {
           title: t('Models & Routing'),
           icon: Box,
           items: getModelsSectionNavItems(t),
-        },
-        {
-          title: t('Operations'),
-          icon: Wrench,
-          items: getOperationsSectionNavItems(t),
         },
       ],
     },

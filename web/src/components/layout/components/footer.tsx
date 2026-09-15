@@ -25,6 +25,7 @@ import { useSystemConfig } from '@/hooks/use-system-config'
 import { cn } from '@/lib/utils'
 
 import { Container } from './container'
+import { SiteContactDetails, SiteSocialLinks } from './site-contact'
 
 interface FooterLink {
   text: string
@@ -281,6 +282,9 @@ export function Footer(props: FooterProps) {
               icp={icp}
               className='text-muted-foreground/70 mt-1.5 block text-xs'
             />
+            {/* 联系方式与社交媒体：由「业务设置 → 站点 → 站点信息」配置 */}
+            <SiteContactDetails />
+            <SiteSocialLinks />
             {/* 上游项目感谢与开源协议声明：受保护信息，固定在品牌区最后一行。 */}
             <ProjectAttribution />
           </div>

@@ -34,7 +34,10 @@ import { ModelsDialogs } from './components/models-dialogs'
 import { ModelsPrimaryButtons } from './components/models-primary-buttons'
 import { ModelsProvider, useModels } from './components/models-provider'
 import { ModelsTable } from './components/models-table'
-import { useModelDeploymentSettings } from './hooks/use-model-deployment-settings'
+import {
+  useModelDeploymentSettings,
+  type LoadingPhase,
+} from './hooks/use-model-deployment-settings'
 import { deploymentsQueryKeys } from './lib'
 import {
   type ModelsSectionId,
@@ -61,6 +64,17 @@ function ModelsContent() {
   const activeSection = (params.section ??
     MODELS_DEFAULT_SECTION) as ModelsSectionId
 
+  // Deployment service state (io.net)
+  const {
+    loading: deploymentLoading,
+    loadingPhase,
+    isIoNetEnabled,
+    connectionLoading,
+    connectionOk,
+    connectionError,
+    testConnection,
+  } = useModelDeploymentSettings()
+
   // Deployment create dialog state
   const [createDeploymentOpen, setCreateDeploymentOpen] = useState(false)
 
@@ -70,6 +84,17 @@ function ModelsContent() {
       setTabCategory(activeSection)
     }
   }, [activeSection, setTabCategory, tabCategory])
+
+  // Redirect away from deployments when the service is disabled
+  useEffect(() => {
+    if (activeSection === 'deployments' && !deploymentLoading && !isIoNetEnabled) {
+      void navigate({
+        to: '/models/$section',
+        params: { section: 'metadata' },
+        replace: true,
+      })
+    }
+  }, [activeSection, deploymentLoading, isIoNetEnabled, navigate])
 
   const handleSectionChange = useCallback(
     (section: string) => {
@@ -81,14 +106,19 @@ function ModelsContent() {
     [navigate]
   )
 
-  const meta = SECTION_META[activeSection] ?? SECTION_META.metadata
+  // Hide the deployments tab when the service is not enabled
+  const visibleSections = MODELS_SECTION_IDS.filter(
+    (section) => section === 'metadata' || isIoNetEnabled
+  )
 
   return (
     <>
       <SectionPageLayout fixedContent>
-        <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>
+          {t('Available Models Maintenance')}
+        </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
-          {activeSection === 'metadata' ? (
+          {activeSection === 'metadata' || !isIoNetEnabled ? (
             <ModelsPrimaryButtons />
           ) : (
             <Button onClick={() => setCreateDeploymentOpen(true)} size='sm'>
@@ -101,7 +131,7 @@ function ModelsContent() {
           <div className='flex h-full min-h-0 flex-col gap-4'>
             <Tabs value={activeSection} onValueChange={handleSectionChange}>
               <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
-                {MODELS_SECTION_IDS.map((section) => (
+                {visibleSections.map((section) => (
                   <TabsTrigger key={section} value={section}>
                     {t(SECTION_META[section].titleKey)}
                   </TabsTrigger>
@@ -109,10 +139,18 @@ function ModelsContent() {
               </TabsList>
             </Tabs>
             <div className='min-h-0 flex-1'>
-              {activeSection === 'metadata' ? (
+              {activeSection === 'metadata' || !isIoNetEnabled ? (
                 <ModelsTable />
               ) : (
-                <DeploymentsSection />
+                <DeploymentsSection
+                  deploymentLoading={deploymentLoading}
+                  loadingPhase={loadingPhase}
+                  isIoNetEnabled={isIoNetEnabled}
+                  connectionLoading={connectionLoading}
+                  connectionOk={connectionOk}
+                  connectionError={connectionError}
+                  testConnection={testConnection}
+                />
               )}
             </div>
           </div>
@@ -128,17 +166,26 @@ function ModelsContent() {
   )
 }
 
-function DeploymentsSection() {
+interface DeploymentsSectionProps {
+  deploymentLoading: boolean
+  loadingPhase: LoadingPhase
+  isIoNetEnabled: boolean
+  connectionLoading: boolean
+  connectionOk: boolean | null
+  connectionError: string | null
+  testConnection: () => Promise<void>
+}
+
+function DeploymentsSection({
+  deploymentLoading,
+  loadingPhase,
+  isIoNetEnabled,
+  connectionLoading,
+  connectionOk,
+  connectionError,
+  testConnection,
+}: DeploymentsSectionProps) {
   const queryClient = useQueryClient()
-  const {
-    loading: deploymentLoading,
-    loadingPhase,
-    isIoNetEnabled,
-    connectionLoading,
-    connectionOk,
-    connectionError,
-    testConnection,
-  } = useModelDeploymentSettings()
 
   // Prefetch deployments list while connection check is in progress.
   useEffect(() => {

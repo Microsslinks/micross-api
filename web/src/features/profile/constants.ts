@@ -29,8 +29,28 @@ export const DEFAULT_QUOTA_WARNING_THRESHOLD = 500000
  * Notification methods
  */
 export const NOTIFICATION_METHODS = [
-  { value: 'email' as const, label: 'Email' },
-  { value: 'webhook' as const, label: 'Webhook' },
-  { value: 'bark' as const, label: 'Bark' },
-  { value: 'gotify' as const, label: 'Gotify' },
+  {
+    value: 'email' as const,
+    label: 'Email',
+    description:
+      'Send notifications to your email inbox. Works out of the box for everyone.',
+  },
+  {
+    value: 'webhook' as const,
+    label: 'Webhook',
+    description:
+      'POST notifications as JSON to your URL. For developers who want to route alerts into their own services or chat bots (Slack, Discord, Lark, etc.).',
+  },
+  {
+    value: 'bark' as const,
+    label: 'Bark',
+    description:
+      'Push notifications to your iPhone with Bark, an open-source iOS app. Install the Bark app and paste its push URL here.',
+  },
+  {
+    value: 'gotify' as const,
+    label: 'Gotify',
+    description:
+      'Push notifications to your self-hosted Gotify server. Requires you to deploy Gotify yourself.',
+  },
 ] as const

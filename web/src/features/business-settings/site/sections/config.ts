@@ -70,7 +70,6 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     plans: true,
-    earnings: true,
     customers: true,
     billing: true,
     personal: true,
@@ -91,7 +90,6 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     auth: true,
     security: true,
     routing: true,
-    operations: true,
   },
 }
 

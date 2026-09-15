@@ -50,7 +50,7 @@ export function clearConnectionCache() {
   connectionCache = null
 }
 
-type LoadingPhase = 'idle' | 'settings' | 'connection' | 'done'
+export type LoadingPhase = 'idle' | 'settings' | 'connection' | 'done'
 
 export function useModelDeploymentSettings() {
   const [loading, setLoading] = useState(true)

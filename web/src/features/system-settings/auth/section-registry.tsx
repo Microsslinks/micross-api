@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { AppWindow, Bot, KeyRound, LogIn } from 'lucide-react'
+import { Bot, KeyRound, LogIn } from 'lucide-react'
 
 import type { AuthSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
@@ -30,6 +30,10 @@ import { PasskeySection } from './passkey-section'
  *
  * 注册开关与邮箱白名单属于业务准入策略，已迁移到
  * `system-settings/policies`，见 `/business-settings/policies/registration`。
+ *
+ * 自定义 OAuth 不再单独占一个导航项：它和内置 OAuth 提供商是同一件事
+ * 的两个来源（内置表单 vs 自定义 CRUD），合并展示在「OAuth 集成」页
+ * 底部，避免两个入口指向高度相似的页面。
  */
 const AUTH_SECTIONS = [
   {
@@ -37,37 +41,40 @@ const AUTH_SECTIONS = [
     titleKey: 'OAuth Integrations',
     icon: LogIn,
     build: (settings: AuthSettings) => (
-      <OAuthSection
-        serverAddress={settings.ServerAddress}
-        defaultValues={{
-          GitHubOAuthEnabled: settings.GitHubOAuthEnabled,
-          GitHubClientId: settings.GitHubClientId,
-          GitHubClientSecret: settings.GitHubClientSecret,
-          'discord.enabled': settings['discord.enabled'],
-          'discord.client_id': settings['discord.client_id'],
-          'discord.client_secret': settings['discord.client_secret'],
-          'oidc.enabled': settings['oidc.enabled'],
-          'oidc.display_name': settings['oidc.display_name'],
-          'oidc.client_id': settings['oidc.client_id'],
-          'oidc.client_secret': settings['oidc.client_secret'],
-          'oidc.well_known': settings['oidc.well_known'],
-          'oidc.authorization_endpoint':
-            settings['oidc.authorization_endpoint'],
-          'oidc.token_endpoint': settings['oidc.token_endpoint'],
-          'oidc.user_info_endpoint': settings['oidc.user_info_endpoint'],
-          TelegramOAuthEnabled: settings.TelegramOAuthEnabled,
-          TelegramBotToken: settings.TelegramBotToken,
-          TelegramBotName: settings.TelegramBotName,
-          LinuxDOOAuthEnabled: settings.LinuxDOOAuthEnabled,
-          LinuxDOClientId: settings.LinuxDOClientId,
-          LinuxDOClientSecret: settings.LinuxDOClientSecret,
-          LinuxDOMinimumTrustLevel: settings.LinuxDOMinimumTrustLevel,
-          WeChatAuthEnabled: settings.WeChatAuthEnabled,
-          WeChatServerAddress: settings.WeChatServerAddress,
-          WeChatServerToken: settings.WeChatServerToken,
-          WeChatAccountQRCodeImageURL: settings.WeChatAccountQRCodeImageURL,
-        }}
-      />
+      <>
+        <OAuthSection
+          serverAddress={settings.ServerAddress}
+          defaultValues={{
+            GitHubOAuthEnabled: settings.GitHubOAuthEnabled,
+            GitHubClientId: settings.GitHubClientId,
+            GitHubClientSecret: settings.GitHubClientSecret,
+            'discord.enabled': settings['discord.enabled'],
+            'discord.client_id': settings['discord.client_id'],
+            'discord.client_secret': settings['discord.client_secret'],
+            'oidc.enabled': settings['oidc.enabled'],
+            'oidc.display_name': settings['oidc.display_name'],
+            'oidc.client_id': settings['oidc.client_id'],
+            'oidc.client_secret': settings['oidc.client_secret'],
+            'oidc.well_known': settings['oidc.well_known'],
+            'oidc.authorization_endpoint':
+              settings['oidc.authorization_endpoint'],
+            'oidc.token_endpoint': settings['oidc.token_endpoint'],
+            'oidc.user_info_endpoint': settings['oidc.user_info_endpoint'],
+            TelegramOAuthEnabled: settings.TelegramOAuthEnabled,
+            TelegramBotToken: settings.TelegramBotToken,
+            TelegramBotName: settings.TelegramBotName,
+            LinuxDOOAuthEnabled: settings.LinuxDOOAuthEnabled,
+            LinuxDOClientId: settings.LinuxDOClientId,
+            LinuxDOClientSecret: settings.LinuxDOClientSecret,
+            LinuxDOMinimumTrustLevel: settings.LinuxDOMinimumTrustLevel,
+            WeChatAuthEnabled: settings.WeChatAuthEnabled,
+            WeChatServerAddress: settings.WeChatServerAddress,
+            WeChatServerToken: settings.WeChatServerToken,
+            WeChatAccountQRCodeImageURL: settings.WeChatAccountQRCodeImageURL,
+          }}
+        />
+        <CustomOAuthSection serverAddress={settings.ServerAddress} />
+      </>
     ),
   },
   {
@@ -105,14 +112,6 @@ const AUTH_SECTIONS = [
           TurnstileSecretKey: settings.TurnstileSecretKey,
         }}
       />
-    ),
-  },
-  {
-    id: 'custom-oauth',
-    titleKey: 'Custom OAuth',
-    icon: AppWindow,
-    build: (settings: AuthSettings) => (
-      <CustomOAuthSection serverAddress={settings.ServerAddress} />
     ),
   },
 ] as const

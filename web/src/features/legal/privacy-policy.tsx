@@ -16,13 +16,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Navigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+
+import { useStatus } from '@/hooks/use-status'
 
 import { getPrivacyPolicy } from './api'
 import { LegalDocument } from './legal-document'
 
 export function PrivacyPolicy() {
   const { t } = useTranslation()
+  const { status } = useStatus()
+
+  // 管理员关闭了隐私政策入口（业务设置 → 站点 → 站点信息）
+  if (status && status.privacy_policy_enabled === false) {
+    return <Navigate to='/' replace />
+  }
+
   return (
     <LegalDocument
       title={t('Privacy Policy')}

@@ -24,10 +24,8 @@ import {
   FlaskConical,
   Key,
   LayoutDashboard,
-  ListTodo,
   Receipt,
   Settings,
-  TrendingUp,
   User,
   Users,
   Wallet,
@@ -45,9 +43,9 @@ import { useAuthStore } from '@/stores/auth-store'
  * Audience layering:
  *   · General — every signed-in user: the console entry points;
  *   · Personal — the signed-in user's own money and account, split by the
- *     direction money moves: wallet (balance / top-up / redemption),
- *     plans (what you buy), earnings (referral commission), the dealer
- *     ledger (only for `subject_type = 'agent'`), profile;
+ *     direction money moves: wallet (balance / top-up / redemption /
+ *     referral earnings), plans (what you buy), the dealer ledger (only for
+ *     `subject_type = 'agent'`), profile;
  *   · Business Management — administrators (`requiredRole: ROLE.ADMIN`);
  *   · System Management — super administrators only.
  *
@@ -104,14 +102,8 @@ export function useSidebarData(): SidebarData {
           {
             title: t('Usage Logs'),
             url: '/usage-logs/common',
+            activeUrls: ['/usage-logs/common', '/usage-logs/drawing', '/usage-logs/task'],
             icon: FileText,
-          },
-          {
-            title: t('Task Logs'),
-            url: '/usage-logs/task',
-            activeUrls: ['/usage-logs/drawing'],
-            configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
-            icon: ListTodo,
           },
           {
             title: t('Test Model'),
@@ -133,11 +125,6 @@ export function useSidebarData(): SidebarData {
             title: t('Plan'),
             url: '/plans',
             icon: Crown,
-          },
-          {
-            title: t('Earnings'),
-            url: '/earnings',
-            icon: TrendingUp,
           },
           ...dealerItems,
           {

@@ -132,10 +132,6 @@ export function SidebarModulesSection({
         title: t('Plan'),
         description: t('Subscribe to a plan for model access'),
       },
-      earnings: {
-        title: t('Earnings'),
-        description: t('Referral Program'),
-      },
       customers: {
         title: t('My Customers'),
         description: t(
@@ -169,7 +165,7 @@ export function SidebarModulesSection({
       billing: {
         title: t('Billing & Pricing'),
         description: t(
-          'Model pricing, group ratios, quota grants, and payment gateways.'
+          'Model pricing, group ratios, quota grants, payment gateways, and discount policy.'
         ),
       },
       site: {
@@ -192,7 +188,9 @@ export function SidebarModulesSection({
     system: {
       runtime: {
         title: t('Runtime & Access'),
-        description: t('Instance status and runtime diagnostics.'),
+        description: t(
+          'Instance status, performance, monitoring, email, worker proxy, logs, and updates.'
+        ),
       },
       auth: {
         title: t('Authentication'),
@@ -207,10 +205,6 @@ export function SidebarModulesSection({
         description: t(
           'Global model config, retry policy, and channel affinity.'
         ),
-      },
-      operations: {
-        title: t('Operations'),
-        description: t('SMTP, worker proxy, logs, performance, and updates.'),
       },
     },
   }

@@ -168,6 +168,12 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             )
           })}
         </ToggleGroup>
+        <p className='text-muted-foreground text-xs'>
+          {t(
+            NOTIFICATION_METHODS.find((method) => method.value === notifyType)
+              ?.description ?? ''
+          )}
+        </p>
       </div>
 
       {/* Warning Threshold */}

@@ -64,7 +64,11 @@ export function CustomOAuthSection(props: CustomOAuthSectionProps) {
 
   if (isLoading) {
     return (
-      <SettingsSection title={t('Custom OAuth Providers')}>
+      <SettingsSection
+        title={t('Custom OAuth Providers')}
+        showHeader
+        className='border-t pt-6'
+      >
         <div className='text-muted-foreground py-8 text-center text-sm'>
           {t('Loading...')}
         </div>
@@ -73,7 +77,11 @@ export function CustomOAuthSection(props: CustomOAuthSectionProps) {
   }
 
   return (
-    <SettingsSection title={t('Custom OAuth Providers')}>
+    <SettingsSection
+      title={t('Custom OAuth Providers')}
+      showHeader
+      className='border-t pt-6'
+    >
       <Alert>
         <AlertTitle>{t('Callback URL format')}</AlertTitle>
         <AlertDescription className='space-y-3 text-sm'>

@@ -26,6 +26,9 @@ import type { UpdateOptionRequest } from '../types'
 // Configuration keys that require status refresh
 const STATUS_RELATED_KEYS = new Set([
   'Icp',
+  'Footer',
+  'About',
+  'HomePageContent',
   'HeaderNavModules',
   'SidebarModulesAdmin',
   'Notice',
@@ -38,7 +41,23 @@ const STATUS_RELATED_KEYS = new Set([
   'general_setting.custom_currency_symbol',
   'general_setting.custom_currency_exchange_rate',
   'oidc.display_name',
+  'legal.user_agreement',
+  'legal.privacy_policy',
 ])
+
+// Key prefixes that also affect the public-facing /api/status payload
+const STATUS_RELATED_KEY_PREFIXES = [
+  'site_contact.',
+  'site_social.',
+  'site_content.',
+]
+
+function isStatusRelatedKey(key: string): boolean {
+  return (
+    STATUS_RELATED_KEYS.has(key) ||
+    STATUS_RELATED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
+  )
+}
 
 export function useUpdateOption() {
   const queryClient = useQueryClient()
@@ -51,7 +70,7 @@ export function useUpdateOption() {
         queryClient.invalidateQueries({ queryKey: ['system-options'] })
 
         // If updating frontend-display-related config, also refresh status
-        if (STATUS_RELATED_KEYS.has(variables.key)) {
+        if (isStatusRelatedKey(variables.key)) {
           queryClient.invalidateQueries({ queryKey: ['status'] })
           try {
             window.localStorage.removeItem('status')

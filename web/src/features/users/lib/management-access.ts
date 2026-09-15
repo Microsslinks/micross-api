@@ -65,7 +65,7 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
       },
       {
         key: 'models',
-        labelKey: 'Models',
+        labelKey: 'Available Models Maintenance',
         descriptionKey: 'Manage the model catalog and deployments.',
       },
       {
@@ -77,7 +77,7 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
         key: 'billing',
         labelKey: 'Billing & Pricing',
         descriptionKey:
-          'Model pricing, group ratios, quota grants, and payment gateways.',
+          'Model pricing, group ratios, quota grants, payment gateways, and discount policy.',
       },
       {
         key: 'site',
@@ -108,7 +108,8 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
       {
         key: 'runtime',
         labelKey: 'Runtime & Access',
-        descriptionKey: 'Instance status and runtime diagnostics.',
+        descriptionKey:
+          'Instance status, performance, monitoring, email, worker proxy, logs, and updates.',
       },
       {
         key: 'auth',
@@ -125,11 +126,6 @@ export const MANAGEMENT_ACCESS_SECTIONS: ManagementAccessSection[] = [
         labelKey: 'Models & Routing',
         descriptionKey:
           'Global model config, retry policy, and channel affinity.',
-      },
-      {
-        key: 'operations',
-        labelKey: 'Operations',
-        descriptionKey: 'SMTP, worker proxy, logs, performance, and updates.',
       },
     ],
   },

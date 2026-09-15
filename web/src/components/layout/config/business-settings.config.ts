@@ -62,7 +62,7 @@ function getBusinessSettingsNavGroups(t: TFunction): NavGroup[] {
           items: [
             { title: t('Channels'), url: '/channels', icon: Server },
             {
-              title: t('Models'),
+              title: t('Available Models Maintenance'),
               url: '/models/metadata',
               icon: Boxes,
               activeUrls: ['/models/deployments'],

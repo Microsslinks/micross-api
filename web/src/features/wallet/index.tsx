@@ -21,6 +21,9 @@ import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
+import { AffiliateRewardsCard } from '@/features/earnings/components/affiliate-rewards-card'
+import { TransferDialog } from '@/features/earnings/components/dialogs/transfer-dialog'
+import { useAffiliate } from '@/features/earnings/hooks'
 import { getSelf } from '@/lib/api'
 import { ROLE } from '@/lib/roles'
 
@@ -29,6 +32,7 @@ import { AmountOptionsManageDialog } from './components/dialogs/amount-options-m
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
+import { CheckinAdminCard } from './components/checkin-admin-card'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
@@ -60,9 +64,13 @@ interface WalletProps {
 /**
  * 「钱包」页
  *
- * 只装**钱本身**：余额、充值、兑换码、支付方式、账单历史。
- * 从前它还兼着「套餐」（买什么 → 现 `/plans`）和「推荐计划」
- * （赚的钱 → 现 `/earnings`），三件事挤在一页，客户进来先看到套餐和邀请链接。
+ * 只装**钱本身**：余额、充值、兑换码、支付方式、账单历史，
+ * 以及页面底部的「推荐收益」（推广佣金：邀请链接、待结算、累计、
+ * 邀请数、转出到余额——原先的独立 /earnings 页，因为内容只有
+ * 一行推广链接，不值得单独占一个入口）。
+ * 最下面还有管理员可见的「签到奖励」配置卡——签到发的就是钱包里的
+ * 每日额度，原先在业务管理 → 计费与定价的分节，同样不值得单开入口。
+ * 「卖给谁」在 `/plans`（套餐）。
  */
 export function Wallet(props: WalletProps) {
   const { t } = useTranslation()
@@ -85,6 +93,7 @@ export function Wallet(props: WalletProps) {
   const [amountOptionsDialogOpen, setAmountOptionsDialogOpen] = useState(false)
   const [discountManageDialogOpen, setDiscountManageDialogOpen] =
     useState(false)
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false)
 
   const { status } = useStatus()
   const {
@@ -93,6 +102,13 @@ export function Wallet(props: WalletProps) {
     loading: topupLoading,
     refetch: refetchTopupInfo,
   } = useTopupInfo()
+
+  const {
+    affiliateLink,
+    loading: affiliateLoading,
+    transferQuota,
+    transferring,
+  } = useAffiliate()
 
   // 管理员才在快捷充值区域装配「添加充值金额 / 折扣管理」入口
   const isAdminUser = !!user && (user.role ?? 0) >= ROLE.ADMIN
@@ -241,6 +257,15 @@ export function Wallet(props: WalletProps) {
     }
   }
 
+  // Handle referral rewards transfer to balance
+  const handleAffiliateTransfer = async (amount: number) => {
+    const success = await transferQuota(amount)
+    if (success) {
+      await fetchUser()
+    }
+    return success
+  }
+
   const handleWaffoMethodSelect = async (
     method: WaffoPayMethod,
     index: number
@@ -308,6 +333,18 @@ export function Wallet(props: WalletProps) {
                 onOpenDiscountManage={() => setDiscountManageDialogOpen(true)}
               />
             </div>
+
+            <AffiliateRewardsCard
+              user={user}
+              affiliateLink={affiliateLink}
+              onTransfer={() => setTransferDialogOpen(true)}
+              complianceConfirmed={
+                topupInfo?.payment_compliance_confirmed !== false
+              }
+              loading={affiliateLoading || userLoading}
+            />
+
+            {isAdminUser && <CheckinAdminCard />}
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
@@ -327,6 +364,14 @@ export function Wallet(props: WalletProps) {
       <BillingHistoryDialog
         open={billingDialogOpen}
         onOpenChange={setBillingDialogOpen}
+      />
+
+      <TransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        onConfirm={handleAffiliateTransfer}
+        availableQuota={user?.aff_quota ?? 0}
+        transferring={transferring}
       />
 
       <CreemConfirmDialog

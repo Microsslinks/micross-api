@@ -24,7 +24,6 @@ import {
   Gauge,
   HardDrive,
   Mail,
-  Percent,
 } from 'lucide-react'
 
 import { SystemBehaviorSection } from '../general/system-behavior-section'
@@ -34,36 +33,40 @@ import { WorkerSettingsSection } from '../integrations/worker-settings-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
 import { PerformanceSection } from '../maintenance/performance-section'
 import { UpdateCheckerSection } from '../maintenance/update-checker-section'
-import { DiscountSettingSection } from '../pricing/discount-setting-section'
 import type { OperationsSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 
+/*
+ * 分节顺序即侧边栏展示顺序（「运行和运维」分组里排在「运行状态」之后）：
+ * 先观测链路（性能 → 监控与告警 → 日志维护），再通知与出口通道
+ * （SMTP → Worker 代理），实例级行为开关殿前，版本与更新收尾。
+ * 折扣策略已迁往业务管理 → 计费与定价（与客户折扣方案作伴）。
+ * 调整顺序前先同步 system-settings.config.ts 的注释。
+ */
 const OPERATIONS_SECTIONS = [
   {
-    id: 'behavior',
-    titleKey: 'System Behavior',
-    icon: Cog,
+    id: 'performance',
+    titleKey: 'Performance',
+    icon: Gauge,
     build: (settings: OperationsSettings) => (
-      <SystemBehaviorSection
+      <PerformanceSection
         defaultValues={{
-          DefaultCollapseSidebar: settings.DefaultCollapseSidebar,
-          DemoSiteEnabled: settings.DemoSiteEnabled,
-          SelfUseModeEnabled: settings.SelfUseModeEnabled,
-        }}
-      />
-    ),
-  },
-  {
-    id: 'discount',
-    titleKey: 'Discount Policy',
-    icon: Percent,
-    build: (settings: OperationsSettings) => (
-      <DiscountSettingSection
-        defaultValues={{
-          'discount_setting.min_margin_ratio':
-            settings['discount_setting.min_margin_ratio'] ?? '0',
-          'discount_setting.enable_billing_discount':
-            settings['discount_setting.enable_billing_discount'] ?? false,
+          'performance_setting.disk_cache_enabled':
+            settings['performance_setting.disk_cache_enabled'] ?? false,
+          'performance_setting.disk_cache_threshold_mb':
+            settings['performance_setting.disk_cache_threshold_mb'] ?? 10,
+          'performance_setting.disk_cache_max_size_mb':
+            settings['performance_setting.disk_cache_max_size_mb'] ?? 1024,
+          'performance_setting.disk_cache_path':
+            settings['performance_setting.disk_cache_path'] ?? '',
+          'performance_setting.monitor_enabled':
+            settings['performance_setting.monitor_enabled'] ?? false,
+          'performance_setting.monitor_cpu_threshold':
+            settings['performance_setting.monitor_cpu_threshold'] ?? 90,
+          'performance_setting.monitor_memory_threshold':
+            settings['performance_setting.monitor_memory_threshold'] ?? 90,
+          'performance_setting.monitor_disk_threshold':
+            settings['performance_setting.monitor_disk_threshold'] ?? 95,
         }}
       />
     ),
@@ -85,6 +88,16 @@ const OPERATIONS_SECTIONS = [
           'perf_metrics_setting.retention_days':
             settings['perf_metrics_setting.retention_days'] ?? 0,
         }}
+      />
+    ),
+  },
+  {
+    id: 'logs',
+    titleKey: 'Log Maintenance',
+    icon: FileText,
+    build: (settings: OperationsSettings) => (
+      <LogSettingsSection
+        defaultEnabled={Boolean(settings.LogConsumeEnabled)}
       />
     ),
   },
@@ -124,38 +137,15 @@ const OPERATIONS_SECTIONS = [
     ),
   },
   {
-    id: 'logs',
-    titleKey: 'Log Maintenance',
-    icon: FileText,
+    id: 'behavior',
+    titleKey: 'System Behavior',
+    icon: Cog,
     build: (settings: OperationsSettings) => (
-      <LogSettingsSection
-        defaultEnabled={Boolean(settings.LogConsumeEnabled)}
-      />
-    ),
-  },
-  {
-    id: 'performance',
-    titleKey: 'Performance',
-    icon: Gauge,
-    build: (settings: OperationsSettings) => (
-      <PerformanceSection
+      <SystemBehaviorSection
         defaultValues={{
-          'performance_setting.disk_cache_enabled':
-            settings['performance_setting.disk_cache_enabled'] ?? false,
-          'performance_setting.disk_cache_threshold_mb':
-            settings['performance_setting.disk_cache_threshold_mb'] ?? 10,
-          'performance_setting.disk_cache_max_size_mb':
-            settings['performance_setting.disk_cache_max_size_mb'] ?? 1024,
-          'performance_setting.disk_cache_path':
-            settings['performance_setting.disk_cache_path'] ?? '',
-          'performance_setting.monitor_enabled':
-            settings['performance_setting.monitor_enabled'] ?? false,
-          'performance_setting.monitor_cpu_threshold':
-            settings['performance_setting.monitor_cpu_threshold'] ?? 90,
-          'performance_setting.monitor_memory_threshold':
-            settings['performance_setting.monitor_memory_threshold'] ?? 90,
-          'performance_setting.monitor_disk_threshold':
-            settings['performance_setting.monitor_disk_threshold'] ?? 95,
+          DefaultCollapseSidebar: settings.DefaultCollapseSidebar,
+          DemoSiteEnabled: settings.DemoSiteEnabled,
+          SelfUseModeEnabled: settings.SelfUseModeEnabled,
         }}
       />
     ),
@@ -185,7 +175,7 @@ const operationsRegistry = createSectionRegistry<
   [string | null | undefined, number | null | undefined]
 >({
   sections: OPERATIONS_SECTIONS,
-  defaultSection: 'behavior',
+  defaultSection: 'performance',
   basePath: '/system-settings/operations',
   urlStyle: 'path',
 })

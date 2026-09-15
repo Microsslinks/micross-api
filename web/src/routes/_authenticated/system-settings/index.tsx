@@ -18,13 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { AUTH_DEFAULT_SECTION } from '@/features/system-settings/auth/section-registry.tsx'
-
+// 系统管理的落地页是「运行状态」：进工作区先看实例全貌，再往下钻配置。
 export const Route = createFileRoute('/_authenticated/system-settings/')({
   beforeLoad: () => {
-    throw redirect({
-      to: '/system-settings/auth/$section',
-      params: { section: AUTH_DEFAULT_SECTION },
-    })
+    throw redirect({ to: '/system-info' })
   },
 })

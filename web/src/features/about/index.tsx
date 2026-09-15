@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
+import { Navigate } from '@tanstack/react-router'
 import {
   ArrowRight,
   Building2,
@@ -38,8 +39,10 @@ import {
 import { Trans, useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
+import { SiteContactCard } from '@/components/layout/components/site-contact'
 import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useStatus } from '@/hooks/use-status'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 import { cn } from '@/lib/utils'
 
@@ -630,20 +633,9 @@ function CompanyProfile() {
             </ContentCard>
           ))}
         </div>
-        {/*
-          联系方式（地址/电话/邮箱/社交）计划做成系统设置项，
-          做好后在此处渲染具体信息；当前先放通用文案预留位置。
-        */}
-        <div className='border-border/50 bg-card mt-4 rounded-2xl border px-6 py-5 text-center'>
-          <p className='text-sm font-semibold'>
-            {t(
-              'For 1000+ users, multi-node or high-availability deployments: contact us for a quote.'
-            )}
-          </p>
-          <p className='text-muted-foreground mt-1.5 text-sm'>
-            {t('For a deployment proposal and quote, please contact us.')}
-          </p>
-        </div>
+        {/* 联系方式卡片：由「业务设置 → 站点 → 站点信息」配置；
+            未配置任何联系信息时回落到通用文案。 */}
+        <AboutContactSection />
       </section>
 
       {/* 发展历程 */}
@@ -702,8 +694,37 @@ function CompanyProfile() {
   )
 }
 
+/** 联系区块：已配置联系方式时渲染联系卡片，否则回落通用文案 */
+function AboutContactSection() {
+  const { t } = useTranslation()
+  const { status } = useStatus()
+  const contact = status?.site_contact ?? {}
+  const social = status?.site_social ?? {}
+  const hasContactInfo =
+    Object.values(contact).some((v) => !!v?.trim()) ||
+    Object.values(social).some((v) => !!v?.trim())
+
+  if (hasContactInfo) {
+    return <SiteContactCard />
+  }
+
+  return (
+    <div className='border-border/50 bg-card mt-4 rounded-2xl border px-6 py-5 text-center'>
+      <p className='text-sm font-semibold'>
+        {t(
+          'For 1000+ users, multi-node or high-availability deployments: contact us for a quote.'
+        )}
+      </p>
+      <p className='text-muted-foreground mt-1.5 text-sm'>
+        {t('For a deployment proposal and quote, please contact us.')}
+      </p>
+    </div>
+  )
+}
+
 export function About() {
   const { t } = useTranslation()
+  const { status } = useStatus()
   const { data, isLoading } = useQuery({
     queryKey: ['about-content'],
     queryFn: getAboutContent,
@@ -713,6 +734,11 @@ export function About() {
   const hasContent = rawContent.length > 0
   const isUrl = hasContent && isHttpUrl(rawContent)
   const contentIsHtml = hasContent && isLikelyHtml(rawContent)
+
+  // 管理员关闭了关于页入口（业务设置 → 站点 → 站点信息）
+  if (status && status.about_enabled === false) {
+    return <Navigate to='/' replace />
+  }
 
   if (isLoading) {
     return (

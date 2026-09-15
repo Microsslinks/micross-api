@@ -41,8 +41,8 @@ type SidebarModulesUserConfig = SidebarModulesAdminConfig | null
  *   · `personal` — personal workspace;
  *   · `business` — administrator workspace (upstream supply, pricing,
  *     payment, site, content);
- *   · `system` — super administrator workspace (runtime, routing, security,
- *     ops).
+ *   · `system` — super administrator workspace (runtime & ops, auth,
+ *     security, routing).
  *
  * Keeping the granularity at "one module per sidebar group" lets an
  * administrator be granted billing access without inheriting channel or
@@ -65,7 +65,6 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     plans: true,
-    earnings: true,
     customers: true,
     billing: true,
     personal: true,
@@ -86,7 +85,6 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     auth: true,
     security: true,
     routing: true,
-    operations: true,
   },
 }
 
@@ -141,7 +139,6 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   // Personal
   '/wallet': { section: 'personal', module: 'topup' },
   '/plans': { section: 'personal', module: 'plans' },
-  '/earnings': { section: 'personal', module: 'earnings' },
   // 「我的客户」是经销商自己的客户名单，跟台账（钱）是两件事，
   // 所以单独占一个开关，管理员可以只关名单、不影响台账。
   '/customers': { section: 'personal', module: 'customers' },
@@ -165,13 +162,16 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/models': { section: 'business', module: 'models' },
   '/models/metadata': { section: 'business', module: 'models' },
   '/models/deployments': { section: 'business', module: 'models' },
-  // System management
+  // System management. The former `operations` module merged into `runtime`
+  // ("Runtime & Operations" sidebar group), so every operations section URL
+  // resolves to `runtime` — one toggle governs the whole group, and stored
+  // `system.operations` values are dropped by the schema on next save.
   '/system-info': { section: 'system', module: 'runtime' },
-  '/system-settings': { section: 'system', module: 'routing' },
+  '/system-settings': { section: 'system', module: 'runtime' },
   '/system-settings/auth': { section: 'system', module: 'auth' },
   '/system-settings/models': { section: 'system', module: 'routing' },
   '/system-settings/security': { section: 'system', module: 'security' },
-  '/system-settings/operations': { section: 'system', module: 'operations' },
+  '/system-settings/operations': { section: 'system', module: 'runtime' },
 }
 
 /**

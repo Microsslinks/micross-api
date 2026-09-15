@@ -95,8 +95,8 @@ export function useTopNavLinks(): TopNavLink[] {
     }
   }
 
-  // About
-  if (modules?.about !== false) {
+  // About (hidden when the admin turned it off in Site Information settings)
+  if (modules?.about !== false && status?.about_enabled !== false) {
     links.push({ title: t('About'), href: '/about' })
   }
 

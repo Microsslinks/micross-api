@@ -104,6 +104,27 @@ export interface RegisterResult {
 // System Status
 // ============================================================================
 
+export interface SiteContactInfo {
+  company_name?: string
+  phone?: string
+  email?: string
+  address?: string
+  service_hours?: string
+}
+
+export interface SiteSocialInfo {
+  wechat_qrcode?: string
+  qq_group?: string
+  telegram?: string
+  discord?: string
+  github?: string
+  twitter?: string
+  youtube?: string
+  bilibili?: string
+  whatsapp?: string
+  custom_links?: string
+}
+
 export interface SystemStatus {
   success?: boolean
   message?: string
@@ -146,6 +167,10 @@ export interface SystemStatus {
     demo_site_enabled?: boolean
     user_agreement_enabled?: boolean
     privacy_policy_enabled?: boolean
+    home_page_content_enabled?: boolean
+    about_enabled?: boolean
+    site_contact?: SiteContactInfo
+    site_social?: SiteSocialInfo
     oauth_register_enabled?: boolean
     register_enabled?: boolean
     password_login_enabled?: boolean
@@ -192,6 +217,10 @@ export interface SystemStatus {
   demo_site_enabled?: boolean
   user_agreement_enabled?: boolean
   privacy_policy_enabled?: boolean
+  home_page_content_enabled?: boolean
+  about_enabled?: boolean
+  site_contact?: SiteContactInfo
+  site_social?: SiteSocialInfo
   oauth_register_enabled?: boolean
   register_enabled?: boolean
   password_login_enabled?: boolean
