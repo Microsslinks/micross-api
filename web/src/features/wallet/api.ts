@@ -23,7 +23,10 @@ import type {
   PaymentRequest,
   AmountRequest,
   ApiResponse,
+  CheckinSetting,
+  CheckinSettingResponse,
   TopupInfoResponse,
+  UpdateCheckinSettingResponse,
   RedemptionResponse,
   AmountResponse,
   PaymentResponse,
@@ -55,6 +58,43 @@ export function isApiSuccess(response: ApiResponse): boolean {
 export async function getTopupInfo(): Promise<TopupInfoResponse> {
   const res = await api.get('/api/user/topup/info')
   return res.data
+}
+
+/**
+ * Get check-in setting (super admin only, via system options)
+ *
+ * 签到配置存在系统选项库里，走通用的 /api/option/（RootAuth），
+ * 从中筛出 checkin_setting.* 三个键。键不存在时返回默认值，
+ * 保证超管打开钱包页就能看到并配置。
+ */
+export async function getCheckinSetting(): Promise<CheckinSettingResponse> {
+  const res = await api.get('/api/option/')
+  const list = (res.data?.data ?? []) as Array<{ key: string; value: string }>
+  const enabled = list.find((o) => o.key === 'checkin_setting.enabled')?.value
+  const minQuota = list.find((o) => o.key === 'checkin_setting.min_quota')?.value
+  const maxQuota = list.find((o) => o.key === 'checkin_setting.max_quota')?.value
+  const setting: CheckinSetting = {
+    enabled: enabled === 'true',
+    min_quota: minQuota != null ? Number(minQuota) : 0,
+    max_quota: maxQuota != null ? Number(maxQuota) : 0,
+  }
+  return { success: true, message: '', data: setting }
+}
+
+/**
+ * Update check-in setting (super admin only, via system options)
+ *
+ * /api/option/ 的 PUT 一次只接一个键，所以三个值并发提交。
+ */
+export async function updateCheckinSetting(
+  request: CheckinSetting
+): Promise<UpdateCheckinSettingResponse> {
+  await Promise.all([
+    api.put('/api/option/', { key: 'checkin_setting.enabled', value: request.enabled }),
+    api.put('/api/option/', { key: 'checkin_setting.min_quota', value: request.min_quota }),
+    api.put('/api/option/', { key: 'checkin_setting.max_quota', value: request.max_quota }),
+  ])
+  return { success: true, message: '', data: request }
 }
 
 /**
