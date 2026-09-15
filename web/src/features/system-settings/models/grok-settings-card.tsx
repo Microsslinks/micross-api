@@ -40,9 +40,13 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
-import { SettingsPageFormActions } from '../components/settings-page-context'
-import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+
+export type GrokTabHandle = {
+  submit: () => Promise<void>
+  isDirty: () => boolean
+  reset: () => void
+}
 import { safeNumberFieldProps } from '../utils/numeric-field'
 
 const XAI_VIOLATION_FEE_DOC_URL =
@@ -83,11 +87,13 @@ const normalizeFormValues = (values: GrokFormValues): FlatGrokDefaults => ({
 
 interface Props {
   defaultValues: FlatGrokDefaults
+  tabRef?: (handle: GrokTabHandle | null) => void
 }
 
 export function GrokSettingsCard(props: Props) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const { tabRef } = props
 
   const formDefaults = useMemo(
     () => buildFormDefaults(props.defaultValues),
@@ -111,6 +117,21 @@ export function GrokSettingsCard(props: Props) {
     baselineSerializedRef.current = serialized
     form.reset(buildFormDefaults(props.defaultValues))
   }, [props.defaultValues, form])
+
+  useEffect(() => {
+    if (!tabRef) return
+    const handle: GrokTabHandle = {
+      submit: async () => {
+        await form.handleSubmit(onSubmit)()
+      },
+      isDirty: () => form.formState.isDirty,
+      reset: () => {
+        form.reset(buildFormDefaults(props.defaultValues))
+      },
+    }
+    tabRef(handle)
+    return () => tabRef(null)
+  }, [tabRef, form, props.defaultValues])
 
   const onSubmit = async (values: GrokFormValues) => {
     const normalized = normalizeFormValues(values)
@@ -138,14 +159,9 @@ export function GrokSettingsCard(props: Props) {
   const enabled = form.watch('grok.violation_deduction_enabled')
 
   return (
-    <SettingsSection title={t('Grok Settings')}>
-      <Form {...form}>
-        <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
-          <SettingsPageFormActions
-            onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
-          />
-          <FormField
+    <Form {...form}>
+      <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
             control={form.control}
             name='grok.violation_deduction_enabled'
             render={({ field }) => (
@@ -201,7 +217,6 @@ export function GrokSettingsCard(props: Props) {
             )}
           />
         </SettingsForm>
-      </Form>
-    </SettingsSection>
+    </Form>
   )
 }

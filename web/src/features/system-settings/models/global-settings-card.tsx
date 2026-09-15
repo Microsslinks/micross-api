@@ -45,9 +45,13 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
-import { SettingsPageFormActions } from '../components/settings-page-context'
-import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+
+export type GlobalTabHandle = {
+  submit: () => Promise<void>
+  isDirty: () => boolean
+  reset: () => void
+}
 
 const thinkingBlacklistExample = JSON.stringify(
   ['moonshotai/kimi-k2-thinking', 'kimi-k2-thinking'],
@@ -136,9 +140,13 @@ function normalizeJsonText(value: string, fallback: string) {
 
 type GlobalSettingsCardProps = {
   defaultValues: GlobalModelSettingsFormValues
+  tabRef?: (handle: GlobalTabHandle | null) => void
 }
 
-export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
+export function GlobalSettingsCard({
+  defaultValues,
+  tabRef,
+}: GlobalSettingsCardProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
 
@@ -154,6 +162,21 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
   useEffect(() => {
     form.reset(defaultValues as GlobalModelSettingsFormInput)
   }, [defaultValues, form])
+
+  useEffect(() => {
+    if (!tabRef) return
+    const handle: GlobalTabHandle = {
+      submit: async () => {
+        await form.handleSubmit(onSubmit)()
+      },
+      isDirty: () => form.formState.isDirty,
+      reset: () => {
+        form.reset(defaultValues as GlobalModelSettingsFormInput)
+      },
+    }
+    tabRef(handle)
+    return () => tabRef(null)
+  }, [tabRef, form, defaultValues])
 
   const pingEnabled = form.watch('general_setting.ping_interval_enabled')
 
@@ -176,17 +199,14 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
         value,
       })
     }
+
+    form.reset(defaultValues as GlobalModelSettingsFormInput)
   }
 
   return (
-    <SettingsSection title={t('Global Model Configuration')}>
-      <Form {...form}>
-        <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
-          <SettingsPageFormActions
-            onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
-          />
-          <FormField
+    <Form {...form}>
+      <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
             control={form.control}
             name='global.pass_through_request_enabled'
             render={({ field }) => (
@@ -374,7 +394,6 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
             )}
           />
         </SettingsForm>
-      </Form>
-    </SettingsSection>
+    </Form>
   )
 }

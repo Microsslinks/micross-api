@@ -42,9 +42,13 @@ import {
   SettingsControlGroup,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
-import { SettingsPageFormActions } from '../components/settings-page-context'
-import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+
+export type GeminiTabHandle = {
+  submit: () => Promise<void>
+  isDirty: () => boolean
+  reset: () => void
+}
 import {
   formatJsonForTextarea,
   normalizeJsonString,
@@ -110,9 +114,13 @@ type FlatGeminiSettings = {
 
 type GeminiSettingsCardProps = {
   defaultValues: GeminiSettingsFormInput
+  tabRef?: (handle: GeminiTabHandle | null) => void
 }
 
-export function GeminiSettingsCard({ defaultValues }: GeminiSettingsCardProps) {
+export function GeminiSettingsCard({
+  defaultValues,
+  tabRef,
+}: GeminiSettingsCardProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const normalizedDefaultsRef = useRef<FlatGeminiSettings>({
@@ -189,6 +197,21 @@ export function GeminiSettingsCard({ defaultValues }: GeminiSettingsCardProps) {
     form.reset(buildFormDefaults(defaultValues))
   }, [defaultValues, form])
 
+  useEffect(() => {
+    if (!tabRef) return
+    const handle: GeminiTabHandle = {
+      submit: async () => {
+        await form.handleSubmit(onSubmit)()
+      },
+      isDirty: () => form.formState.isDirty,
+      reset: () => {
+        form.reset(buildFormDefaults(defaultValues))
+      },
+    }
+    tabRef(handle)
+    return () => tabRef(null)
+  }, [tabRef, form, defaultValues])
+
   const isAdapterEnabled = form.watch('gemini.thinking_adapter_enabled')
 
   const onSubmit = async (values: GeminiSettingsFormValues) => {
@@ -226,6 +249,8 @@ export function GeminiSettingsCard({ defaultValues }: GeminiSettingsCardProps) {
         value: normalized[key],
       })
     }
+
+    form.reset(buildFormDefaults(defaultValues))
   }
 
   const imaginePlaceholder = useMemo(
@@ -234,14 +259,9 @@ export function GeminiSettingsCard({ defaultValues }: GeminiSettingsCardProps) {
   )
 
   return (
-    <SettingsSection title={t('Gemini')}>
-      <Form {...form}>
-        <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
-          <SettingsPageFormActions
-            onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
-          />
-          <FormField
+    <Form {...form}>
+      <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
             control={form.control}
             name='gemini.safety_settings'
             render={({ field }) => (
@@ -433,7 +453,6 @@ export function GeminiSettingsCard({ defaultValues }: GeminiSettingsCardProps) {
             )}
           />
         </SettingsForm>
-      </Form>
-    </SettingsSection>
+    </Form>
   )
 }

@@ -16,22 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  Magnet,
-  MessageCircle,
-  Route,
-  Settings2,
-  Sparkles,
-  Zap,
-} from 'lucide-react'
+import { Magnet, Route, Settings2 } from 'lucide-react'
 
 import { ChannelAffinitySection } from '../general/channel-affinity'
 import type { ModelSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
-import { ClaudeSettingsCard } from './claude-settings-card'
-import { GeminiSettingsCard } from './gemini-settings-card'
-import { GlobalSettingsCard } from './global-settings-card'
-import { GrokSettingsCard } from './grok-settings-card'
+import { ModelsConfigTabs } from './models-config-tabs'
 import { RoutingReliabilitySection } from './routing-reliability-section'
 
 function formatJsonForEditor(value: string, fallback: string) {
@@ -47,28 +37,63 @@ function formatJsonForEditor(value: string, fallback: string) {
 const MODELS_SECTIONS = [
   {
     id: 'global',
-    titleKey: 'Global Model Configuration',
+    titleKey: 'Model Configuration',
     icon: Settings2,
     build: (settings: ModelSettings) => (
-      <GlobalSettingsCard
-        defaultValues={{
+      <ModelsConfigTabs
+        defaults={{
           global: {
-            pass_through_request_enabled:
-              settings['global.pass_through_request_enabled'],
-            thinking_model_blacklist: formatJsonForEditor(
-              settings['global.thinking_model_blacklist'],
-              '[]'
-            ),
-            chat_completions_to_responses_policy: formatJsonForEditor(
-              settings['global.chat_completions_to_responses_policy'],
-              '{}'
-            ),
+            global: {
+              pass_through_request_enabled:
+                settings['global.pass_through_request_enabled'],
+              thinking_model_blacklist: formatJsonForEditor(
+                settings['global.thinking_model_blacklist'],
+                '[]'
+              ),
+              chat_completions_to_responses_policy: formatJsonForEditor(
+                settings['global.chat_completions_to_responses_policy'],
+                '{}'
+              ),
+            },
+            general_setting: {
+              ping_interval_enabled:
+                settings['general_setting.ping_interval_enabled'],
+              ping_interval_seconds:
+                settings['general_setting.ping_interval_seconds'],
+            },
           },
-          general_setting: {
-            ping_interval_enabled:
-              settings['general_setting.ping_interval_enabled'],
-            ping_interval_seconds:
-              settings['general_setting.ping_interval_seconds'],
+          gemini: {
+            gemini: {
+              safety_settings: settings['gemini.safety_settings'],
+              version_settings: settings['gemini.version_settings'],
+              supported_imagine_models:
+                settings['gemini.supported_imagine_models'],
+              thinking_adapter_enabled:
+                settings['gemini.thinking_adapter_enabled'],
+              thinking_adapter_budget_tokens_percentage:
+                settings['gemini.thinking_adapter_budget_tokens_percentage'],
+              function_call_thought_signature_enabled:
+                settings['gemini.function_call_thought_signature_enabled'],
+              remove_function_response_id_enabled:
+                settings['gemini.remove_function_response_id_enabled'],
+            },
+          },
+          claude: {
+            claude: {
+              model_headers_settings:
+                settings['claude.model_headers_settings'],
+              default_max_tokens: settings['claude.default_max_tokens'],
+              thinking_adapter_enabled:
+                settings['claude.thinking_adapter_enabled'],
+              thinking_adapter_budget_tokens_percentage:
+                settings['claude.thinking_adapter_budget_tokens_percentage'],
+            },
+          },
+          grok: {
+            'grok.violation_deduction_enabled':
+              settings['grok.violation_deduction_enabled'] ?? true,
+            'grok.violation_deduction_amount':
+              settings['grok.violation_deduction_amount'] ?? 0.05,
           },
         }}
       />
@@ -97,65 +122,6 @@ const MODELS_SECTIONS = [
             settings['monitor_setting.channel_test_concurrency'],
           'monitor_setting.channel_test_mode':
             settings['monitor_setting.channel_test_mode'],
-        }}
-      />
-    ),
-  },
-  {
-    id: 'gemini',
-    titleKey: 'Gemini',
-    icon: Sparkles,
-    build: (settings: ModelSettings) => (
-      <GeminiSettingsCard
-        defaultValues={{
-          gemini: {
-            safety_settings: settings['gemini.safety_settings'],
-            version_settings: settings['gemini.version_settings'],
-            supported_imagine_models:
-              settings['gemini.supported_imagine_models'],
-            thinking_adapter_enabled:
-              settings['gemini.thinking_adapter_enabled'],
-            thinking_adapter_budget_tokens_percentage:
-              settings['gemini.thinking_adapter_budget_tokens_percentage'],
-            function_call_thought_signature_enabled:
-              settings['gemini.function_call_thought_signature_enabled'],
-            remove_function_response_id_enabled:
-              settings['gemini.remove_function_response_id_enabled'],
-          },
-        }}
-      />
-    ),
-  },
-  {
-    id: 'claude',
-    titleKey: 'Claude',
-    icon: MessageCircle,
-    build: (settings: ModelSettings) => (
-      <ClaudeSettingsCard
-        defaultValues={{
-          claude: {
-            model_headers_settings: settings['claude.model_headers_settings'],
-            default_max_tokens: settings['claude.default_max_tokens'],
-            thinking_adapter_enabled:
-              settings['claude.thinking_adapter_enabled'],
-            thinking_adapter_budget_tokens_percentage:
-              settings['claude.thinking_adapter_budget_tokens_percentage'],
-          },
-        }}
-      />
-    ),
-  },
-  {
-    id: 'grok',
-    titleKey: 'Grok',
-    icon: Zap,
-    build: (settings: ModelSettings) => (
-      <GrokSettingsCard
-        defaultValues={{
-          'grok.violation_deduction_enabled':
-            settings['grok.violation_deduction_enabled'] ?? true,
-          'grok.violation_deduction_amount':
-            settings['grok.violation_deduction_amount'] ?? 0.05,
         }}
       />
     ),

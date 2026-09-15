@@ -42,9 +42,13 @@ import {
   SettingsControlGroup,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
-import { SettingsPageFormActions } from '../components/settings-page-context'
-import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+
+export type ClaudeTabHandle = {
+  submit: () => Promise<void>
+  isDirty: () => boolean
+  reset: () => void
+}
 import {
   formatJsonForTextarea,
   normalizeJsonString,
@@ -91,9 +95,13 @@ type FlatClaudeSettings = {
 
 type ClaudeSettingsCardProps = {
   defaultValues: ClaudeSettingsFormInput
+  tabRef?: (handle: ClaudeTabHandle | null) => void
 }
 
-export function ClaudeSettingsCard({ defaultValues }: ClaudeSettingsCardProps) {
+export function ClaudeSettingsCard({
+  defaultValues,
+  tabRef,
+}: ClaudeSettingsCardProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const normalizedDefaultsRef = useRef<FlatClaudeSettings>({
@@ -153,6 +161,21 @@ export function ClaudeSettingsCard({ defaultValues }: ClaudeSettingsCardProps) {
     form.reset(buildFormDefaults(defaultValues))
   }, [defaultValues, form])
 
+  useEffect(() => {
+    if (!tabRef) return
+    const handle: ClaudeTabHandle = {
+      submit: async () => {
+        await form.handleSubmit(onSubmit)()
+      },
+      isDirty: () => form.formState.isDirty,
+      reset: () => {
+        form.reset(buildFormDefaults(defaultValues))
+      },
+    }
+    tabRef(handle)
+    return () => tabRef(null)
+  }, [tabRef, form, defaultValues])
+
   const onSubmit = async (values: ClaudeSettingsFormValues) => {
     const normalized: FlatClaudeSettings = {
       'claude.model_headers_settings': normalizeJsonString(
@@ -178,18 +201,15 @@ export function ClaudeSettingsCard({ defaultValues }: ClaudeSettingsCardProps) {
     for (const key of updates) {
       await updateOption.mutateAsync({ key, value: normalized[key] })
     }
+
+    form.reset(buildFormDefaults(defaultValues))
   }
 
   return (
-    <SettingsSection title={t('Claude')}>
-      <Form {...form}>
-        {/* eslint-disable-next-line react-hooks/refs */}
-        <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
-          <SettingsPageFormActions
-            onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
-          />
-          <FormField
+    <Form {...form}>
+      {/* eslint-disable-next-line react-hooks/refs */}
+      <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
             control={form.control}
             name='claude.model_headers_settings'
             render={({ field }) => (
@@ -292,7 +312,6 @@ export function ClaudeSettingsCard({ defaultValues }: ClaudeSettingsCardProps) {
             />
           </SettingsControlGroup>
         </SettingsForm>
-      </Form>
-    </SettingsSection>
+    </Form>
   )
 }
