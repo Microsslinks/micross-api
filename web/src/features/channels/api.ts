@@ -251,6 +251,30 @@ export async function testChannel(
 }
 
 /**
+ * Chat-style channel test. Sends a real conversation to the upstream and
+ * surfaces the parsed model reply (content, reasoning_content, usage) in
+ * `response` so the admin chat tester can render it without a follow-up
+ * request. The backend still records the run as a normal channel test.
+ */
+export async function chatTestChannel(
+  id: number,
+  body: {
+    model: string
+    messages: { role: string; content: string }[]
+    endpoint_type?: string
+    stream?: boolean
+    include_response?: boolean
+  }
+): Promise<ChannelTestResponse> {
+  const res = await api.post(
+    `/api/channel/test/${id}`,
+    body,
+    channelActionConfig()
+  )
+  return res.data
+}
+
+/**
  * Update channel balance
  */
 export async function updateChannelBalance(
