@@ -17,13 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import {
-  Activity,
   CircleHelp,
   Image,
   LayoutDashboard,
   Link,
   Megaphone,
-  MessageSquare,
 } from 'lucide-react'
 
 import type { ContentSettings } from '@/features/system-settings/types'
@@ -31,11 +29,9 @@ import { createSectionRegistry } from '@/features/system-settings/utils/section-
 
 import { AnnouncementsSection } from './announcements-section'
 import { ApiInfoSection } from './api-info-section'
-import { ChatSettingsSection } from './chat-settings-section'
 import { DashboardSection } from './dashboard-section'
 import { DrawingSettingsSection } from './drawing-settings-section'
 import { FAQSection } from './faq-section'
-import { UptimeKumaSection } from './uptime-kuma-section'
 
 /**
  * Validate and coerce DataExportDefaultTime to a safe value
@@ -67,7 +63,7 @@ const CONTENT_SECTIONS = [
   },
   {
     id: 'announcements',
-    titleKey: 'Announcements',
+    titleKey: 'Business Announcements',
     icon: Megaphone,
     build: (settings: ContentSettings) => (
       <AnnouncementsSection
@@ -78,7 +74,7 @@ const CONTENT_SECTIONS = [
   },
   {
     id: 'api-info',
-    titleKey: 'API Addresses',
+    titleKey: 'API Address Settings',
     icon: Link,
     build: (settings: ContentSettings) => (
       <ApiInfoSection
@@ -99,27 +95,8 @@ const CONTENT_SECTIONS = [
     ),
   },
   {
-    id: 'uptime-kuma',
-    titleKey: 'Uptime Kuma',
-    icon: Activity,
-    build: (settings: ContentSettings) => (
-      <UptimeKumaSection
-        enabled={settings['console_setting.uptime_kuma_enabled']}
-        data={settings['console_setting.uptime_kuma_groups']}
-      />
-    ),
-  },
-  {
-    id: 'chat',
-    titleKey: 'Chat Presets',
-    icon: MessageSquare,
-    build: (settings: ContentSettings) => (
-      <ChatSettingsSection defaultValue={settings.Chats} />
-    ),
-  },
-  {
     id: 'drawing',
-    titleKey: 'Drawing',
+    titleKey: 'Image Feature Settings',
     icon: Image,
     build: (settings: ContentSettings) => (
       <DrawingSettingsSection
