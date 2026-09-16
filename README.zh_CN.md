@@ -61,57 +61,53 @@
 
 <p align="center"><em>排名不分先后</em></p>
 
-<p align="center">
-  <a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/alibabacloud.svg" alt="阿里云" height="56" /><br>
-    <strong>阿里云</strong>
-  </a>
-  &nbsp;
-  <a href="https://bailian.console.aliyun.com/" target="_blank">
-    <img src="./docs/images/bailian.svg" alt="阿里云百炼" height="56" /><br>
-    <strong>阿里云百炼</strong>
-  </a>
-  &nbsp;
-  <a href="https://www.volcengine.com/product/ark" target="_blank">
-    <img src="./docs/images/volcengine.svg" alt="火山引擎 / 火山方舟" height="56" /><br>
-    <strong>火山引擎 | 火山方舟</strong>
-  </a>
-  &nbsp;
-  <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br>
-    <strong>CherryStudio</strong>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://chatgpt.com/codex" target="_blank">
-    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br>
-    <strong>Codex</strong>
-  </a>
-  &nbsp;
-  <a href="https://claude.ai/" target="_blank">
-    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br>
-    <strong>Claude</strong>
-  </a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://www.aliyun.com/" target="_blank"><img src="./docs/images/alibabacloud.svg" alt="阿里云" height="56" /></a>
+      <br><sub><b>阿里云</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://bailian.console.aliyun.com/" target="_blank"><img src="./docs/images/bailian.svg" alt="阿里云百炼" height="56" /></a>
+      <br><sub><b>阿里云百炼</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://www.volcengine.com/product/ark" target="_blank"><img src="./docs/images/volcengine.svg" alt="火山引擎 / 火山方舟" height="56" /></a>
+      <br><sub><b>火山引擎 | 火山方舟</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://www.cherry-ai.com/" target="_blank"><img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /></a>
+      <br><sub><b>CherryStudio</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://chatgpt.com/codex" target="_blank"><img src="./docs/images/codex.svg" alt="Codex" height="56" /></a>
+      <br><sub><b>Codex</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://claude.ai/" target="_blank"><img src="./docs/images/claude.svg" alt="Claude" height="56" /></a>
+      <br><sub><b>Claude</b></sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## 🙏 特别鸣谢
 
-<p align="center">
-  <a href="https://code.visualstudio.com/" target="_blank">
-    <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
-  </a>
-  &nbsp;
-  <a href="https://www.codebuddy.cn/" target="_blank">
-    <img src="./docs/images/codebuddy.svg" alt="腾讯云代码助手 CodeBuddy" height="80" />
-  </a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://code.visualstudio.com/" target="_blank"><img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" /></a>
+      <br><sub><b>Visual Studio Code</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://www.codebuddy.cn/" target="_blank"><img src="./docs/images/codebuddy.svg" alt="腾讯云代码助手 CodeBuddy" height="80" /></a>
+      <br><sub><b>CodeBuddy</b></sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <strong>本项目使用 <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a> 构建</strong>
-</p>
+<p align="center"><sub>本项目使用 <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a> 构建</sub></p>
 
 ---
 
