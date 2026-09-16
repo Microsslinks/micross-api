@@ -15,17 +15,16 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="licence">
-  </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="version">
-  </a><!--
-  --><a href="https://hub.docker.com/r/CalciumIon/new-api">
-    <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
+  <a href="https://microsslink.cn" target="_blank">
+    <img src="/docs/images/home-page.png"/>
   </a>
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/badge.svg"/>
+  <br>
+
+</p>
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/dukaworks/micross-api/main/LICENSE">
+    <img src="https://img.shields.io/github/license/dukaworks/micross-api?color=brightgreen" alt="licence">
   </a>
 </p>
 
@@ -85,23 +84,30 @@
 </p>
 
 <p align="center">
-  <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
-  </a><!--
-  --><a href="https://github.com/iOfficeAI/AionUi/" target="_blank">
-    <img src="./docs/images/aionui.png" alt="Aion UI" height="80" />
-  </a><!--
-  --><a href="https://bda.pku.edu.cn/" target="_blank">
-    <img src="./docs/images/pku.png" alt="Université de Pékin" height="80" />
-  </a><!--
-  --><a href="https://www.compshare.cn/?ytag=GPU_yy_gh_newapi" target="_blank">
-    <img src="./docs/images/ucloud.png" alt="UCloud" height="80" />
-  </a><!--
-  --><a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/aliyun.png" alt="Alibaba Cloud" height="80" />
-  </a><!--
-  --><a href="https://io.net/" target="_blank">
-    <img src="./docs/images/io-net.png" alt="IO.NET" height="80" />
+  <a href="https://www.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Alibaba Cloud</span>
+  </a>
+  <a href="https://bailian.console.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Alibaba Bailian</span>
+  </a>
+  <a href="https://www.volcengine.com/product/ark" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/volcengine.svg" alt="Volcengine / Volcano Ark" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Volcengine | Volcano Ark</span>
+  </a>
+  <a href="https://www.cherry-ai.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">CherryStudio</span>
+  </a>
+  <br/>
+  <a href="https://chatgpt.com/codex" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Codex</span>
+  </a>
+  <a href="https://claude.ai/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Claude</span>
   </a>
 </p>
 
@@ -110,13 +116,16 @@
 ## 🙏 Remerciements spéciaux
 
 <p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
+  <a href="https://code.visualstudio.com/" target="_blank" style="display: inline-block; margin: 0 50px;">
+    <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
+  </a>
+  <a href="https://www.codebuddy.cn/" target="_blank" style="display: inline-block; margin: 0 50px;">
+    <img src="./docs/images/codebuddy.svg" alt="CodeBuddy" height="80" />
   </a>
 </p>
 
 <p align="center">
-  <strong>Merci à <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> pour avoir fourni une licence de développement open-source gratuite pour ce projet</strong>
+  <strong>Construit avec <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a></strong>
 </p>
 
 ---
@@ -127,8 +136,8 @@
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/dukaworks/micross-api.git
+cd micross-api
 
 # Modifier la configuration docker-compose.yml
 nano docker-compose.yml
@@ -142,22 +151,22 @@ docker-compose up -d
 
 ```bash
 # Tirer la dernière image
-docker pull calciumion/new-api:latest
+docker pull dukaworks/micross-api:latest
 
 # Utilisation de SQLite (par défaut)
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 
 # Utilisation de MySQL
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
-  -e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi" \
+  -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 > **💡 Astuce:** `-v ./data:/data` sauvegardera les données dans le dossier `data` du répertoire actuel, vous pouvez également le changer en chemin absolu comme `-v /your/custom/path:/data`
@@ -311,7 +320,7 @@ docker run --name new-api -d --restart always \
 ## 🚢 Déploiement
 
 > [!TIP]
-> **Dernière image Docker:** `calciumion/new-api:latest`
+> **Dernière image Docker:** `dukaworks/micross-api:latest`
 
 ### 📋 Exigences de déploiement
 
@@ -365,8 +374,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/dukaworks/micross-api.git
+cd micross-api
 
 # Modifier la configuration
 nano docker-compose.yml
@@ -382,37 +391,26 @@ docker-compose up -d
 
 **Utilisation de SQLite:**
 ```bash
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 **Utilisation de MySQL:**
 ```bash
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
-  -e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi" \
+  -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 > **💡 Explication du chemin:**
 > - `./data:/data` - Chemin relatif, données sauvegardées dans le dossier data du répertoire actuel
 > - Vous pouvez également utiliser un chemin absolu, par exemple : `/your/custom/path:/data`
-
-</details>
-
-<details>
-<summary><strong>Méthode 3: Panneau BaoTa</strong></summary>
-
-1. Installez le panneau BaoTa (version ≥ 9.2.0)
-2. Recherchez **New-API** dans le magasin d'applications
-3. Installation en un clic
-
-📖 [Tutoriel avec des images](./docs/BT.md)
 
 </details>
 
@@ -450,7 +448,8 @@ Consultez [Authentification utilisateur et sessions de connexion](./docs/authent
 
 | Projet | Description |
 |------|------|
-| [One API](https://github.com/songquanpeng/one-api) | Base du projet original |
+| [One API](https://github.com/songquanpeng/one-api) | Base de New API |
+| [New API](https://github.com/QuantumNous/new-api) | Base de ce projet |
 | [Midjourney-Proxy](https://github.com/novicezk/midjourney-proxy) | Prise en charge de l'interface Midjourney |
 
 ### Outils d'accompagnement
@@ -488,9 +487,9 @@ Bienvenue à toutes les formes de contribution!
 
 Ce projet est sous licence [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE).
 
-Il s'agit d'un projet open-source développé sur la base de [One API](https://github.com/songquanpeng/one-api) (licence MIT).
+Il s'agit d'un projet open-source développé sur la base de [New API](https://github.com/QuantumNous/new-api) (AGPLv3).
 
-Si les politiques de votre organisation ne permettent pas l'utilisation de logiciels sous licence AGPLv3, ou si vous souhaitez éviter les obligations open-source de l'AGPLv3, veuillez nous contacter à : [support@quantumnous.com](mailto:support@quantumnous.com)
+Si les politiques de votre organisation ne permettent pas l'utilisation de logiciels sous licence AGPLv3, ou si vous souhaitez éviter les obligations open-source de l'AGPLv3, veuillez nous contacter à : [microsslinks@gmail.com](mailto:microsslinks@gmail.com)
 
 ---
 
@@ -506,12 +505,12 @@ Si les politiques de votre organisation ne permettent pas l'utilisation de logic
 
 <div align="center">
 
-### 💖 Merci d'utiliser New API
+### 💖 Merci d'utiliser MicrossAPI
 
 Si ce projet vous est utile, bienvenue à nous donner une ⭐️ Étoile！
 
-**[Documentation officielle](https://docs.newapi.pro/en/docs)** • **[Commentaires sur les problèmes](https://github.com/Calcium-Ion/new-api/issues)** • **[Dernière version](https://github.com/Calcium-Ion/new-api/releases)**
+**[Documentation officielle](https://github.com/dukaworks/micross-api/blob/main/README.fr.md)** • **[Commentaires sur les problèmes](https://github.com/dukaworks/micross-api/issues)** • **[Dernière version](https://github.com/dukaworks/micross-api/releases)**
 
-<sub>Construit avec ❤️ par QuantumNous</sub>
+<sub>Construit avec ❤️ par MicrossAPI / Microsslink 微观互联</sub>
 
 </div>

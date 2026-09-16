@@ -1,8 +1,8 @@
 <div align="center">
 
-![new-api](/web/public/logo.png)
+![micross-api](/web/public/logo.png)
 
-# New API
+# MicrossAPI
 
 🍥 **新一代大模型网关与AI资产管理系统**
 
@@ -15,32 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
-  </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
-  </a><!--
-  --><a href="https://hub.docker.com/r/CalciumIon/new-api">
-    <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
-  </a>
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/badge.svg"/>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/20180" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/20180" alt="QuantumNous%2Fnew-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
+  <a href="https://microsslink.cn" target="_blank">
+    <img src="/docs/images/home-page.png"/>
   </a>
   <br>
-  <a href="https://hellogithub.com/repository/QuantumNous/new-api" target="_blank">
-    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=539ac4217e69431684ad4a0bab768811&claim_uid=tbFPfKIDHpc4TzR" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a><!--
-  -->
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/new_badge.svg" width="250" height="55" />
-  </a>
+
 </p>
 
 <p align="center">
@@ -85,23 +64,30 @@
 </p>
 
 <p align="center">
-  <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
-  </a><!--
-  --><a href="https://github.com/iOfficeAI/AionUi/" target="_blank">
-    <img src="./docs/images/aionui.png" alt="Aion UI" height="80" />
-  </a><!--
-  --><a href="https://bda.pku.edu.cn/" target="_blank">
-    <img src="./docs/images/pku.png" alt="北京大学" height="80" />
-  </a><!--
-  --><a href="https://www.compshare.cn/?ytag=GPU_yy_gh_newapi" target="_blank">
-    <img src="./docs/images/ucloud.png" alt="UCloud 优刻得" height="80" />
-  </a><!--
-  --><a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/aliyun.png" alt="阿里云" height="80" />
-  </a><!--
-  --><a href="https://io.net/" target="_blank">
-    <img src="./docs/images/io-net.png" alt="IO.NET" height="80" />
+  <a href="https://www.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/alibabacloud.svg" alt="阿里云" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">阿里云</span>
+  </a>
+  <a href="https://bailian.console.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/bailian.svg" alt="阿里云百炼" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">阿里云百炼</span>
+  </a>
+  <a href="https://www.volcengine.com/product/ark" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/volcengine.svg" alt="火山引擎 / 火山方舟" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">火山引擎 | 火山方舟</span>
+  </a>
+  <a href="https://www.cherry-ai.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">CherryStudio</span>
+  </a>
+  <br/>
+  <a href="https://chatgpt.com/codex" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Codex</span>
+  </a>
+  <a href="https://claude.ai/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br/>
+    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Claude</span>
   </a>
 </p>
 
@@ -110,13 +96,16 @@
 ## 🙏 特别鸣谢
 
 <p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
+  <a href="https://code.visualstudio.com/" target="_blank" style="display: inline-block; margin: 0 50px;">
+    <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
+  </a>
+  <a href="https://www.codebuddy.cn/" target="_blank" style="display: inline-block; margin: 0 50px;">
+    <img src="./docs/images/codebuddy.svg" alt="腾讯云代码助手 CodeBuddy" height="80" />
   </a>
 </p>
 
 <p align="center">
-  <strong>感谢 <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> 为本项目提供免费的开源开发许可证</strong>
+  <strong>本项目使用 <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a> 构建</strong>
 </p>
 
 ---
@@ -127,8 +116,8 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/dukaworks/micross-api.git
+cd micross-api
 
 # 编辑 docker-compose.yml 配置
 nano docker-compose.yml
@@ -142,22 +131,22 @@ docker-compose up -d
 
 ```bash
 # 拉取最新镜像
-docker pull calciumion/new-api:latest
+docker pull dukaworks/micross-api:latest
 
 # 使用 SQLite（默认）
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 
 # 使用 MySQL
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
-  -e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi" \
+  -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 > **💡 提示：** `-v ./data:/data` 会将数据保存在当前目录的 `data` 文件夹中，你也可以改为绝对路径如 `-v /your/custom/path:/data`
@@ -311,7 +300,7 @@ docker run --name new-api -d --restart always \
 ## 🚢 部署
 
 > [!TIP]
-> **最新版 Docker 镜像：** `calciumion/new-api:latest`
+> **最新版 Docker 镜像：** `dukaworks/micross-api:latest`
 
 ### 📋 部署要求
 
@@ -365,8 +354,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/dukaworks/micross-api.git
+cd micross-api
 
 # 编辑配置
 nano docker-compose.yml
@@ -382,37 +371,26 @@ docker-compose up -d
 
 **使用 SQLite：**
 ```bash
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 **使用 MySQL：**
 ```bash
-docker run --name new-api -d --restart always \
+docker run --name micross-api -d --restart always \
   -p 3000:3000 \
-  -e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi" \
+  -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  calciumion/new-api:latest
+  dukaworks/micross-api:latest
 ```
 
 > **💡 路径说明：**
 > - `./data:/data` - 相对路径，数据保存在当前目录的 data 文件夹
 > - 也可使用绝对路径，如：`/your/custom/path:/data`
-
-</details>
-
-<details>
-<summary><strong>方式 3：宝塔面板</strong></summary>
-
-1. 安装宝塔面板（≥ 9.2.0 版本）
-2. 在应用商店搜索 **New-API**
-3. 一键安装
-
-📖 [图文教程](./docs/installation/BT.md)
 
 </details>
 
@@ -450,7 +428,8 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 | 项目 | 说明 |
 |------|------|
-| [One API](https://github.com/songquanpeng/one-api) | 原版项目基础 |
+| [One API](https://github.com/songquanpeng/one-api) | New API 的基础项目 |
+| [New API](https://github.com/QuantumNous/new-api) | 本项目的基础项目 |
 | [Midjourney-Proxy](https://github.com/novicezk/midjourney-proxy) | Midjourney 接口支持 |
 
 ### 配套工具
@@ -488,9 +467,9 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 本项目采用 [GNU Affero 通用公共许可证 v3.0 (AGPLv3)](./LICENSE) 授权。
 
-本项目为开源项目，在 [One API](https://github.com/songquanpeng/one-api)（MIT 许可证）的基础上进行二次开发。
+本项目为开源项目，在 [New API](https://github.com/QuantumNous/new-api)（AGPLv3）的基础上进行二次开发。
 
-如果您所在的组织政策不允许使用 AGPLv3 许可的软件，或您希望规避 AGPLv3 的开源义务，请发送邮件至：[support@quantumnous.com](mailto:support@quantumnous.com)
+如果您所在的组织政策不允许使用 AGPLv3 许可的软件，或您希望规避 AGPLv3 的开源义务，请发送邮件至：[microsslinks@gmail.com](mailto:microsslinks@gmail.com)
 
 ---
 
@@ -498,7 +477,7 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api,dukaworks/micross-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
 
 </div>
 
@@ -506,12 +485,12 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 <div align="center">
 
-### 💖 感谢使用 New API
+### 💖 感谢使用 MicrossAPI
 
 如果这个项目对你有帮助，欢迎给我们一个 ⭐️ Star！
 
-**[官方文档](https://docs.newapi.pro/zh/docs)** • **[问题反馈](https://github.com/Calcium-Ion/new-api/issues)** • **[最新发布](https://github.com/Calcium-Ion/new-api/releases)**
+**[官方文档](https://github.com/dukaworks/micross-api/blob/main/README.zh_CN.md)** • **[问题反馈](https://github.com/dukaworks/micross-api/issues)** • **[最新发布](https://github.com/dukaworks/micross-api/releases)**
 
-<sub>Built with ❤️ by QuantumNous</sub>
+<sub>Built with ❤️ by MicrossAPI / Microsslink 微观互联</sub>
 
 </div>
