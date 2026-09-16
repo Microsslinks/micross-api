@@ -67,57 +67,55 @@
 
 <p align="center"><em>No particular order</em></p>
 
-<p align="center">
-  <a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" height="56" /><br>
-    <strong>Alibaba Cloud</strong>
-  </a>
-  &nbsp;
-  <a href="https://bailian.console.aliyun.com/" target="_blank">
-    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="56" /><br>
-    <strong>Alibaba Bailian</strong>
-  </a>
-  &nbsp;
-  <a href="https://www.volcengine.com/product/ark" target="_blank">
-    <img src="./docs/images/volcengine.svg" alt="Volcengine / Volcano Ark" height="56" /><br>
-    <strong>Volcengine | Volcano Ark</strong>
-  </a>
-  &nbsp;
-  <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br>
-    <strong>CherryStudio</strong>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://chatgpt.com/codex" target="_blank">
-    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br>
-    <strong>Codex</strong>
-  </a>
-  &nbsp;
-  <a href="https://claude.ai/" target="_blank">
-    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br>
-    <strong>Claude</strong>
-  </a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://www.aliyun.com/" target="_blank"><img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" width="64" height="64" /></a>
+      <br><sub><b>Alibaba Cloud</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://bailian.console.aliyun.com/" target="_blank"><img src="./docs/images/bailian.svg" alt="Alibaba Bailian" width="64" height="64" /></a>
+      <br><sub><b>Alibaba Bailian</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://www.volcengine.com/product/ark" target="_blank"><img src="./docs/images/volcengine.svg" alt="Volcengine / Volcano Ark" width="64" height="64" /></a>
+      <br><sub><b>Volcengine | Volcano Ark</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://www.cherry-ai.com/" target="_blank"><img src="./docs/images/cherrystudio.svg" alt="CherryStudio" width="64" height="64" /></a>
+      <br><sub><b>CherryStudio</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://chatgpt.com/codex" target="_blank"><img src="./docs/images/codex.svg" alt="Codex" width="64" height="64" /></a>
+      <br><sub><b>Codex</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://claude.ai/" target="_blank"><img src="./docs/images/claude.svg" alt="Claude" width="64" height="64" /></a>
+      <br><sub><b>Claude</b></sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## 🙏 Special Thanks
 
-<p align="center">
-  <a href="https://code.visualstudio.com/" target="_blank">
-    <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
-  </a>
-  &nbsp;
-  <a href="https://www.codebuddy.cn/" target="_blank">
-    <img src="./docs/images/codebuddy.svg" alt="CodeBuddy" height="80" />
-  </a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://code.visualstudio.com/" target="_blank"><img src="./docs/images/vscode.svg" alt="Visual Studio Code" width="96" height="96" /></a>
+      <br><sub><b>Visual Studio Code</b></sub>
+    </td>
+    <td align="center">
+      <a href="https://www.codebuddy.cn/" target="_blank"><img src="./docs/images/codebuddy.svg" alt="CodeBuddy" width="96" height="96" /></a>
+      <br><sub><b>CodeBuddy</b></sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <strong>Built with <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a></strong>
-</p>
+<p align="center"><sub>Built with <a href="https://code.visualstudio.com/">VSCode</a> + <a href="https://www.codebuddy.cn/">CodeBuddy</a></sub></p>
 
 ---
 
