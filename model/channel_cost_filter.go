@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -72,13 +74,18 @@ func NewChannelCostFilter(sellRatio float64, policy *DiscountRoutingPolicy) *Cha
 // 而不是直接写日志，是因为选线路逻辑拿不到 gin.Context，也不该知道日志长什么样；由调用方
 // 转交给消费日志的 other.admin_info.cost_breach。
 //
-// 调用方持有 channelSyncLock 读锁：本函数只读 channelsIDM，安全。
+// 调用方必须持有 channelSyncLock（读锁）：本函数只读传入 channel 上的 CostRatio，不
+// 再访问 channelsIDM；缓存关闭场景下 channelsIDM 为空也能用（task-14.2）。
 func (f *ChannelCostFilter) recordBreach(channel *Channel) {
-	if f == nil || channel == nil {
+	if f == nil || channel == nil || channel.CostRatio == nil {
 		return
 	}
-	costRatio, ok := channelCostRatio(channel.Id)
-	if !ok {
+	raw := strings.TrimSpace(*channel.CostRatio)
+	if raw == "" {
+		return
+	}
+	costRatio, err := decimal.NewFromString(raw)
+	if err != nil || costRatio.LessThanOrEqual(decimal.Zero) {
 		// 未录进货折扣的线路本来就被剔掉，放行模式里仍可能出现；算不出亏损额就不记。
 		return
 	}
@@ -155,4 +162,102 @@ func channelCostRatio(channelId int) (decimal.Decimal, bool) {
 		return decimal.Zero, false
 	}
 	return parsed, true
+}
+
+// filterChannelsByCostDB 与 filterChannelsByCost 同语义，但成本数据从 DB 读，
+// 不依赖 channelsIDM / channelSyncLock——缓存关闭（MemoryCacheEnabled=false）
+// 场景下也能用（task-14.2）。
+//
+// 调用方无需持锁。本函数只读，不会改候选顺序；过滤口径与内存版完全一致：
+// 未录、空串、非数字、≤ 0 一律按「没有成本信息」处理并排除。
+func filterChannelsByCostDB(channels []int, costFilter *ChannelCostFilter) ([]int, error) {
+	if !costFilter.Enabled() || len(channels) == 0 {
+		return channels, nil
+	}
+	var rows []*Channel
+	if err := DB.Select("id", "cost_ratio").Where("id IN ?", channels).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	costMap := make(map[int]*string, len(rows))
+	for _, c := range rows {
+		costMap[c.Id] = c.CostRatio
+	}
+	budget := costFilter.budget()
+	kept := make([]int, 0, len(channels))
+	for _, id := range channels {
+		ptr, ok := costMap[id]
+		if !ok || ptr == nil {
+			continue
+		}
+		raw := strings.TrimSpace(*ptr)
+		if raw == "" {
+			continue
+		}
+		parsed, err := decimal.NewFromString(raw)
+		if err != nil || parsed.LessThanOrEqual(decimal.Zero) {
+			continue
+		}
+		if parsed.LessThanOrEqual(budget) {
+			kept = append(kept, id)
+		}
+	}
+	return kept, nil
+}
+
+// describeCostBreachDB 与 describeCostBreach 同语义，但数据从 DB 读，给缓存关闭
+// 场景下「有线路但不保本」时的报错信息用（task-14.2）。
+//
+// 列线路名时按进货折扣升序——先列亏得最少的，运营补进货价时优先看这条。
+// 未录进货折扣的条数单独统计并明示，避免运营误以为是「系统坏了」。
+func describeCostBreachDB(group, model string, channels []int, costFilter *ChannelCostFilter) error {
+	sellRatio := decimal.NewFromFloat(costFilter.SellRatio)
+
+	var rows []*Channel
+	if err := DB.Select("id", "name", "cost_ratio").Where("id IN ?", channels).Find(&rows).Error; err != nil {
+		return err
+	}
+	type losingLine struct {
+		name      string
+		costRatio decimal.Decimal
+	}
+	lines := make([]losingLine, 0, len(rows))
+	unknownCostCount := 0
+	for _, c := range rows {
+		if c.CostRatio == nil {
+			unknownCostCount++
+			continue
+		}
+		raw := strings.TrimSpace(*c.CostRatio)
+		if raw == "" {
+			unknownCostCount++
+			continue
+		}
+		costRatio, err := decimal.NewFromString(raw)
+		if err != nil || costRatio.LessThanOrEqual(decimal.Zero) {
+			unknownCostCount++
+			continue
+		}
+		lines = append(lines, losingLine{name: c.Name, costRatio: costRatio})
+	}
+	sort.SliceStable(lines, func(i, j int) bool { return lines[i].costRatio.LessThan(lines[j].costRatio) })
+
+	const maxListedLines = 3
+	parts := make([]string, 0, maxListedLines+2)
+	for i, line := range lines {
+		if i >= maxListedLines {
+			parts = append(parts, fmt.Sprintf("另有 %d 条线路同样亏本", len(lines)-maxListedLines))
+			break
+		}
+		parts = append(parts, fmt.Sprintf("走「%s」（进货 %s 折）每单亏 %s",
+			line.name, formatRatioAsDiscount(line.costRatio), formatLossRatio(line.costRatio.Sub(sellRatio))))
+	}
+	if unknownCostCount > 0 {
+		parts = append(parts, fmt.Sprintf("另有 %d 条线路未录进货折扣，无法判断是否保本", unknownCostCount))
+	}
+	if len(parts) == 0 {
+		parts = append(parts, "该模型下没有可用的线路")
+	}
+
+	return fmt.Errorf("当前折扣（%s 折）下没有不亏本的上游供应商线路（模型 %s，分组 %s）：%s。如需继续使用，请联系管理员为这个账号开通「允许走亏损线路」",
+		formatRatioAsDiscount(sellRatio), model, group, strings.Join(parts, "、"))
 }

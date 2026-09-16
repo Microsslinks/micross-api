@@ -113,8 +113,10 @@ func SyncChannelCache(frequency int) {
 
 func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string, costFilter *ChannelCostFilter) (*Channel, error) {
 	// if memory cache is disabled, get channel directly from database
+	// 成本过滤由 GetChannel 内部用 DB 版 filterChannelsByCostDB 处理——v0.19.0 引入
+	// 的成本过滤在关缓存时也曾漏掉这条路径，task-14.2 补齐。
 	if !common.MemoryCacheEnabled {
-		return GetChannel(group, model, retry, requestPath)
+		return GetChannel(group, model, retry, requestPath, costFilter)
 	}
 
 	channelSyncLock.RLock()

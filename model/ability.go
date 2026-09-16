@@ -105,7 +105,7 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 	return channelQuery, nil
 }
 
-func GetChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+func GetChannel(group string, model string, retry int, requestPath string, costFilter *ChannelCostFilter) (*Channel, error) {
 	var abilities []Ability
 
 	var err error = nil
@@ -122,28 +122,68 @@ func GetChannel(group string, model string, retry int, requestPath string) (*Cha
 		return nil, err
 	}
 	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
-	channel := Channel{}
-	if len(abilities) > 0 {
-		// Randomly choose one
-		weightSum := uint(0)
-		for _, ability_ := range abilities {
-			weightSum += ability_.Weight + 10
-		}
-		// Randomly choose one
-		weight := common.GetRandomInt(int(weightSum))
-		for _, ability_ := range abilities {
-			weight -= int(ability_.Weight) + 10
-			//log.Printf("weight: %d, ability weight: %d", weight, *ability_.Weight)
-			if weight <= 0 {
-				channel.Id = ability_.ChannelId
-				break
-			}
-		}
-	} else {
+	if len(abilities) == 0 {
 		return nil, nil
 	}
+
+	// 成本过滤：缓存关闭场景下从 DB 读 CostRatio，与缓存分支同语义（task-14.2）。
+	// 只有客户真的享受折扣（0 < SellRatio < 1）才动手；筛子不动手时候选集一条不动，
+	// 与改造前行为一致。
+	breaching := false
+	if costFilter != nil && costFilter.Enabled() {
+		channelIds := make([]int, 0, len(abilities))
+		for _, a := range abilities {
+			channelIds = append(channelIds, a.ChannelId)
+		}
+		kept, err := filterChannelsByCostDB(channelIds, costFilter)
+		if err != nil {
+			return nil, err
+		}
+		if len(kept) == 0 {
+			if !costFilter.AllowCostBreach {
+				return nil, describeCostBreachDB(group, model, channelIds, costFilter)
+			}
+			// 放行：候选保持原样，按「亏得最少」优先（权重随机在原 abilities 上跑）。
+			breaching = true
+		} else {
+			keptSet := make(map[int]struct{}, len(kept))
+			for _, id := range kept {
+				keptSet[id] = struct{}{}
+			}
+			filtered := abilities[:0]
+			for _, a := range abilities {
+				if _, ok := keptSet[a.ChannelId]; ok {
+					filtered = append(filtered, a)
+				}
+			}
+			abilities = filtered
+		}
+	}
+
+	channel := Channel{}
+	// Randomly choose one
+	weightSum := uint(0)
+	for _, ability_ := range abilities {
+		weightSum += ability_.Weight + 10
+	}
+	// Randomly choose one
+	weight := common.GetRandomInt(int(weightSum))
+	for _, ability_ := range abilities {
+		weight -= int(ability_.Weight) + 10
+		//log.Printf("weight: %d, ability weight: %d", weight, *ability_.Weight)
+		if weight <= 0 {
+			channel.Id = ability_.ChannelId
+			break
+		}
+	}
 	err = DB.First(&channel, "id = ?", channel.Id).Error
-	return &channel, err
+	if err != nil {
+		return nil, err
+	}
+	if breaching {
+		costFilter.recordBreach(&channel)
+	}
+	return &channel, nil
 }
 
 // filterAbilitiesByRequestPathAndModel restricts candidates by request path and
