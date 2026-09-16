@@ -69,9 +69,11 @@
   <em>No particular order</em>
 </p>
 
+
+
 <p align="center">
   <a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" height="100" /><br/>
+    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud"/><br/>
     <span>Alibaba Cloud</span>
   </a>
   <a href="https://bailian.console.aliyun.com/" target="_blank">
