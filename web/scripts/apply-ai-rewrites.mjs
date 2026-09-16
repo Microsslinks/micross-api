@@ -59,7 +59,7 @@ function stableStringify(obj) {
 
 async function processLang(lang, opts) {
   const data = await loadLocale(lang)
-  const rewritePath = path.join(REWRITES_DIR, `${lang}.json`)
+  const rewritePath = opts.rewriteFile || path.join(REWRITES_DIR, `${lang}.json`)
   let rewrites
   try {
     rewrites = JSON.parse(await fs.readFile(rewritePath, 'utf8'))
@@ -107,6 +107,8 @@ async function main() {
   const apply = args.includes('--apply')
   const langArg = args.find((a) => a.startsWith('--lang='))
   const onlyLang = langArg ? langArg.split('=')[1] : null
+  const fileArg = args.find((a) => a.startsWith('--rewrite-file='))
+  const rewriteFile = fileArg ? path.resolve(fileArg.split('=')[1]) : null
 
   const targets = onlyLang ? [onlyLang] : LANGS
 
@@ -114,7 +116,7 @@ async function main() {
 
   const results = []
   for (const lang of targets) {
-    const r = await processLang(lang, { apply })
+    const r = await processLang(lang, { apply, rewriteFile })
     results.push(r)
   }
 
