@@ -471,6 +471,34 @@ func TransferAffQuota(c *gin.Context) {
 	common.ApiSuccessI18n(c, i18n.MsgUserTransferSuccess, nil)
 }
 
+type TransferCommissionRequest struct {
+	Quota int `json:"quota" binding:"required"`
+}
+
+// TransferCommission 端点入口：永远返回"commission 不可提现"。
+//
+// 业务侧走不通：commission 钱包不允许提现到主 quota（任务文档 §三"资金闭环"）。
+// 前端 wallet 面板据此隐藏按钮并显示 tooltip "Commission is not withdrawable"。
+func TransferCommission(c *gin.Context) {
+	id := c.GetInt("id")
+	user, err := model.GetUserById(id, true)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	var req TransferCommissionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	err = user.TransferCommissionToQuota(req.Quota)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgUserTransferFailed, map[string]any{"Error": err.Error()})
+		return
+	}
+	common.ApiSuccessI18n(c, i18n.MsgUserTransferSuccess, nil)
+}
+
 func GetAffCode(c *gin.Context) {
 	id := c.GetInt("id")
 	user, err := model.GetUserById(id, true)

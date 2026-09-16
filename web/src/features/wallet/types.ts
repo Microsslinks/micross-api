@@ -252,6 +252,14 @@ export interface UserWalletData {
   aff_history_quota: number
   /** Number of successful affiliate invites */
   aff_count: number
+  /** Commission wallet balance (task-10 P4 commission, not withdrawable) */
+  commission_balance: number
+  /**
+   * Total commission earned (historical, sum of all positive
+   * commission_records.amount). Optional — backend currently does not
+   * populate this field; UI falls back to summary.total_amount for now.
+   */
+  commission_history?: number
   /** User group */
   group: string
 }
@@ -299,3 +307,44 @@ export interface BillingHistoryResponse {
 export interface CompleteOrderRequest {
   trade_no: string
 }
+
+// ============================================================================
+// Commission types (task-10 P4 commission core; task-11 UI 面板)
+//
+// 与 affiliate / top-up 并列挂在 /api/user/aff/commission/* 端点下。
+// 响应字段与 model/commission.go 严格对齐——详见 service/commission_test.go。
+// ============================================================================
+
+export interface CommissionBalanceResponse extends ApiResponse<{
+  balance: number
+  currency: string
+}> {}
+
+export interface CommissionRecord {
+  id: number
+  inviter_id: number
+  invitee_id: number
+  consume_log_id: number
+  gross: number
+  rate: string
+  amount: number
+  margin: number
+  breach: boolean
+  currency: string
+  settled_at: number
+  created_at: number
+}
+
+export interface CommissionRecordsResponse extends ApiResponse<{
+  items: CommissionRecord[]
+  page: number
+  page_size: number
+  total: number
+}> {}
+
+export interface CommissionSummaryResponse extends ApiResponse<{
+  total_amount: number
+  record_count: number
+  breach_count: number
+  currency: string
+}> {}

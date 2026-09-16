@@ -5930,13 +5930,26 @@
     "How it works": "使用说明",
     "Assistant": "助手",
     "You": "你",
-"You": "你",
     "Face value: {{face}}": "面值：{{face}}",
     "Actually deducted: {{actual}}": "实扣：{{actual}}",
     "Topup conversion rate": "发放折算",
     "Topup conversion rate must be greater than 0 and at most 1": "发放折算比例必须大于 0 且不超过 1",
     "Ratio applied when this plan is used to top up a customer: 0.875 means 100 face value costs the dealer 87.5. Defaults to 1.0 (no conversion).": "按此方案给客户发额度时的折算比例：填 0.875 表示面值 100 实扣经销商 87.5。默认 1.0（不折算）。",
-    "Subscription discount plan (optional)": "订阅绑定的折扣方案（可选）"
+    "Subscription discount plan (optional)": "订阅绑定的折扣方案（可选）",
+    "Commission Earnings": "返佣收益",
+    "Pending Commission": "待入账佣金",
+    "Total Commission Earned": "累计佣金",
+    "Commission is not withdrawable": "可入账，不可提现",
+    "Earn commission when your invitees consume API quota. The commission wallet is non-withdrawable and can only be spent through API calls.": "邀请的用户消费 API 额度后，您可获得佣金。佣金钱包不可提现，仅能通过 API 调用消耗。",
+    "Date": "日期",
+    "Invitee": "被邀请人",
+    "Gross": "消费金额",
+    "Rate": "返佣率",
+    "Breach": "降级",
+    "Margin capped": "收益封顶",
+    "Normal": "正常",
+    "No commission records yet": "暂无佣金记录",
+    "Commission records will appear here once your invitees consume API quota.": "被邀请人消费 API 额度后，佣金记录将显示在这里。"
   },
   "Group ratio is deprecated. Use customer discount plans instead.": "分组倍率已弃用，请改用客户折扣方案",
   "Active bindings": "生效中的绑定",
@@ -5989,5 +6002,4 @@
   "dealer.disable.confirm": "确认停用「{{name}}」？停用后他将无法登录，他的 API Key 也会一并失效。",
   "Customer disabled": "已停用",
   "Failed to disable customer": "停用失败"
-}
 }

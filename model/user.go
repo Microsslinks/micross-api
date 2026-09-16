@@ -645,6 +645,21 @@ func (user *User) TransferAffQuotaToQuota(quota int) error {
 	return tx.Commit().Error
 }
 
+// TransferCommissionToQuota 把 commission 钱包余额转入主 quota。
+//
+// 关键设计：commission 钱包是任务文档 §三"资金闭环"的"不可提现"入口——
+// 佣金只能继续在系统里消费（调 API 走主 quota），不允许套现。
+// 因此此端点永远返回 error，前端调它时会显示"Commission is not withdrawable"。
+//
+// 为什么保留端点而不是删掉：
+//  1. 老用户已发出去的 aff_quota（注册一次性返利）走 TransferAffQuotaToQuota，
+//     前端入口下线但端点保留兼容；
+//  2. 新 commission 钱包走此端点，但语义是"永远拒绝"——前端据此隐藏按钮；
+//  3. 防止未来误调用 commission 钱包：显式失败 > 静默空操作。
+func (user *User) TransferCommissionToQuota(quota int) error {
+	return errors.New("commission is not withdrawable")
+}
+
 // ResetInviterParams task-16：超管重置某用户的邀请人。
 //
 // 设计要点：

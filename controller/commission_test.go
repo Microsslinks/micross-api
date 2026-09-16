@@ -35,6 +35,18 @@ func setupCommissionControllerTest(t *testing.T) *gorm.DB {
 	previousOptionMap := common.OptionMap
 	common.OptionMap = make(map[string]string)
 
+	// i18n.T 走 Localizer 渲染；测试环境没初始化 localizers，TranslateMessage
+	// 会 fallback 到 key（"user.transfer_failed"）。Mock 一个简单的模板替换实现，
+	// 让 handler 测试能验证 args["Error"] 被正确塞到 message 里：
+	//   user.transfer_failed (en.yaml) = "Transfer failed {{.Error}}"
+	previousTranslateMessage := common.TranslateMessage
+	common.TranslateMessage = func(c *gin.Context, key string, args ...map[string]any) string {
+		if errStr, ok := args[0]["Error"].(string); ok && errStr != "" {
+			return "Transfer failed " + errStr
+		}
+		return key
+	}
+
 	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
 	dsn := fmt.Sprintf("file:commission-ctrl-%d?mode=memory&cache=shared", time.Now().UnixNano())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
@@ -49,6 +61,7 @@ func setupCommissionControllerTest(t *testing.T) *gorm.DB {
 		common.SetDatabaseTypes(previousMainType, previousLogType)
 		operation_setting.SetCommissionRate(previousRate)
 		common.OptionMap = previousOptionMap
+		common.TranslateMessage = previousTranslateMessage
 		_ = sqlDB.Close()
 	})
 	return db
@@ -324,4 +337,109 @@ func TestAdminSetCommissionRateAcceptsBoundaryValues(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.False(t, resp.Success, "rate > 1 应被拒绝")
+}
+
+// =============================================================================
+// 任务文档 §五"资金闭环 · 不可提现"端点测试
+// 端点：POST /api/user/aff/commission/transfer
+// 语义：永远返回错误（commission is not withdrawable）——前端 wallet 面板据此隐藏按钮。
+// =============================================================================
+
+// TestTransferCommissionAlwaysFails
+//
+// 任何 quota（> 0）调用都被业务层拒绝 —— 这是任务文档 §三"资金闭环"的核心约束。
+func TestTransferCommissionAlwaysFails(t *testing.T) {
+	db := setupCommissionControllerTest(t)
+	user := seedCommissionUser(t, db, "transfer-100", 99999)
+
+	c, w := newCommissionCtx(user.Id)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/aff/commission/transfer", strings.NewReader(`{"quota":100}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	TransferCommission(c)
+
+	assert.Equal(t, http.StatusOK, w.Code, "项目所有 ApiError* 都返回 HTTP 200 + success=false")
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.False(t, resp.Success, "commission 转账必须永远失败")
+	assert.Contains(t, resp.Message, "commission is not withdrawable", "错误信息应明确说明不可提现")
+
+	// 余额未动：commission 钱包仍为 99999
+	var u model.User
+	require.NoError(t, db.First(&u, user.Id).Error)
+	assert.EqualValues(t, 99999, u.AffCommissionBalance, "拒绝时不应扣减 commission 钱包")
+}
+
+// TestTransferCommissionZeroQuotaStillFails
+//
+// quota = 0 也应被拒绝 —— 防止调用方以为"金额为 0 时能成功"。
+// binding:"required" 对 int 类型会把 0 视为零值而拦截；handler 走不到业务层。
+func TestTransferCommissionZeroQuotaStillFails(t *testing.T) {
+	db := setupCommissionControllerTest(t)
+	user := seedCommissionUser(t, db, "transfer-zero", 5000)
+
+	c, w := newCommissionCtx(user.Id)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/aff/commission/transfer", strings.NewReader(`{"quota":0}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	TransferCommission(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.False(t, resp.Success, "quota=0 必须被 binding 层拒绝（零值）")
+
+	// 余额未动
+	var u model.User
+	require.NoError(t, db.First(&u, user.Id).Error)
+	assert.EqualValues(t, 5000, u.AffCommissionBalance, "binding 拒绝时余额不变")
+}
+
+// TestTransferCommissionInvalidQuotaRejected
+//
+// quota = -100（负数）—— int 类型 -100 是非零值，能过 binding:"required"，
+// 但会被业务层 TransferCommissionToQuota 永远拒绝（commission is not withdrawable）。
+//
+// 额外覆盖 quota 字段缺失的场景：binding 一样会拒。
+func TestTransferCommissionInvalidQuotaRejected(t *testing.T) {
+	db := setupCommissionControllerTest(t)
+	user := seedCommissionUser(t, db, "transfer-neg", 7777)
+
+	// 1) quota = -100（业务层拒绝）
+	c, w := newCommissionCtx(user.Id)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/aff/commission/transfer", strings.NewReader(`{"quota":-100}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	TransferCommission(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.False(t, resp.Success, "quota=-100 必须被拒绝")
+	assert.Contains(t, resp.Message, "commission is not withdrawable", "负数场景下错误信息应表明不可提现（业务层拒绝）")
+
+	// 2) quota 字段缺失（binding 拒绝）
+	c, w = newCommissionCtx(user.Id)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/aff/commission/transfer", strings.NewReader(`{}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	TransferCommission(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.False(t, resp.Success, "缺 quota 字段必须被 binding 拒绝")
+
+	// 余额仍为初始值，两次拒绝都没动
+	var u model.User
+	require.NoError(t, db.First(&u, user.Id).Error)
+	assert.EqualValues(t, 7777, u.AffCommissionBalance, "两次拒绝都不应影响 commission 钱包余额")
 }

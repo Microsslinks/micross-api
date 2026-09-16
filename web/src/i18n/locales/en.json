@@ -5935,7 +5935,21 @@
     "Topup conversion rate": "Topup conversion rate",
     "Topup conversion rate must be greater than 0 and at most 1": "Topup conversion rate must be greater than 0 and at most 1",
     "Ratio applied when this plan is used to top up a customer: 0.875 means 100 face value costs the dealer 87.5. Defaults to 1.0 (no conversion).": "Ratio applied when this plan is used to top up a customer: 0.875 means 100 face value costs the dealer 87.5. Defaults to 1.0 (no conversion).",
-    "Subscription discount plan (optional)": "Subscription discount plan (optional)"
+    "Subscription discount plan (optional)": "Subscription discount plan (optional)",
+    "Commission Earnings": "Commission Earnings",
+    "Pending Commission": "Pending Commission",
+    "Total Commission Earned": "Total Commission Earned",
+    "Commission is not withdrawable": "Commission is not withdrawable",
+    "Earn commission when your invitees consume API quota. The commission wallet is non-withdrawable and can only be spent through API calls.": "Earn commission when your invitees consume API quota. The commission wallet is non-withdrawable and can only be spent through API calls.",
+    "Date": "Date",
+    "Invitee": "Invitee",
+    "Gross": "Gross",
+    "Rate": "Rate",
+    "Breach": "Breach",
+    "Margin capped": "Margin capped",
+    "Normal": "Normal",
+    "No commission records yet": "No commission records yet",
+    "Commission records will appear here once your invitees consume API quota.": "Commission records will appear here once your invitees consume API quota."
   },
   "Group ratio is deprecated. Use customer discount plans instead.": "Group ratio is deprecated. Use customer discount plans instead.",
   "Active bindings": "Active bindings",
@@ -5988,5 +6002,4 @@
   "dealer.disable.confirm": "Disable {{name}}? They will not be able to log in, and all their API keys will stop working.",
   "Customer disabled": "Customer disabled",
   "Failed to disable customer": "Failed to disable customer"
-}
 }

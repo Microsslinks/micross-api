@@ -117,11 +117,14 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/passkey/verify/finish", middleware.DisableCache(), controller.PasskeyVerifyFinish)
 				selfRoute.DELETE("/passkey", middleware.DisableCache(), controller.PasskeyDelete)
 				selfRoute.GET("/aff", controller.GetAffCode)
-				// 邀请佣金钱包（task-10 / P4 佣金核心）：余额 / 流水 / 累计，
+				// 邀请佣金钱包（task-10 / P4 佣金核心）：余额 / 流水 / 累计 / 转账，
 				// 与 /aff 的邀请码查询并行挂在 selfRoute 上。
 				selfRoute.GET("/aff/commission/balance", controller.GetAffCommissionBalance)
 				selfRoute.GET("/aff/commission/records", controller.ListAffCommissionRecords)
 				selfRoute.GET("/aff/commission/summary", controller.GetAffCommissionSummary)
+				// 提取佣金到主 quota：端点存在但永远返回"commission 不可提现"，
+				// 前端 wallet 面板据此隐藏按钮并显示 tooltip。
+				selfRoute.POST("/aff/commission/transfer", controller.TransferCommission)
 				selfRoute.GET("/topup/info", controller.GetTopUpInfo)
 				selfRoute.GET("/topup/self", controller.GetUserTopUps)
 				selfRoute.POST("/topup", middleware.CriticalRateLimit(), controller.TopUp)
