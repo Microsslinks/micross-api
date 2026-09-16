@@ -82,8 +82,8 @@ type User struct {
 	Password         string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
 	OriginalPassword string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
 	DisplayName      string                     `json:"display_name" gorm:"index" validate:"max=20"`
-	Role             int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
-	Status           int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
+	Role             int                        `json:"role" gorm:"default:1"`   // admin, common
+	Status           int                        `json:"status" gorm:"default:1"` // enabled, disabled
 	Email            string                     `json:"email" gorm:"index" validate:"max=50"`
 	GitHubId         string                     `json:"github_id" gorm:"column:github_id;index"`
 	DiscordId        string                     `json:"discord_id" gorm:"column:discord_id;index"`
@@ -92,18 +92,18 @@ type User struct {
 	TelegramId       string                     `json:"telegram_id" gorm:"column:telegram_id;index"`
 	VerificationCode string                     `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
 	AccessToken      *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
-	Quota            int                        `json:"quota" gorm:"type:int;default:0"`
-	UsedQuota        int                        `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
-	RequestCount     int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
+	Quota            int                        `json:"quota" gorm:"default:0"`
+	UsedQuota        int                        `json:"used_quota" gorm:"default:0;column:used_quota"` // used quota
+	RequestCount     int                        `json:"request_count" gorm:"default:0;"`               // request number
 	Group            string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
-	DiscountPlanId   int                        `json:"discount_plan_id" gorm:"type:int;default:0;index"` // discount_bindings 的快路径，变更由绑定表同处写入
+	DiscountPlanId   int                        `json:"discount_plan_id" gorm:"default:0;index"` // discount_bindings 的快路径，变更由绑定表同处写入
 	SubjectType      string                     `json:"subject_type" gorm:"type:varchar(16);default:'individual';index"`
-	ParentAgentId    int                        `json:"parent_agent_id" gorm:"type:int;default:0;index"`
+	ParentAgentId    int                        `json:"parent_agent_id" gorm:"default:0;index"`
 	AffCode          string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
-	AffCount         int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
-	AffQuota         int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
-	AffHistoryQuota  int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
-	InviterId        int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
+	AffCount         int                        `json:"aff_count" gorm:"default:0;column:aff_count"`
+	AffQuota         int                        `json:"aff_quota" gorm:"default:0;column:aff_quota"`           // 邀请剩余额度
+	AffHistoryQuota  int                        `json:"aff_history_quota" gorm:"default:0;column:aff_history"` // 邀请历史额度
+	InviterId        int                        `json:"inviter_id" gorm:"column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	Setting          string                     `json:"setting" gorm:"type:text;column:setting"`
