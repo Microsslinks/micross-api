@@ -5949,5 +5949,16 @@
   "Refresh": "Обновить",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Как только План №{{id}} будет отвязан, пользователь сразу вернётся к официальной цене.",
   "Unbind discount plan?": "Отвязать план скидок?",
+  "Reset inviter": "Сбросить пригласившего",
+  "Reset inviter?": "Сбросить пригласившего?",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "Это перезапишет текущего пригласившего пользователя. Исторические комиссии и квоты НЕ пересчитываются. Действие будет записано в журнал аудита с вашей причиной.",
+  "New inviter user ID (0 to clear)": "ID нового пригласившего (0 для очистки)",
+  "Current inviter": "Текущий пригласивший",
+  "Reason (10–200 characters)": "Причина (10–200 символов)",
+  "Why are you resetting the inviter?": "Почему вы сбрасываете пригласившего?",
+  "Reset": "Сбросить",
+  "Resetting...": "Сброс…",
+  "Inviter reset successfully": "Пригласивший успешно сброшен",
+  "Failed to reset inviter": "Не удалось сбросить пригласившего",
   "{{count}} active": "{{count}} активно"
 }

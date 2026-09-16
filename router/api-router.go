@@ -160,6 +160,9 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.PUT("/", controller.UpdateUser)
 				adminRoute.DELETE("/:id", controller.DeleteUser)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
+				// task-16：超管重置某用户的邀请人（inviter_id）。
+				// adminRoute 已自带 AdminAuth（role≥10），handler 内部再校验 RoleRootUser。
+				adminRoute.POST("/:id/reset_inviter", controller.AdminResetUserInviter)
 
 				// 经销商身份（业务身份，不是权限角色）
 				adminRoute.POST("/:id/agent", controller.SetUserAsAgent)

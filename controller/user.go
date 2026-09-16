@@ -1583,3 +1583,106 @@ func UpdateUserSetting(c *gin.Context) {
 
 	common.ApiSuccessI18n(c, i18n.MsgSettingSaved, nil)
 }
+
+// =====================================================================
+// Admin · 重置用户邀请人（task-16）
+//
+// 守卫：仅 RoleRootUser（超管）。普通管理员（role=10）即使能管普通用户也
+// 不允许改 inviter_id——inviter_id 决定了 aff_quota 流向，动了它等于暗中
+// 改变推荐积分归属链，影响范围远超"普通用户管理"，需收紧到超管层级。
+//
+// 入参：{inviter_id: int, reason: string}
+//   - inviter_id: 0 表示清空；>0 表示新的邀请人
+//   - reason: 10–200 字符，前端表单硬约束；这里再做一次防御性 length check
+//
+// 行为契约：见 model.ResetInviter 注释。这里只负责：
+//   1) 解析 + 守卫
+//   2) 调 model 层事务方法
+//   3) 把结果翻译成 HTTP 响应（errors.Is 判别）
+//   4) 成功时 recordManageAuditFor 留痕（含 old/new inviter_id + reason）
+// =====================================================================
+
+type ResetUserInviterRequest struct {
+	InviterId int    `json:"inviter_id"`
+	Reason    string `json:"reason"`
+}
+
+const (
+	resetInviterReasonMinLen = 10
+	resetInviterReasonMaxLen = 200
+)
+
+func AdminResetUserInviter(c *gin.Context) {
+	// 守卫：仅超管（先于一切解析，让 403 优先级最高）
+	if c.GetInt("role") != common.RoleRootUser {
+		common.ApiErrorMsg(c, "no permission")
+		return
+	}
+
+	// 解析 path 参数
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorMsg(c, "无效的用户 ID")
+		return
+	}
+
+	// 解析 body
+	var req ResetUserInviterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "无效的请求参数")
+		return
+	}
+
+	// reason 长度防御性校验（前端已硬约束，但 API 边界再挡一道）
+	reasonLen := len([]rune(req.Reason))
+	if reasonLen < resetInviterReasonMinLen || reasonLen > resetInviterReasonMaxLen {
+		common.ApiErrorMsg(c, fmt.Sprintf(
+			"原因长度需在 %d-%d 字符之间", resetInviterReasonMinLen, resetInviterReasonMaxLen,
+		))
+		return
+	}
+	if req.InviterId < 0 {
+		common.ApiErrorMsg(c, "inviter_id 必须为非负整数（0 表示清空）")
+		return
+	}
+
+	// 调 model 层事务方法
+	oldInviterId, err := model.ResetInviter(model.ResetInviterParams{
+		TargetUserId: id,
+		NewInviterId: req.InviterId,
+		ActorUserId:  c.GetInt("id"),
+		Reason:       req.Reason,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			common.ApiErrorMsg(c, "目标用户不存在")
+		case errors.Is(err, model.ErrInviterSelf):
+			common.ApiErrorMsg(c, "邀请人不能是用户自己")
+		case errors.Is(err, model.ErrInviterNotFound):
+			common.ApiErrorMsg(c, "邀请人不存在")
+		case errors.Is(err, model.ErrInviterDeleted):
+			common.ApiErrorMsg(c, "邀请人已被删除")
+		default:
+			common.ApiError(c, err)
+		}
+		return
+	}
+
+	// 留痕：admin 操作日志（仅超管可调、操作高敏感）
+	recordManageAuditFor(c, id, "user.reset_inviter", map[string]interface{}{
+		"target_user_id": id,
+		"old_inviter_id": oldInviterId,
+		"new_inviter_id": req.InviterId,
+		"reason":         req.Reason,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "inviter reset",
+		"data": gin.H{
+			"target_user_id": id,
+			"inviter_id":     req.InviterId,
+		},
+	})
+}

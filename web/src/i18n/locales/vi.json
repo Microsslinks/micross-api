@@ -5949,5 +5949,16 @@
   "Refresh": "Làm mới",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Người dùng sẽ quay về giá gốc ngay khi Gói #{{id}} bị gỡ.",
   "Unbind discount plan?": "Gỡ gói giảm giá?",
+  "Reset inviter": "Đặt lại người mời",
+  "Reset inviter?": "Đặt lại người mời?",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "Thao tác này sẽ ghi đè người mời hiện tại của người dùng. Hoa hồng và hạn mức trong quá khứ KHÔNG được tính lại. Hành động sẽ được ghi vào nhật ký kiểm toán cùng lý do của bạn.",
+  "New inviter user ID (0 to clear)": "ID người dùng của người mời mới (0 để xóa)",
+  "Current inviter": "Người mời hiện tại",
+  "Reason (10–200 characters)": "Lý do (10–200 ký tự)",
+  "Why are you resetting the inviter?": "Tại sao bạn đặt lại người mời?",
+  "Reset": "Đặt lại",
+  "Resetting...": "Đang đặt lại…",
+  "Inviter reset successfully": "Đặt lại người mời thành công",
+  "Failed to reset inviter": "Đặt lại người mời thất bại",
   "{{count}} active": "{{count}} đang hoạt động"
 }

@@ -16,10 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ExternalLink, Link2Off, RefreshCw } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { ExternalLink, Link2Off, RefreshCw, UserCog } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -38,11 +38,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { StatusBadge } from '@/components/status-badge'
 import { formatTimestampToDate } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
   deleteDiscountBinding,
@@ -51,6 +54,7 @@ import {
 import { getDiscountBindingSourceLabel } from '@/features/discounts/constants'
 import { type DiscountBinding } from '@/features/discounts/types'
 
+import { resetUserInviter } from '../api'
 import { type User } from '../types'
 
 // UserDiscountSection：用户详情页的「折扣」标签区（task-15）。
@@ -75,8 +79,59 @@ type UserDiscountSectionProps = {
 
 export function UserDiscountSection({ user }: UserDiscountSectionProps) {
   const { t } = useTranslation()
+  const currentUser = useAuthStore((s) => s.auth.user)
+  const queryClient = useQueryClient()
+  const isSuperAdmin = currentUser?.role === ROLE.SUPER_ADMIN
   const [unbindTarget, setUnbindTarget] = useState<DiscountBinding | null>(null)
   const [isUnbinding, setIsUnbinding] = useState(false)
+
+  // task-16：重置邀请人对话框状态。仅 isSuperAdmin=true 时才显示按钮，
+  // 但 state 永远声明（hooks 顺序规则），只是 UI 不会渲染按钮入口。
+  const [resetOpen, setResetOpen] = useState(false)
+  const [newInviterId, setNewInviterId] = useState('')
+  const [resetReason, setResetReason] = useState('')
+  const [isResetting, setIsResetting] = useState(false)
+
+  const parsedInviterId = useMemo(() => {
+    const n = Number.parseInt(newInviterId, 10)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }, [newInviterId])
+  const reasonLen = resetReason.length
+  const reasonValid = reasonLen >= 10 && reasonLen <= 200
+  const resetFormValid = parsedInviterId !== null && reasonValid
+
+  const submitReset = useCallback(async () => {
+    if (parsedInviterId === null || !reasonValid) return
+    setIsResetting(true)
+    try {
+      const result = await resetUserInviter(user.id, {
+        inviter_id: parsedInviterId,
+        reason: resetReason,
+      })
+      if (result.success) {
+        toast.success(t('Inviter reset successfully'))
+        setResetOpen(false)
+        setNewInviterId('')
+        setResetReason('')
+        // 刷新详情页 + bindings 两路查询（inviter_id 改了，前端 user 对象也得换）
+        queryClient.invalidateQueries({ queryKey: ['user', user.id] })
+        queryClient.invalidateQueries({ queryKey: ['user-discount-bindings', user.id] })
+        return
+      }
+      toast.error(result.message || t('Failed to reset inviter'))
+    } catch (error) {
+      handleServerError(error)
+    } finally {
+      setIsResetting(false)
+    }
+  }, [
+    parsedInviterId,
+    reasonValid,
+    resetReason,
+    user.id,
+    queryClient,
+    t,
+  ])
 
   const bindingsQuery = useQuery({
     queryKey: ['user-discount-bindings', user.id],
@@ -167,6 +222,25 @@ export function UserDiscountSection({ user }: UserDiscountSectionProps) {
             </p>
           </div>
         </div>
+
+        {/* task-16：仅超管可见的「重置邀请人」入口。
+            放在归属行右侧——inviter_id 才是邀请积分链的核心，归属行 + 邀请行
+            之间最自然的位置。普通管理员（role=10）即使能管用户也无权修改
+            inviter_id（后端守卫会再次校验）。 */}
+        {isSuperAdmin && (
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => setResetOpen(true)}
+              className='border-amber-300 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950'
+            >
+              <UserCog className='mr-2 h-4 w-4' />
+              {t('Reset inviter')}
+            </Button>
+          </div>
+        )}
 
         {/* 行 2：邀请码 + 邀请人 + 邀请人数 */}
         <div className='grid grid-cols-3 gap-3'>
@@ -341,6 +415,79 @@ export function UserDiscountSection({ user }: UserDiscountSectionProps) {
               variant='destructive'
             >
               {isUnbinding ? t('Unbinding...') : t('Unbind')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* task-16：重置邀请人对话框（仅超管）。 */}
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Reset inviter?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                'This will overwrite the user\'s current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className='space-y-3'>
+            <div>
+              <Label htmlFor='new-inviter-id' className='text-sm'>
+                {t('New inviter user ID (0 to clear)')}
+              </Label>
+              <Input
+                id='new-inviter-id'
+                type='number'
+                min={0}
+                value={newInviterId}
+                onChange={(e) => setNewInviterId(e.target.value)}
+                placeholder={user.inviter_id ? String(user.inviter_id) : '0'}
+                className='mt-1'
+              />
+              <p className='text-muted-foreground mt-1 text-xs'>
+                {t('Current inviter')}: {user.inviter_id || '—'}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor='reset-reason' className='text-sm'>
+                {t('Reason (10–200 characters)')}
+              </Label>
+              <Input
+                id='reset-reason'
+                value={resetReason}
+                onChange={(e) => setResetReason(e.target.value)}
+                placeholder={t('Why are you resetting the inviter?')}
+                className='mt-1'
+              />
+              <p
+                className={`mt-1 text-xs ${
+                  reasonValid
+                    ? 'text-muted-foreground'
+                    : 'text-rose-500'
+                }`}
+              >
+                {reasonLen} / 200
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>
+              {t('Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={submitReset}
+              disabled={!resetFormValid || isResetting}
+              variant='destructive'
+            >
+              {isResetting ? (
+                <>
+                  <Spinner className='mr-2 h-4 w-4' />
+                  {t('Resetting...')}
+                </>
+              ) : (
+                t('Reset')
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5949,5 +5949,16 @@
   "Refresh": "Actualiser",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Cet utilisateur repasse au tarif officiel dès que le Plan n°{{id}} est détaché.",
   "Unbind discount plan?": "Détacher le plan de remise ?",
+  "Reset inviter": "Réinitialiser le parrain",
+  "Reset inviter?": "Réinitialiser le parrain ?",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "Cela écrasera le parrain actuel de l'utilisateur. Les commissions et quotas historiques ne sont PAS recalculés. L'action sera enregistrée dans le journal d'audit avec votre motif.",
+  "New inviter user ID (0 to clear)": "Nouvel ID utilisateur du parrain (0 pour effacer)",
+  "Current inviter": "Parrain actuel",
+  "Reason (10–200 characters)": "Motif (10–200 caractères)",
+  "Why are you resetting the inviter?": "Pourquoi réinitialisez-vous le parrain ?",
+  "Reset": "Réinitialiser",
+  "Resetting...": "Réinitialisation…",
+  "Inviter reset successfully": "Parrain réinitialisé avec succès",
+  "Failed to reset inviter": "Échec de la réinitialisation du parrain",
   "{{count}} active": "{{count}} actifs"
 }
