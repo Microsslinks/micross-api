@@ -66,6 +66,12 @@ export function UpdateCheckerSection({
         }
       )
 
+      if (response.status === 404) {
+        // No releases have been published yet for this fork.
+        toast.info(t('No releases have been published yet.'))
+        return
+      }
+
       if (!response.ok) {
         throw new Error(t('Failed to contact GitHub releases API'))
       }

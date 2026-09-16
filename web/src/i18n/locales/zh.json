@@ -2153,6 +2153,7 @@
     "Failed to complete Passkey login": "无法完成 Passkey 登录",
     "Failed to confirm compliance": "确认合规失败",
     "Failed to contact GitHub releases API": "无法连接 GitHub Releases API",
+    "No releases have been published yet.": "暂无已发布的版本。",
     "Failed to copy": "复制失败",
     "Failed to copy channel": "复制上游供应商失败",
     "Failed to copy keys": "复制密钥失败",

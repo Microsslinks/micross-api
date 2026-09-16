@@ -2153,6 +2153,7 @@
     "Failed to complete Passkey login": "Failed to complete Passkey login",
     "Failed to confirm compliance": "Failed to confirm compliance",
     "Failed to contact GitHub releases API": "Failed to contact GitHub releases API",
+    "No releases have been published yet.": "No releases have been published yet.",
     "Failed to copy": "Failed to copy",
     "Failed to copy channel": "Failed to copy channel",
     "Failed to copy keys": "Failed to copy keys",
