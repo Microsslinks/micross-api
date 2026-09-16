@@ -41,6 +41,12 @@ export type DiscountPlanFormValues = {
   min_discount: string
   billing_mode: string
   commission_ratio: string
+  /**
+   * 经销商给客户发额度时的折算比例（task-09）；输入框里填的就是「0.875」这种。
+   * 校验与 base_discount 同口径：>0 且 ≤1，0 等于白送、>1 等于倒贴。
+   * 空值视为 1.0（保持 1:1，向后兼容）。
+   */
+  topup_conversion_rate: string
   status: number
   remark: string
 }
@@ -57,6 +63,8 @@ export const DISCOUNT_PLAN_FORM_DEFAULT_VALUES: DiscountPlanFormValues = {
   min_discount: '0',
   billing_mode: DISCOUNT_BILLING_MODE.USAGE,
   commission_ratio: '0',
+  // 经销商发额度折算比例缺省 1.0（保持 1:1，task-09）。空值也走 1.0，向后兼容。
+  topup_conversion_rate: '1',
   status: DISCOUNT_PLAN_STATUS.ENABLED,
   remark: '',
 }
@@ -106,6 +114,14 @@ export function getDiscountPlanFormSchema(t: TFunction) {
         .refine(
           isRatioInput,
           t('Commission ratio must be a number between 0 and 1')
+        ),
+      // 发放折算比例（task-09）：与 base_discount 同口径校验——不允许 0 也不允许 > 1。
+      // 0 是白送、>1 是倒贴，两者都会赔钱，必须让填的人看见红字自己改。
+      topup_conversion_rate: z
+        .string()
+        .refine(
+          isDiscountInput,
+          t('Topup conversion rate must be greater than 0 and at most 1')
         ),
       status: z.union([
         z.literal(DISCOUNT_PLAN_STATUS.ENABLED),
@@ -160,6 +176,10 @@ export function buildDiscountPlanPayload(
     commission_ratio:
       normalizeRatioInput(values.commission_ratio, { allowZero: true }) ??
       '0.000000',
+    // topup_conversion_rate：空值兜底 1.000000（与后端 DiscountTopupConversionDefault 同口径）。
+    // 这里走 isDiscountInput 路径而不是 isRatioInput——前者不允许 0，后者允许。
+    topup_conversion_rate:
+      normalizeRatioInput(values.topup_conversion_rate) ?? '1.000000',
     status: values.status,
     remark: values.remark.trim(),
   }
@@ -177,6 +197,13 @@ export function transformDiscountPlanToFormDefaults(
     min_discount: ratioTextToInput(plan.min_discount),
     billing_mode: plan.billing_mode || DISCOUNT_BILLING_MODE.USAGE,
     commission_ratio: ratioTextToInput(plan.commission_ratio),
+    // 老库升级上来的方案可能没有 topup_conversion_rate 字段：兜底成 1.0，与
+    // DiscountTopupConversionDefault 同口径。ratioTextToInput 解析失败时
+    // 会返回空串，再交给 buildDiscountPlanPayload 用 normalizeRatioInput 兜回 1.000000。
+    topup_conversion_rate:
+      plan.topup_conversion_rate && plan.topup_conversion_rate.length > 0
+        ? ratioTextToInput(plan.topup_conversion_rate)
+        : '1',
     status: plan.status,
     remark: plan.remark ?? '',
   }

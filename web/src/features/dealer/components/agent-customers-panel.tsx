@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table'
 import { getDiscountBindingSourceLabel } from '@/features/discounts/constants'
 import { formatRatioText } from '@/features/discounts/lib/format'
+import { parseRatioText } from '@/features/discounts/lib/format'
 import { DISCOUNT_BINDING_SOURCE } from '@/features/discounts/types'
 import { USER_STATUSES } from '@/features/users/constants'
 import {
@@ -459,6 +460,11 @@ function QuotaDialog({ customer, onOpenChange, onSaved }: QuotaDialogProps) {
 
   const name = customer?.display_name || customer?.username || ''
   const quota = parseQuotaFromDollars(Number.parseFloat(amount) || 0)
+  // 折算预览：客户主方案的 TopupConversionRate（task-09）。空字符串走 1.0 兜底，
+  // 与后端 resolveAgentTopupCost 同口径。预览按 ceil(quota × rate) 估算，与后端实扣一致。
+  const topupRate = customer ? (parseRatioText(customer.topup_conversion_rate) ?? 1) : 1
+  const agentCostPreview = Math.ceil(quota * topupRate)
+  const showTopupPreview = customer !== null && quota > 0 && topupRate < 1
   const exceeding = available !== null && quota > available
   const canSend =
     customer !== null && quota >= minimumQuota && !exceeding && !sending
@@ -548,6 +554,29 @@ function QuotaDialog({ customer, onOpenChange, onSaved }: QuotaDialogProps) {
           </p>
         )}
       </div>
+
+      {/*
+       * task-09：折算预览。客户主方案配了 < 1 的比例时显示「面值 X 实扣 Y」+ 比例百分比。
+       * 后端仍按自己的 TopupConversionRate 实扣（不依赖前端传的 agentCost），
+       * 这里只是给经销商看个估算，让他发之前心里有数。
+       */}
+      {showTopupPreview && (
+        <div className='text-muted-foreground space-y-1 text-xs'>
+          <p>
+            {t('Face value: {{face}}', {
+              face: formatQuota(quota),
+            })}
+          </p>
+          <p>
+            {t('Actually deducted: {{actual}}', {
+              actual: formatQuota(agentCostPreview),
+            })}
+            <span className='ml-1'>
+              ({formatRatioText(customer?.topup_conversion_rate)})
+            </span>
+          </p>
+        </div>
+      )}
     </Dialog>
   )
 }

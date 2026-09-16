@@ -68,6 +68,7 @@ const plan: DiscountPlan = {
   min_discount: '0.500000',
   billing_mode: 'usage',
   commission_ratio: '0.000000',
+  topup_conversion_rate: '1.000000',
   status: 1,
   remark: '',
   created_at: 0,

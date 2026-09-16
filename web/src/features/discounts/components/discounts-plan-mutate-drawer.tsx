@@ -433,6 +433,41 @@ export function DiscountsPlanMutateDrawer({
                 )}
               </div>
             )}
+
+            {/*
+             * task-09：发放折算比例。所有方案都可填（与 owner 无关）—— 后端 NormalizeDefaults
+             * 把每个方案的 topup_conversion_rate 兜到 1.0，缺省就是 1:1 行为不变。
+             * 实际会被经销商用的是 agent 方案的字段；平台方案的字段会保持 1.0，因为不是
+             * 经销商定的价——但保留字段可以避免 owner 切换（platform <-> agent）时丢值。
+             */}
+            <div className='space-y-2'>
+              <Label htmlFor='discount-plan-topup-rate'>
+                {t('Topup conversion rate')}
+              </Label>
+              <Input
+                id='discount-plan-topup-rate'
+                type='number'
+                inputMode='decimal'
+                step='0.001'
+                min='0'
+                max='1'
+                value={values.topup_conversion_rate}
+                placeholder='1'
+                onChange={(event) =>
+                  setField('topup_conversion_rate', event.target.value)
+                }
+              />
+              {errors.topup_conversion_rate && (
+                <p className='text-destructive text-xs'>
+                  {errors.topup_conversion_rate}
+                </p>
+              )}
+              <p className='text-muted-foreground text-xs'>
+                {t(
+                  'Ratio applied when this plan is used to top up a customer: 0.875 means 100 face value costs the dealer 87.5. Defaults to 1.0 (no conversion).'
+                )}
+              </p>
+            </div>
           </SideDrawerSection>
 
           <SideDrawerSection>

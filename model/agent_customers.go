@@ -2,10 +2,12 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/bytedance/gopkg/util/gopool"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +35,10 @@ var (
 	ErrAgentQuotaNotEnough = errors.New("你自己的额度不足")
 	// ErrAgentQuotaInvalid 发的额度数不是一个正数。
 	ErrAgentQuotaInvalid = errors.New("额度必须是正数")
+	// ErrAgentTopupRateZero 经销商给客户发额度时方案折算比例为 0，禁止（钱白送）。
+	ErrAgentTopupRateZero = errors.New("经销商发额度折算比例不能为 0")
+	// ErrAgentTopupRateTooHigh 经销商给客户发额度时方案折算比例 > 1，禁止（扣得比面值还多）。
+	ErrAgentTopupRateTooHigh = errors.New("经销商发额度折算比例必须 ≤ 1")
 )
 
 // AgentCustomer 是经销商名下一个客户的台账行。
@@ -56,6 +62,12 @@ type AgentCustomer struct {
 	BindingSource string `json:"binding_source"`
 	/** 是否由经销商自己定过价（= 有 source=agent 的生效绑定），界面据此决定"恢复"按钮显不显示 */
 	PricedByMe bool `json:"priced_by_me"`
+	/**
+	 * 主方案的折算比例字符串（"0.875000"），task-09 用：经销商给客户发额度时按这个比例
+	 * 扣经销商余额。前端预览与后端实扣都参考它；空字符串表示该客户没有生效的折扣方案，
+	 * 服务端走 1.0 兜底（保持与改前一致）。
+	 */
+	TopupConversionRate string `json:"topup_conversion_rate"`
 }
 
 // AgentCustomerBinding 是这位客户身上一条正在生效的折扣绑定。
@@ -191,6 +203,7 @@ func buildAgentCustomer(customer *User, bindings []DiscountBinding, plans map[in
 	if plan, ok := plans[active.PlanId]; ok {
 		row.PlanName = plan.Name
 		row.PlanDiscount = formatResolvedDiscount(plan.BaseDiscount)
+		row.TopupConversionRate = plan.TopupConversionRate
 	}
 	return row
 }
@@ -319,6 +332,10 @@ func SetAgentCustomerDiscount(agentId int, customerId int, planId int) error {
 //
 // 两行必须在同一事务里一起动，并且都锁住：少一半就是"扣了没给"或"给了没扣"。
 // 锁的顺序固定为先经销商、后客户，两个方向同时操作也不会互相等死。
+//
+// task-09 加折算：扣经销商的钱按客户主方案的 TopupConversionRate（0~1 之间）折算，
+// 客户按面值原额收。比例 = 0 或 > 1 都拒，避免钱白送或被多扣。
+// 扣减用 ceil，cents 留给平台——经销商扣得略多一点（≤ 1 单位/笔），客户拿到的是干净的面值。
 func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 	if quota <= 0 {
 		return ErrAgentQuotaInvalid
@@ -331,17 +348,15 @@ func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 		return ErrAgentQuotaIssuingDisabled
 	}
 
+	var agentCost int // 提到事务外：缓存更新也要用实扣数，不能盲扣面值
 	err = DB.Transaction(func(tx *gorm.DB) error {
 		var agent User
 		if err := lockForUpdate(tx).Select("id", "quota").First(&agent, agentId).Error; err != nil {
 			return err
 		}
-		if agent.Quota < quota {
-			return ErrAgentQuotaNotEnough
-		}
 		var customer User
 		if err := lockForUpdate(tx).
-			Select("id", "quota", "parent_agent_id", "subject_type").
+			Select("id", "quota", "parent_agent_id", "subject_type", "discount_plan_id").
 			First(&customer, customerId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrAgentCustomerNotFound
@@ -352,8 +367,26 @@ func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 			return ErrAgentCustomerNotFound
 		}
 
+		// 折算比例：取客户主方案（task-06 维护的快路径）的 TopupConversionRate。
+		// 没挂方案 / 方案被删 → 按缺省 1.0（保持与改前一致）。
+		// agentCost 已被声明在事务外，这里用 = 赋值（不是 :=）。
+		var rate decimal.Decimal
+		agentCost, rate, err = resolveAgentTopupCost(tx, customer.DiscountPlanId, quota)
+		if err != nil {
+			return err
+		}
+		if rate.IsZero() {
+			return ErrAgentTopupRateZero
+		}
+		if rate.GreaterThan(decimal.NewFromInt(1)) {
+			return ErrAgentTopupRateTooHigh
+		}
+		if agent.Quota < agentCost {
+			return ErrAgentQuotaNotEnough
+		}
+
 		if err := tx.Model(&User{}).Where("id = ?", agentId).
-			Update("quota", gorm.Expr("quota - ?", quota)).Error; err != nil {
+			Update("quota", gorm.Expr("quota - ?", agentCost)).Error; err != nil {
 			return err
 		}
 		return tx.Model(&User{}).Where("id = ?", customerId).
@@ -365,8 +398,9 @@ func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 
 	// 提交之后再动缓存，写法与 IncreaseUserQuota / DecreaseUserQuota 保持一致：
 	// 缓存没跟上只是让界面上慢一拍，不能反过来影响已经落库的账。
+	// 折算比例 < 1 时经销商实扣小于面值：缓存按实际扣减/增加走，不按面值盲扣。
 	gopool.Go(func() {
-		if err := cacheDecrUserQuota(agentId, int64(quota)); err != nil {
+		if err := cacheDecrUserQuota(agentId, int64(agentCost)); err != nil {
 			common.SysLog("failed to update quota cache for agent: " + err.Error())
 		}
 	})
@@ -376,6 +410,38 @@ func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 		}
 	})
 	return nil
+}
+
+// resolveAgentTopupCost 把面值 quota 按客户主方案的比例折算成经销商实扣 agentCost。
+//
+// 返回 (agentCost, rate, error)：rate 留给 caller 校验边界（0 / >1）。
+// planId = 0 或 plan 被删 → 按 1.0 兜底（兼容没挂方案的客户）。
+// agentCost 用 ceil：cents 留在平台，避免浮点给经销商多扣 0.000...1 这种尾差。
+func resolveAgentTopupCost(tx *gorm.DB, planId int, quota int) (int, decimal.Decimal, error) {
+	rateStr := DiscountTopupConversionDefault
+	if planId > 0 {
+		var plan DiscountPlan
+		if err := tx.Select("id", "topup_conversion_rate").First(&plan, planId).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// 方案被删了，按 1.0 走；不让"客户身上方案被人删"成为整笔发额度失败的根因。
+			} else {
+				return 0, decimal.Zero, err
+			}
+		} else {
+			rateStr = plan.TopupConversionRate
+		}
+	}
+	if rateStr == "" {
+		rateStr = DiscountTopupConversionDefault
+	}
+	rate, err := decimal.NewFromString(rateStr)
+	if err != nil {
+		return 0, decimal.Zero, fmt.Errorf("解析 topup_conversion_rate %q 失败: %w", rateStr, err)
+	}
+	quotaDec := decimal.NewFromInt(int64(quota))
+	cost := quotaDec.Mul(rate).Ceil()
+	agentCost := int(cost.IntPart())
+	return agentCost, rate, nil
 }
 
 // ensureCustomerBelongsToAgent 确认这个人确实是这位经销商名下的客户。

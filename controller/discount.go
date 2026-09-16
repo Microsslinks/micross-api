@@ -28,15 +28,16 @@ func parseDiscountIdParam(c *gin.Context) (int, bool) {
 // ---- 折扣方案 ----
 
 type discountPlanRequest struct {
-	Name            *string `json:"name"`
-	OwnerType       *string `json:"owner_type"`
-	OwnerId         *int    `json:"owner_id"`
-	BaseDiscount    *string `json:"base_discount"`
-	MinDiscount     *string `json:"min_discount"`
-	BillingMode     *string `json:"billing_mode"`
-	CommissionRatio *string `json:"commission_ratio"`
-	Status          *int    `json:"status"`
-	Remark          *string `json:"remark"`
+	Name                *string `json:"name"`
+	OwnerType           *string `json:"owner_type"`
+	OwnerId             *int    `json:"owner_id"`
+	BaseDiscount        *string `json:"base_discount"`
+	MinDiscount         *string `json:"min_discount"`
+	BillingMode         *string `json:"billing_mode"`
+	CommissionRatio     *string `json:"commission_ratio"`
+	TopupConversionRate *string `json:"topup_conversion_rate"`
+	Status              *int    `json:"status"`
+	Remark              *string `json:"remark"`
 }
 
 // applyDiscountPlanRequest 把请求里出现过的字段覆盖到 plan 上并校验。
@@ -126,10 +127,25 @@ func applyDiscountPlanRequest(plan *model.DiscountPlan, req *discountPlanRequest
 	if err != nil {
 		return err
 	}
+	// 发放折算比例（task-09）：经销商给客户发额度时按这个扣经销商余额。
+	// 取值 0~1；空值/缺省 = 1.0（保持 1:1）；不接受 0 或 > 1。
+	// 用 NormalizeDiscount 校验是因为它不允许 0 与 > 1，与 commission_ratio 的宽松口径（允许 0）相反。
+	topupRate := plan.TopupConversionRate
+	if req.TopupConversionRate != nil {
+		topupRate = *req.TopupConversionRate
+	}
+	if strings.TrimSpace(topupRate) == "" {
+		topupRate = model.DiscountTopupConversionDefault
+	}
+	normalizedTopupRate, err := model.NormalizeDiscount(topupRate)
+	if err != nil {
+		return err
+	}
 	if err := model.ValidateDiscountFloor(normalizedBase, normalizedMin); err != nil {
 		return err
 	}
 	plan.BaseDiscount, plan.MinDiscount, plan.CommissionRatio = normalizedBase, normalizedMin, normalizedCommission
+	plan.TopupConversionRate = normalizedTopupRate
 	return nil
 }
 

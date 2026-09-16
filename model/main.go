@@ -616,9 +616,29 @@ func migrateDiscountTables(db *gorm.DB) error {
 		db.Migrator().HasTable(&DiscountBinding{}) {
 		// 折扣三表建过就不再重复迁移（decimal 列比对不相等会让每次启动重建整张表）。
 		// 路由策略表与模型清单表都没有 decimal 列，不受这个坑影响，所以与三表分开、每次照常迁移。
+		// 给老库补 topup_conversion_rate 列（task-09）；这一列 SQLite 不会自动加，要在这里兜。
+		if err := ensureSQLiteDiscountPlanColumns(db); err != nil {
+			return err
+		}
 		return db.AutoMigrate(&DiscountRoutingPolicy{}, &DiscountModelList{})
 	}
 	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{}, &DiscountModelList{})
+}
+
+// ensureSQLiteDiscountPlanColumns 给老库的 discount_plans 补缺失的列。
+//
+// 只补 DiscountPlan 加进来时未建过的列：MySQL/PG 由 AutoMigrate 自己加，这里只管 SQLite。
+// 用 db 参数而不是全局 DB——与 migrateDiscountTables 的 db 形参保持一致，让测试可以传任意 db。
+//
+// 漏了它的后果：老库缺 topup_conversion_rate，发额度时会报 "no such column"，按面值扣经销商
+// 余额的现有路径仍然能跑，但 Phase 2 引入的"按比例折算"那条新路径会直接 500。
+func ensureSQLiteDiscountPlanColumns(db *gorm.DB) error {
+	if db.Migrator().HasColumn(&DiscountPlan{}, "topup_conversion_rate") {
+		return nil
+	}
+	// 列定义与 DiscountPlan 的 gorm tag 对齐：decimal(6,6) NOT NULL DEFAULT 1.0。
+	// 老行 ALTER ADD COLUMN 时由 DEFAULT 1.0 自动填，不会让 NOT NULL 失败。
+	return db.Exec("ALTER TABLE `discount_plans` ADD COLUMN `topup_conversion_rate` decimal(6,6) NOT NULL DEFAULT 1.0").Error
 }
 
 // fixDiscountRuleUniqueIndex 修正 discount_rules 的唯一索引 uk_rule_plan_scope。
