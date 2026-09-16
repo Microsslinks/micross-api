@@ -1,0 +1,8 @@
+{
+  "X (Twitter)": "X (Twitter)",
+  "Bilibili": "Bilibili",
+  "A proprietary platform plus blockchain green clearance, reshaping trade efficiency for enterprises.": "Собственная платформа плюс «зелёное» оформление на блокчейне — новая эффективность торговли для предприятий.",
+  "At least one route has no cost ratio on record, so margins cannot be judged.": "Для как минимум одного маршрута не задан коэффициент себестоимости, поэтому маржу оценить нельзя.",
+  "Used by discount simulation and pre-save validation. A route is flagged as a loss when its cost ratio is above the customer discount minus this margin.": "Используется моделированием скидок и проверкой перед сохранением. Маршрут помечается убыточным, когда его коэффициент себестоимости выше скидки клиента за вычетом этой маржи.",
+  "This page is a placeholder. Set your own content in Business Management → Site → System Info.": "Это страница-заглушка. Своё содержимое задайте в «Управление бизнесом» → «Сайт» → «Системная информация»."
+}
