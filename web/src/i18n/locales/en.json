@@ -5949,5 +5949,16 @@
   "Refresh": "Refresh",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "This user falls back to the official price as soon as Plan #{{id}} is unbound.",
   "Unbind discount plan?": "Unbind discount plan?",
+  "Reset inviter": "Reset inviter",
+  "Reset inviter?": "Reset inviter?",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.",
+  "New inviter user ID (0 to clear)": "New inviter user ID (0 to clear)",
+  "Current inviter": "Current inviter",
+  "Reason (10–200 characters)": "Reason (10–200 characters)",
+  "Why are you resetting the inviter?": "Why are you resetting the inviter?",
+  "Reset": "Reset",
+  "Resetting...": "Resetting...",
+  "Inviter reset successfully": "Inviter reset successfully",
+  "Failed to reset inviter": "Failed to reset inviter",
   "{{count}} active": "{{count}} active"
 }

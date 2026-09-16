@@ -5949,5 +5949,16 @@
   "Refresh": "更新",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "プラン #{{id}} を解除すると、このユーザーは即座に公式価格に戻ります。",
   "Unbind discount plan?": "割引プランを解除しますか？",
+  "Reset inviter": "招待者をリセット",
+  "Reset inviter?": "招待者をリセットしますか？",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "現在の招待者が上書きされます。過去の報酬と割り当ては再計算されません。操作は入力された理由とともに監査ログに記録されます。",
+  "New inviter user ID (0 to clear)": "新しい招待者のユーザー ID（0 でクリア）",
+  "Current inviter": "現在の招待者",
+  "Reason (10–200 characters)": "理由（10〜200 文字）",
+  "Why are you resetting the inviter?": "なぜ招待者をリセットしますか？",
+  "Reset": "リセット",
+  "Resetting...": "リセット中…",
+  "Inviter reset successfully": "招待者をリセットしました",
+  "Failed to reset inviter": "招待者のリセットに失敗しました",
   "{{count}} active": "{{count}} 件有効"
 }

@@ -637,6 +637,103 @@ func (user *User) TransferAffQuotaToQuota(quota int) error {
 	return tx.Commit().Error
 }
 
+// ResetInviterParams task-16：超管重置某用户的邀请人。
+//
+// 设计要点：
+//   - TargetUserId 是被改的人；NewInviterId 是新的邀请人（0 = 清空）
+//   - ActorUserId 是操作者（仅留痕用，不在事务里查 actor，避免一个事务锁两张表）
+//   - Reason 是运营/审计要看的字符串，前端表单约束 10–200 字符
+//   - 返回 oldInviterId（写入留痕前要先拿到旧值）
+//
+// 为什么是一个独立 model 方法而不是 controller 直接 UPDATE：3 张检查（target
+// 存在 / new inviter 存在 / 非自邀请）+ 写库需要事务，挪到 model 才能在单元
+// 测试里不带 HTTP 层就断言；controller 这边只接 HTTP + 留痕。
+type ResetInviterParams struct {
+	TargetUserId int
+	NewInviterId int
+	ActorUserId  int
+	Reason       string
+}
+
+// ResetInviter 重置 target 用户的 inviter_id，返回旧 inviter_id 给调用方留痕。
+//
+// 行为契约：
+//   - TargetUserId == 0 或不存在（软删除）→ 返回 gorm.ErrRecordNotFound
+//   - NewInviterId == TargetUserId → ErrInviterSelf
+//   - NewInviterId > 0 但对应用户不存在 → ErrInviterNotFound
+//   - NewInviterId > 0 但对应用户已软删 → ErrInviterDeleted
+//   - 成功 → 返回旧 inviter_id（0 表示原本就没邀请人）；commit 事务
+//
+// **不**做的事（README §二「❌ 不做」清单）：
+//   - 不重算 aff_quota / aff_history_quota（历史佣金不冲销）
+//   - 不动 aff_code（那是用户自己的码，不是邀请人）
+//   - 不动 parent_agent_id / subject_type（那是另一条业务身份）
+func ResetInviter(params ResetInviterParams) (oldInviterId int, err error) {
+	if params.TargetUserId <= 0 {
+		return 0, gorm.ErrRecordNotFound
+	}
+	if params.NewInviterId == params.TargetUserId {
+		return 0, ErrInviterSelf
+	}
+
+	tx := DB.Begin()
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+	defer func() {
+		// commit 成功后 Rollback 是 no-op，所以 defer 放最后兜底。
+		if err != nil {
+			_ = tx.Rollback().Error
+		}
+	}()
+
+	// 加锁读 target，旧 inviter 一并取出来（避免后面再发一次 SELECT）
+	var target User
+	if dberr := lockForUpdate(tx).
+		Select("id", "inviter_id").
+		Where("id = ?", params.TargetUserId).
+		Take(&target).Error; dberr != nil {
+		return 0, dberr // 含 gorm.ErrRecordNotFound（target 不存在 / 软删）
+	}
+	oldInviterId = target.InviterId
+
+	// 校验新 inviter（>0 时必须存在且未软删）。
+	// 注意：Take 默认带 deleted_at IS NULL filter，软删用户会直接被当成"不存在"
+	// 报 ErrRecordNotFound——这里要的是"区分不存在 vs 已软删"，所以用 Unscoped
+	// 取全部行，自己判断 DeletedAt。
+	if params.NewInviterId > 0 {
+		var inviter User
+		if dberr := tx.Unscoped().
+			Select("id", "deleted_at").
+			Where("id = ?", params.NewInviterId).
+			Take(&inviter).Error; dberr != nil {
+			if errors.Is(dberr, gorm.ErrRecordNotFound) {
+				return 0, ErrInviterNotFound
+			}
+			return 0, dberr
+		}
+		if inviter.DeletedAt.Valid {
+			return 0, ErrInviterDeleted
+		}
+	}
+
+	// 写库：只更新 inviter_id，其它字段不动。
+	// 注意：User struct 没有 UpdatedAt 字段（只有 CreatedAt / LastLoginAt），
+	// 所以这里不能写 updated_at——SQLite 会报 "no such column"。要补"最近重置时间"
+	// 应该在 User struct 加 UpdatedAt 字段（带 autoUpdateTime 标签），那是跨表的大改动，
+	// 超出 task-16 范围；本任务只动 inviter_id。
+	if dberr := tx.Model(&User{}).
+		Where("id = ?", params.TargetUserId).
+		Update("inviter_id", params.NewInviterId).Error; dberr != nil {
+		return 0, dberr
+	}
+
+	if cmterr := tx.Commit().Error; cmterr != nil {
+		return 0, cmterr
+	}
+	return oldInviterId, nil
+}
+
 func (user *User) prepareForInsert(tx *gorm.DB) error {
 	user.Email = NormalizeEmail(user.Email)
 	if err := ensureEmailAvailableWithTx(tx, user.Email, 0); err != nil {

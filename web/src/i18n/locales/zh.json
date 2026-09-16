@@ -5949,5 +5949,16 @@
   "Refresh": "刷新",
   "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "一旦解绑方案 #{{id}},此用户会立即回到原价。",
   "Unbind discount plan?": "确定要解绑折扣方案?",
+  "Reset inviter": "重置邀请人",
+  "Reset inviter?": "重置邀请人？",
+  "This will overwrite the user's current inviter. Historical commission and quota are NOT recalculated. The action is recorded in the audit log with your reason.": "这将覆盖该用户当前的邀请人。历史佣金与额度不会被重算，操作将以你填写的原因记入审计日志。",
+  "New inviter user ID (0 to clear)": "新的邀请人用户 ID（0 表示清空）",
+  "Current inviter": "当前邀请人",
+  "Reason (10–200 characters)": "原因（10–200 字符）",
+  "Why are you resetting the inviter?": "你为什么重置邀请人？",
+  "Reset": "重置",
+  "Resetting...": "重置中…",
+  "Inviter reset successfully": "邀请人重置成功",
+  "Failed to reset inviter": "重置邀请人失败",
   "{{count}} active": "生效 {{count}} 条"
 }

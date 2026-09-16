@@ -280,6 +280,21 @@ export async function resetUserTwoFA(id: number): Promise<ApiResponse> {
 }
 
 /**
+ * task-16：超管重置某用户的邀请人。
+ *
+ * - inviter_id=0 表示清空；>0 表示新的邀请人
+ * - reason 后端硬约束 10-200 字符（前端再挡一道，提交按钮 disabled 直到合法）
+ * - 仅超管（role===100）能调；其它角色会被后端守卫直接打回
+ */
+export async function resetUserInviter(
+  id: number,
+  payload: { inviter_id: number; reason: string }
+): Promise<ApiResponse<Partial<User>>> {
+  const res = await api.post(`/api/user/${id}/reset_inviter`, payload)
+  return res.data
+}
+
+/**
  * Get all available groups
  */
 export async function getGroups(): Promise<ApiResponse<string[]>> {
