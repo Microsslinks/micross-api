@@ -96,6 +96,7 @@ import {
   type SidebarModulesConfig,
 } from '../lib/management-access'
 import { type User } from '../types'
+import { UserDiscountSection } from './user-discount-section'
 import { UserQuotaDialog } from './user-quota-dialog'
 import { useUsers } from './users-provider'
 
@@ -663,6 +664,9 @@ export function UsersMutateDrawer({
                     />
                   </SideDrawerSection>
                 )}
+
+              {/* Discount (task-15): 业务身份 + 邀请链 + 佣金余额 + 当前 binding */}
+              {isUpdate && currentRow && <UserDiscountSection user={currentRow} />}
 
               {/* Binding Information (Read-only) */}
               {isUpdate && (

@@ -61,7 +61,10 @@ export const userSchema = z.object({
   remark: z.string().optional(),
   /** 用户主体类型：individual = 普通客户，agent = 经销商 */
   subject_type: z.string().optional(),
-  /** 绑定的折扣方案 id；大于 0 表示这个客户有专属价 */
+  /** 归属：归属于哪个经销商（user.id, subject_type='agent'）。
+   *  任务 task-08 引入；详情页折扣标签要展示它。 */
+  parent_agent_id: z.number().optional(),
+  /** 绑定的折扣方案 id；大于 0 表示这个客户有专属价（binding 表的快路径） */
   discount_plan_id: z.number().optional(),
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))

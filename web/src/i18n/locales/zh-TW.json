@@ -5927,5 +5927,27 @@
     "You": "你",
     "Group ratio is deprecated. Use customer discount plans instead.": "Group ratio is deprecated. Use customer discount plans instead.",
     "Subscription discount plan (optional)": "Subscription discount plan (optional)"
-  }
+  },
+  "Active bindings": "生效中的綁定",
+  "Agent #{{id}}": "經銷商 #{{id}}",
+  "Binding removed": "已解除綁定",
+  "Commission balance": "佣金餘額",
+  "Commission history": "佣金歷史",
+  "Customer type": "客戶類型",
+  "Default discount plan": "預設折扣方案",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "此使用者的折扣方案、綁定、邀請鏈與佣金餘額。",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "每一筆綁定會把一個折扣方案掛到這位使用者上,計價規則會決定每個模型適用哪個方案。",
+  "Failed to remove binding": "解除綁定失敗",
+  "Invited count": "邀請人數",
+  "Invite code": "邀請碼",
+  "Inviter": "邀請人",
+  "Loading bindings...": "正在載入綁定...",
+  "Manage in Discounts": "到折扣頁管理",
+  "No active discount binding for this user.": "此使用者目前沒有生效中的折扣綁定。",
+  "Parent agent": "所屬經銷商",
+  "Plan #{{id}}": "方案 #{{id}}",
+  "Refresh": "重新整理",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "一旦解除方案 #{{id}} 的綁定,此使用者會立即回到原價。",
+  "Unbind discount plan?": "確定要解除折扣方案?",
+  "{{count}} active": "生效 {{count}} 筆"
 }
