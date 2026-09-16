@@ -172,6 +172,12 @@ type SubscriptionPlan struct {
 	// Max purchases per user (0 = unlimited)
 	MaxPurchasePerUser int `json:"max_purchase_per_user" gorm:"type:int;default:0"`
 
+	// DiscountPlanId：购买此订阅时，自动给用户绑定该折扣方案。
+	// 0 = 不绑定折扣。绑定行 source='subscription'，effective_to = user_subscription.EndTime，
+	// 到期后 pickActiveDiscountBinding 自动跳过，下一档方案接管。
+	// 任务文档 §三 12.1（master-plan §4.6）："SubscriptionPlan 关联折扣方案"。
+	DiscountPlanId int `json:"discount_plan_id" gorm:"type:int;default:0;index"`
+
 	// Upgrade user group after purchase (empty = no change)
 	UpgradeGroup string `json:"upgrade_group" gorm:"type:varchar(64);default:''"`
 
@@ -553,6 +559,12 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	}
 	if err := tx.Create(sub).Error; err != nil {
 		return nil, err
+	}
+	// 任务文档 §三 12.1 订阅绑折扣：购买订阅后写一条 source='subscription' 的
+	// discount_bindings 行，effective_to = sub.EndTime（到期后自动失效）。
+	// 实现见 model/subscription_discount.go。
+	if err := bindSubscriptionDiscountTx(tx, userId, plan, sub); err != nil {
+		return nil, fmt.Errorf("bind subscription discount: %w", err)
 	}
 	return sub, nil
 }
@@ -953,6 +965,11 @@ func AdminInvalidateUserSubscription(userSubscriptionId int) (string, error) {
 		if target != "" {
 			cacheGroup = target
 			downgradeGroup = target
+		}
+		// 任务文档 §三 12.1：订阅被管理员取消时，同步停用 source='subscription' 的折扣绑定，
+		// 让 pickActiveDiscountBinding 不再命中它（fallback 到下一档方案）。
+		if err := unbindSubscriptionDiscountTx(tx, userId, &sub); err != nil {
+			return fmt.Errorf("unbind subscription discount: %w", err)
 		}
 		return nil
 	})

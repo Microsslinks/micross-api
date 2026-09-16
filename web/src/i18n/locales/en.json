@@ -2391,7 +2391,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "footer.projectCredit": "Thanks to New API © {{year}} QuantumNous and One API © 2023 JustSong · Licensed under the AGPL v3.0 License",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For private deployments, format: https://fastgpt.run/api/openapi": "For private deployments, format: https://fastgpt.run/api/openapi",
@@ -5924,6 +5924,8 @@
     "Clear conversation": "Clear conversation",
     "How it works": "How it works",
     "Assistant": "Assistant",
-    "You": "You"
+    "You": "You",
+    "Group ratio is deprecated. Use customer discount plans instead.": "Group ratio is deprecated. Use customer discount plans instead.",
+    "Subscription discount plan (optional)": "Subscription discount plan (optional)"
   }
 }

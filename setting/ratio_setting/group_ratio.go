@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/types"
 )
@@ -76,13 +75,18 @@ func UpdateGroupRatioByJSONString(jsonStr string) error {
 	return types.LoadFromJsonString(groupRatioMap, jsonStr)
 }
 
+// GetGroupRatio 按分组名读取折扣率。
+//
+// 任务文档 §三 12.3 倍率退役（master-plan §4.6）：GroupRatio 保留在 options 表，
+// 实际计费链路强制返回 1——业务方已迁移到 discount_bindings（task-12 phase 1）。
+// 配置不删，便于回滚：把下面 `return 1` 改回 `return ratio` 即可重新启用 GroupRatio。
+//
+// rollback 验证：service/group.go:GetUserGroupRatio（透传此函数）、
+// service/quota.go:108/113、relay/helper/price.go:67、service/task_billing.go:313
+// 全部自动恢复原行为。
 func GetGroupRatio(name string) float64 {
-	ratio, ok := groupRatioMap.Get(name)
-	if !ok {
-		common.SysLog("group ratio not found: " + name)
-		return 1
-	}
-	return ratio
+	_ = name // 参数保留以便回滚时一行代码恢复
+	return 1
 }
 
 func GetGroupGroupRatio(userGroup, usingGroup string) (float64, bool) {

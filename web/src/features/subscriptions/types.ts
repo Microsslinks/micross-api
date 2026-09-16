@@ -39,6 +39,9 @@ export const subscriptionPlanSchema = z.object({
   allow_wallet_overflow: z.boolean().optional().default(true),
   max_purchase_per_user: z.number(),
   total_amount: z.number(),
+  // Task-12 §三 12.1：订阅购买时自动绑定该折扣方案（0 = 不绑定）。
+  // 后端 binding 行 source='subscription'，effective_to = user_subscription.EndTime。
+  discount_plan_id: z.number().optional().default(0),
   upgrade_group: z.string().optional(),
   downgrade_group: z.string().optional(),
   stripe_price_id: z.string().optional(),
