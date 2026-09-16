@@ -5927,5 +5927,27 @@
     "You": "You",
     "Group ratio is deprecated. Use customer discount plans instead.": "Group ratio is deprecated. Use customer discount plans instead.",
     "Subscription discount plan (optional)": "Subscription discount plan (optional)"
-  }
+  },
+  "Active bindings": "Active bindings",
+  "Agent #{{id}}": "Agent #{{id}}",
+  "Binding removed": "Binding removed",
+  "Commission balance": "Commission balance",
+  "Commission history": "Commission history",
+  "Customer type": "Customer type",
+  "Default discount plan": "Default discount plan",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "Discount plans, bindings, invitation chain, and commission balance for this user.",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.",
+  "Failed to remove binding": "Failed to remove binding",
+  "Invited count": "Invited count",
+  "Invite code": "Invite code",
+  "Inviter": "Inviter",
+  "Loading bindings...": "Loading bindings...",
+  "Manage in Discounts": "Manage in Discounts",
+  "No active discount binding for this user.": "No active discount binding for this user.",
+  "Parent agent": "Parent agent",
+  "Plan #{{id}}": "Plan #{{id}}",
+  "Refresh": "Refresh",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "This user falls back to the official price as soon as Plan #{{id}} is unbound.",
+  "Unbind discount plan?": "Unbind discount plan?",
+  "{{count}} active": "{{count}} active"
 }

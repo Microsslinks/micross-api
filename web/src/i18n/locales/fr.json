@@ -5927,5 +5927,27 @@
     "You": "Vous",
     "Group ratio is deprecated. Use customer discount plans instead.": "Le ratio de groupe est obsolète. Utilisez plutôt les plans de remise client.",
     "Subscription discount plan (optional)": "Plan de remise lié à l'abonnement (facultatif)"
-  }
+  },
+  "Active bindings": "Bindings actifs",
+  "Agent #{{id}}": "Agent n°{{id}}",
+  "Binding removed": "Binding supprimé",
+  "Commission balance": "Solde de commission",
+  "Commission history": "Historique des commissions",
+  "Customer type": "Type de client",
+  "Default discount plan": "Plan de remise par défaut",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "Plans de remise, bindings, chaîne d'invitation et solde de commission pour cet utilisateur.",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "Chaque binding attache un plan de remise à cet utilisateur. Les règles tarifaires déterminent quel plan s'applique à chaque modèle.",
+  "Failed to remove binding": "Échec de la suppression du binding",
+  "Invited count": "Nombre d'invitations",
+  "Invite code": "Code d'invitation",
+  "Inviter": "Parrain",
+  "Loading bindings...": "Chargement des bindings...",
+  "Manage in Discounts": "Gérer dans Remises",
+  "No active discount binding for this user.": "Aucun binding de remise actif pour cet utilisateur.",
+  "Parent agent": "Agent parent",
+  "Plan #{{id}}": "Plan n°{{id}}",
+  "Refresh": "Actualiser",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Cet utilisateur repasse au tarif officiel dès que le Plan n°{{id}} est détaché.",
+  "Unbind discount plan?": "Détacher le plan de remise ?",
+  "{{count}} active": "{{count}} actifs"
 }

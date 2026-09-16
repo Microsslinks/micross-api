@@ -5927,5 +5927,27 @@
     "You": "Bạn",
     "Group ratio is deprecated. Use customer discount plans instead.": "Tỷ lệ nhóm đã ngừng sử dụng. Hãy chuyển sang các gói giảm giá cho khách hàng.",
     "Subscription discount plan (optional)": "Gói giảm giá gắn với thuê bao (tùy chọn)"
-  }
+  },
+  "Active bindings": "Binding đang hoạt động",
+  "Agent #{{id}}": "Đại lý #{{id}}",
+  "Binding removed": "Đã gỡ binding",
+  "Commission balance": "Số dư hoa hồng",
+  "Commission history": "Lịch sử hoa hồng",
+  "Customer type": "Loại khách hàng",
+  "Default discount plan": "Gói giảm giá mặc định",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "Gói giảm giá, binding, chuỗi giới thiệu và số dư hoa hồng của người dùng này.",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "Mỗi binding gắn một gói giảm giá vào người dùng này. Quy tắc giá sẽ quyết định gói nào áp dụng cho từng model.",
+  "Failed to remove binding": "Gỡ binding thất bại",
+  "Invited count": "Số người được mời",
+  "Invite code": "Mã mời",
+  "Inviter": "Người mời",
+  "Loading bindings...": "Đang tải binding...",
+  "Manage in Discounts": "Quản lý trong Giảm giá",
+  "No active discount binding for this user.": "Người dùng này chưa có binding giảm giá nào đang hoạt động.",
+  "Parent agent": "Đại lý cha",
+  "Plan #{{id}}": "Gói #{{id}}",
+  "Refresh": "Làm mới",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Người dùng sẽ quay về giá gốc ngay khi Gói #{{id}} bị gỡ.",
+  "Unbind discount plan?": "Gỡ gói giảm giá?",
+  "{{count}} active": "{{count}} đang hoạt động"
 }

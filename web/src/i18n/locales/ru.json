@@ -5927,5 +5927,27 @@
     "You": "Вы",
     "Group ratio is deprecated. Use customer discount plans instead.": "Коэффициент группы устарел. Используйте вместо него клиентские планы скидок.",
     "Subscription discount plan (optional)": "План скидок для подписки (необязательно)"
-  }
+  },
+  "Active bindings": "Активные привязки",
+  "Agent #{{id}}": "Агент №{{id}}",
+  "Binding removed": "Привязка удалена",
+  "Commission balance": "Баланс комиссии",
+  "Commission history": "История комиссий",
+  "Customer type": "Тип клиента",
+  "Default discount plan": "План скидок по умолчанию",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "Планы скидок, привязки, цепочка приглашений и баланс комиссии для этого пользователя.",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "Каждая привязка прикрепляет к этому пользователю один план скидок. Правила ценообразования определяют, какой план применяется к каждой модели.",
+  "Failed to remove binding": "Не удалось удалить привязку",
+  "Invited count": "Количество приглашённых",
+  "Invite code": "Код приглашения",
+  "Inviter": "Пригласитель",
+  "Loading bindings...": "Загрузка привязок...",
+  "Manage in Discounts": "Управлять в Скидках",
+  "No active discount binding for this user.": "У этого пользователя нет активных привязок скидок.",
+  "Parent agent": "Родительский агент",
+  "Plan #{{id}}": "План №{{id}}",
+  "Refresh": "Обновить",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "Как только План №{{id}} будет отвязан, пользователь сразу вернётся к официальной цене.",
+  "Unbind discount plan?": "Отвязать план скидок?",
+  "{{count}} active": "{{count}} активно"
 }

@@ -546,6 +546,13 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"quota":             user.Quota,
 		"used_quota":        user.UsedQuota,
 		"request_count":     user.RequestCount,
+		// discount_plan_id 是 binding 表的快路径——多方案绑定后，写入与清空都与
+		// binding 表同步（见 model/discount_bindings.go）。详情页用它给「当前
+		// 默认方案」一个直观的锚点，完整的多方案列表走 DiscountBinding API 拿。
+		"discount_plan_id":   user.DiscountPlanId,
+		// parent_agent_id 是归属：客户归属于哪个经销商（subject_type=agent 的那条
+		// user.id）。task-08 引入；detail-page 折扣标签要展示它。
+		"parent_agent_id":   user.ParentAgentId,
 		"aff_code":          user.AffCode,
 		"aff_count":         user.AffCount,
 		"aff_quota":         user.AffQuota,

@@ -5927,5 +5927,27 @@
     "You": "あなた",
     "Group ratio is deprecated. Use customer discount plans instead.": "グループ比率は非推奨です。代わりに顧客向け割引プランをご利用ください。",
     "Subscription discount plan (optional)": "サブスクリプションに紐づく割引プラン（任意）"
-  }
+  },
+  "Active bindings": "有効なバインディング",
+  "Agent #{{id}}": "エージェント #{{id}}",
+  "Binding removed": "バインディングを解除しました",
+  "Commission balance": "コミッション残高",
+  "Commission history": "コミッション履歴",
+  "Customer type": "顧客タイプ",
+  "Default discount plan": "デフォルト割引プラン",
+  "Discount plans, bindings, invitation chain, and commission balance for this user.": "このユーザーの割引プラン、バインディング、招待チェーン、コミッション残高。",
+  "Each binding attaches one discount plan to this user. The pricing rules pick which plan applies per model.": "各バインディングは1つの割引プランをこのユーザーに紐付けます。価格ルールがモデルごとにどのプランを適用するかを決めます。",
+  "Failed to remove binding": "バインディングの解除に失敗しました",
+  "Invited count": "招待人数",
+  "Invite code": "招待コード",
+  "Inviter": "招待者",
+  "Loading bindings...": "バインディングを読み込み中...",
+  "Manage in Discounts": "割引で管理",
+  "No active discount binding for this user.": "このユーザーには有効な割引バインディングがありません。",
+  "Parent agent": "上位エージェント",
+  "Plan #{{id}}": "プラン #{{id}}",
+  "Refresh": "更新",
+  "This user falls back to the official price as soon as Plan #{{id}} is unbound.": "プラン #{{id}} を解除すると、このユーザーは即座に公式価格に戻ります。",
+  "Unbind discount plan?": "割引プランを解除しますか？",
+  "{{count}} active": "{{count}} 件有効"
 }
