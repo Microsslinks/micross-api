@@ -1,0 +1,8 @@
+{
+  "A proprietary platform plus blockchain green clearance, reshaping trade efficiency for enterprises.": "自社開発プラットフォームとブロックチェーンによるグリーン通関の融合で、企業の貿易効率を再定義。",
+  "At least one route has no cost ratio on record, so margins cannot be judged.": "1 つ以上のルートに原価比率が登録されていないため、利益率を判定できません。",
+  "Used by discount simulation and pre-save validation. A route is flagged as a loss when its cost ratio is above the customer discount minus this margin.": "割引シミュレーションと保存前チェックで使用されます。ルートの原価比率が顧客割引からこのマージンを引いた値を超える場合、そのルートは赤字と判定されます。",
+  "This page is a placeholder. Set your own content in Business Management → Site → System Info.": "このページはプレースホルダーです。コンテンツは「業務管理」→「サイト」→「システム情報」で設定してください。",
+  "Bilibili": "Bilibili",
+  "X (Twitter)": "X (Twitter)"
+}
