@@ -10,19 +10,19 @@
 |---|---|
 | 总键数 | 5927 |
 | 完全未翻译（与 en 相同）| 596 |
-| 至少命中一条机翻特征 | 283 |
+| 至少命中一条机翻特征 | 284 |
 | 句式分叉数 | 0 |
 
 ## 规则命中统计
 
 | 规则 | 命中数 | 说明 |
 |---|---|---|
-| `length-too-long` | 145 | value 长度 > en 原文 1.5×（典型：过度展开） |
-| `borrowed-english` | 140 | value 保留了英文技术借词（upstream / cache / token 等） |
+| `length-too-long` | 147 | value 长度 > en 原文 1.5×（典型：过度展开） |
+| `borrowed-english` | 139 | value 保留了英文技术借词（upstream / cache / token 等） |
 
 ## 详细命中清单（每规则前 30）
 
-### length-too-long（145 处，展示前 30）
+### length-too-long（147 处，展示前 30）
 
 | key | en | ru |
 |---|---|---|
@@ -47,6 +47,7 @@
 | `Average TPM` | Average TPM | Среднее число транзакций в минуту |
 | `Bark Push URL` | Bark Push URL | URL для push-уведомлений Bark |
 | `Basic Info` | Basic Info | Основная информация |
+| `Batch channel test` | Batch channel test | Пакетное тестирование поставщиков |
 | `Batch Edit` | Batch Edit | Пакетное редактирование |
 | `Batch Edit by Tag` | Batch Edit by Tag | Пакетное редактирование по тегу |
 | `Blocked keywords` | Blocked keywords | Заблокированные ключевые слова |
@@ -55,10 +56,9 @@
 | `Click to view image` | Click to view image | Нажмите, чтобы просмотреть изображение |
 | `Color preset` | Color preset | Цветовая предустановка |
 | `Common Keys` | Common Keys | Часто используемые ключи |
-| `Common User` | Common User | Обычный пользователь |
-| ... | （剩余 115 处略）| |
+| ... | （剩余 117 处略）| |
 
-### borrowed-english（140 处，展示前 30）
+### borrowed-english（139 处，展示前 30）
 
 | key | en | ru |
 |---|---|---|
@@ -87,10 +87,10 @@
 | `Apply All Upstream Updates` | Apply All Upstream Updates | Применить все обновления из upstream |
 | `Base URL` | Base URL | Адрес API |
 | `Bind a Pancake store + product` | Bind a Pancake store + product | Привязать магазин и продукт Pancake |
-| `Channel Affinity: Upstream Cache Hit` | Channel Affinity: Upstream Cache Hit | Привязка к каналу: попадание в кэш upstream |
+| `Channel Affinity: Upstream Cache Hit` | Channel Affinity: Upstream Cache Hit | Привязка к поставщику: попадание в кэш upstream |
 | `Chat configuration JSON` | Chat configuration JSON | JSON конфигурации чата |
 | `Confirm Creem Purchase` | Confirm Creem Purchase | Подтвердить покупку Creem |
 | `Copy API key` | Copy API key | Скопировать ключ API |
 | `Create API Key` | Create API Key | Создать ключ API |
-| ... | （剩余 110 处略）| |
+| ... | （剩余 109 处略）| |
 

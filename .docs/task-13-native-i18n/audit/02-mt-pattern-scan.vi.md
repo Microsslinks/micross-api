@@ -10,7 +10,7 @@
 |---|---|
 | 总键数 | 5927 |
 | 完全未翻译（与 en 相同）| 633 |
-| 至少命中一条机翻特征 | 295 |
+| 至少命中一条机翻特征 | 300 |
 | 句式分叉数 | 0 |
 
 ## 规则命中统计
@@ -18,7 +18,7 @@
 | 规则 | 命中数 | 说明 |
 |---|---|---|
 | `borrowed-english` | 251 | value 保留了英文技术借词（upstream / cache / token 等） |
-| `length-too-long` | 44 | value 长度 > en 原文 1.5×（典型：过度展开） |
+| `length-too-long` | 49 | value 长度 > en 原文 1.5×（典型：过度展开） |
 | `length-too-short` | 1 | value 长度 < en 原文 0.3×（典型：翻译过度精简） |
 
 ## 详细命中清单（每规则前 30）
@@ -59,7 +59,7 @@
 | `Billable input tokens` | Billable input tokens | Token đầu vào tính phí |
 | ... | （剩余 221 处略）| |
 
-### length-too-long（44 处，展示前 30）
+### length-too-long（49 处，展示前 30）
 
 | key | en | vi |
 |---|---|---|
@@ -72,6 +72,7 @@
 | `apps tracked` | apps tracked | ứng dụng được theo dõi |
 | `Bad Request` | Bad Request | Yêu cầu không hợp lệ |
 | `Batch Edit` | Batch Edit | Chỉnh sửa hàng loạt |
+| `Bound Channels` | Bound Channels | Các nhà cung cấp ràng buộc |
 | `Chat Client Name` | Chat Client Name | Tên ứng dụng khách trò chuyện |
 | `Chat preset not found` | Chat preset not found | Thiết lập sẵn trò chuyện không tìm thấy |
 | `Chat Presets` | Chat Presets | Cài đặt sẵn trò chuyện |
@@ -80,6 +81,7 @@
 | `Console Area` | Console Area | Khu vực bảng điều khiển |
 | `Copy token` | Copy token | Sao chép mã thông báo |
 | `Discount ratio for cache hits.` | Discount ratio for cache hits. | Tỷ lệ chiết khấu cho lượt truy cập bộ nhớ đệm thành công. |
+| `Edit Channel` | Edit Channel | Chỉnh sửa Nhà cung cấp |
 | `Edit chat preset` | Edit chat preset | Chỉnh sửa cài đặt trước trò chuyện |
 | `Edit Vendor` | Edit Vendor | Chỉnh sửa Nhà cung cấp |
 | `Finish Time` | Finish Time | Thời gian hoàn thành |
@@ -91,9 +93,7 @@
 | `Memory Hits` | Memory Hits | Lượt truy cập bộ nhớ |
 | `Next reset` | Next reset | Lần đặt lại tiếp theo |
 | `No changes made` | No changes made | Không có thay đổi nào được thực hiện |
-| `No chat presets match your search` | No chat presets match your search | Không có cài đặt trước trò chuyện nào khớp với tìm kiếm của bạn |
-| `No models to copy` | No models to copy | Không có mô hình nào để sao chép |
-| ... | （剩余 14 处略）| |
+| ... | （剩余 19 处略）| |
 
 ### length-too-short（1 处，展示前 30）
 
