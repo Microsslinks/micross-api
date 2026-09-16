@@ -65,37 +65,39 @@
 >
 > One-page overview: [`.docs/summary.md`](./.docs/summary.md) (zh-CN). Full plan and version ledger: [`.docs/master-plan.md`](./.docs/master-plan.md) (zh-CN).
 
-<p align="center">
-  <em>No particular order</em>
-</p>
-
-
+<p align="center"><em>No particular order</em></p>
 
 <p align="center">
   <a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud"/><br/>
-    <span>Alibaba Cloud</span>
+    <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" height="56" /><br>
+    <strong>Alibaba Cloud</strong>
   </a>
+  &nbsp;
   <a href="https://bailian.console.aliyun.com/" target="_blank">
-    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="100" /><br/>
-    <span>Alibaba Bailian</span>
+    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="56" /><br>
+    <strong>Alibaba Bailian</strong>
   </a>
-  <a href="https://www.volcengine.com/product/ark" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/volcengine.svg" alt="Volcengine / Volcano Ark" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Volcengine | Volcano Ark</span>
+  &nbsp;
+  <a href="https://www.volcengine.com/product/ark" target="_blank">
+    <img src="./docs/images/volcengine.svg" alt="Volcengine / Volcano Ark" height="56" /><br>
+    <strong>Volcengine | Volcano Ark</strong>
   </a>
-  <a href="https://www.cherry-ai.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">CherryStudio</span>
+  &nbsp;
+  <a href="https://www.cherry-ai.com/" target="_blank">
+    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br>
+    <strong>CherryStudio</strong>
   </a>
-  <br/>
-  <a href="https://chatgpt.com/codex" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Codex</span>
+</p>
+
+<p align="center">
+  <a href="https://chatgpt.com/codex" target="_blank">
+    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br>
+    <strong>Codex</strong>
   </a>
-  <a href="https://claude.ai/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Claude</span>
+  &nbsp;
+  <a href="https://claude.ai/" target="_blank">
+    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br>
+    <strong>Claude</strong>
   </a>
 </p>
 
@@ -104,10 +106,11 @@
 ## 🙏 Special Thanks
 
 <p align="center">
-  <a href="https://code.visualstudio.com/" target="_blank" style="display: inline-block; margin: 0 50px;">
+  <a href="https://code.visualstudio.com/" target="_blank">
     <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
   </a>
-  <a href="https://www.codebuddy.cn/" target="_blank" style="display: inline-block; margin: 0 50px;">
+  &nbsp;
+  <a href="https://www.codebuddy.cn/" target="_blank">
     <img src="./docs/images/codebuddy.svg" alt="CodeBuddy" height="80" />
   </a>
 </p>

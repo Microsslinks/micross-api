@@ -59,35 +59,39 @@
 >
 > 一页总览：[`.docs/summary.md`](./.docs/summary.md) ｜ 全量计划与版本台账：[`.docs/master-plan.md`](./.docs/master-plan.md)
 
+<p align="center"><em>排名不分先后</em></p>
+
 <p align="center">
-  <em>排名不分先后</em>
+  <a href="https://www.aliyun.com/" target="_blank">
+    <img src="./docs/images/alibabacloud.svg" alt="阿里云" height="56" /><br>
+    <strong>阿里云</strong>
+  </a>
+  &nbsp;
+  <a href="https://bailian.console.aliyun.com/" target="_blank">
+    <img src="./docs/images/bailian.svg" alt="阿里云百炼" height="56" /><br>
+    <strong>阿里云百炼</strong>
+  </a>
+  &nbsp;
+  <a href="https://www.volcengine.com/product/ark" target="_blank">
+    <img src="./docs/images/volcengine.svg" alt="火山引擎 / 火山方舟" height="56" /><br>
+    <strong>火山引擎 | 火山方舟</strong>
+  </a>
+  &nbsp;
+  <a href="https://www.cherry-ai.com/" target="_blank">
+    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br>
+    <strong>CherryStudio</strong>
+  </a>
 </p>
 
 <p align="center">
-  <a href="https://www.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/alibabacloud.svg" alt="阿里云" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">阿里云</span>
+  <a href="https://chatgpt.com/codex" target="_blank">
+    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br>
+    <strong>Codex</strong>
   </a>
-  <a href="https://bailian.console.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/bailian.svg" alt="阿里云百炼" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">阿里云百炼</span>
-  </a>
-  <a href="https://www.volcengine.com/product/ark" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/volcengine.svg" alt="火山引擎 / 火山方舟" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">火山引擎 | 火山方舟</span>
-  </a>
-  <a href="https://www.cherry-ai.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/cherrystudio.svg" alt="CherryStudio" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">CherryStudio</span>
-  </a>
-  <br/>
-  <a href="https://chatgpt.com/codex" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/codex.svg" alt="Codex" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Codex</span>
-  </a>
-  <a href="https://claude.ai/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br/>
-    <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Claude</span>
+  &nbsp;
+  <a href="https://claude.ai/" target="_blank">
+    <img src="./docs/images/claude.svg" alt="Claude" height="56" /><br>
+    <strong>Claude</strong>
   </a>
 </p>
 
@@ -96,10 +100,11 @@
 ## 🙏 特别鸣谢
 
 <p align="center">
-  <a href="https://code.visualstudio.com/" target="_blank" style="display: inline-block; margin: 0 50px;">
+  <a href="https://code.visualstudio.com/" target="_blank">
     <img src="./docs/images/vscode.svg" alt="Visual Studio Code" height="80" />
   </a>
-  <a href="https://www.codebuddy.cn/" target="_blank" style="display: inline-block; margin: 0 50px;">
+  &nbsp;
+  <a href="https://www.codebuddy.cn/" target="_blank">
     <img src="./docs/images/codebuddy.svg" alt="腾讯云代码助手 CodeBuddy" height="80" />
   </a>
 </p>
