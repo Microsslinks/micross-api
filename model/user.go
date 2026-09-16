@@ -103,6 +103,14 @@ type User struct {
 	AffCount         int                        `json:"aff_count" gorm:"default:0;column:aff_count"`
 	AffQuota         int                        `json:"aff_quota" gorm:"default:0;column:aff_quota"`           // 邀请剩余额度
 	AffHistoryQuota  int                        `json:"aff_history_quota" gorm:"default:0;column:aff_history"` // 邀请历史额度
+	// AffCommissionBalance 邀请佣金钱包余额（独立钱包，与 AffQuota 区分）。
+	// task-10 起每次成功计费后由 service/commission.go:ProcessCommission 写入。
+	// 不可提现、只进不出；提现/转出能力在 task-11（P4 UI + 不可提现）实现 TransferCommissionToQuota。
+	//
+	// A 类债提醒：不要写 `type:int`——项目早期 type:int 标签在某些迁移场景出过兼容性 bug。
+	// 沿用 DiscountPlan.CommissionRatio 等 decimal/纯 int 字段的写法，只留 default + column。
+	// 老库 ALTER ADD 时由 default 0 自动填值，不会让 NOT NULL 失败。
+	AffCommissionBalance int `json:"aff_commission_balance" gorm:"default:0;column:aff_commission_balance"`
 	InviterId        int                        `json:"inviter_id" gorm:"column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`

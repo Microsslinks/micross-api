@@ -117,6 +117,11 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/passkey/verify/finish", middleware.DisableCache(), controller.PasskeyVerifyFinish)
 				selfRoute.DELETE("/passkey", middleware.DisableCache(), controller.PasskeyDelete)
 				selfRoute.GET("/aff", controller.GetAffCode)
+				// 邀请佣金钱包（task-10 / P4 佣金核心）：余额 / 流水 / 累计，
+				// 与 /aff 的邀请码查询并行挂在 selfRoute 上。
+				selfRoute.GET("/aff/commission/balance", controller.GetAffCommissionBalance)
+				selfRoute.GET("/aff/commission/records", controller.ListAffCommissionRecords)
+				selfRoute.GET("/aff/commission/summary", controller.GetAffCommissionSummary)
 				selfRoute.GET("/topup/info", controller.GetTopUpInfo)
 				selfRoute.GET("/topup/self", controller.GetUserTopUps)
 				selfRoute.POST("/topup", middleware.CriticalRateLimit(), controller.TopUp)
@@ -350,6 +355,14 @@ func SetApiRouter(router *gin.Engine) {
 			{
 				tokenUsageRoute.GET("/", controller.GetTokenUsage)
 			}
+		}
+
+		// 邀请佣金运营管理（task-10 / P4 佣金核心）：
+		// 顶层 /admin/commission 分组（与 discount_adminRoute / subscription_adminRoute 同模式）。
+		adminCommissionRoute := apiRouter.Group("/admin/commission")
+		adminCommissionRoute.Use(middleware.AdminAuth())
+		{
+			adminCommissionRoute.POST("/rate", controller.AdminSetCommissionRate)
 		}
 
 		redemptionRoute := apiRouter.Group("/redemption")

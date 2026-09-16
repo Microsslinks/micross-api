@@ -538,6 +538,20 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
 	})
+	// task-10 · P4 佣金核心：异步结算邀请佣金。
+	// 旁路调用，panic 由 defer recover 兜底，绝不污染主计费链路。
+	//
+	// 当前 margin 传 0 占位——cost_ratio 数据源（Channel.Ratio / 成本折扣字段）尚未接入，
+	// margin 暂不可算。AssertNoLoss 会在 margin<=0 时把 amount 归零，
+	// commission_records.consume_log_id 用 0 占位（task-11 补 logId 拿取）。
+	// 等 cost_ratio 接入后，此处改为从 summary.GroupRatio + cost_ratio 算出真实 margin。
+	//
+	// 用 gopool.Go 而不是裸 go func：与下一行 perfmetrics.RecordRelaySample 同模式，
+	// 统一由 bytedance/gopkg/util/gopool 管理 goroutine 池。
+	gopool.Go(func() {
+		defer func() { _ = recover() }()
+		ProcessCommission(ctx, 0, relayInfo.UserId, int64(summary.Quota), 0)
+	})
 	gopool.Go(func() {
 		perfmetrics.RecordRelaySample(relayInfo, true, int64(summary.CompletionTokens))
 	})

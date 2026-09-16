@@ -317,6 +317,9 @@ func migrateDB() error {
 	if err := migrateAgentTables(DB); err != nil {
 		return err
 	}
+	if err := migrateCommissionTables(DB); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -402,6 +405,9 @@ func migrateDBFast() error {
 		return err
 	}
 	if err := migrateAgentTables(DB); err != nil {
+		return err
+	}
+	if err := migrateCommissionTables(DB); err != nil {
 		return err
 	}
 	common.SysLog("database migrated")
@@ -740,6 +746,23 @@ func migrateAgentTables(db *gorm.DB) error {
 		return db.AutoMigrate(&CustomerCode{})
 	}
 	return db.AutoMigrate(&AgentProfile{}, &CustomerCode{})
+}
+
+// migrateCommissionTables 迁移 commission_records + 给 users 老库补 aff_commission_balance 列。
+//
+// 设计：users 表本身已经在 line 264 的 AutoMigrate 列表里，新加的 AffCommissionBalance 列
+// 三库都会自动 ALTER ADD。users 表不含 decimal 列，所以 SQLite 上不会撞"列比对不等→重建表"
+// 的坑（与 discount_plans / agent_proprofiles 不同），不需要 ensureSQLiteTableColumns。
+//
+// commission_records 是一张全新表，三库都走 AutoMigrate 建表：
+//   - 索引 inviter_id / invitee_id / (consume_log_id, inviter_id) 由 gorm tag 自动建。
+//   - 唯一约束 uk_consume_inviter 防重试返佣（README §七第 4 条）。
+//
+// 调用顺序：必须放在 migrateAgentTables 之后，与折扣/经销商迁移同一阶段。
+func migrateCommissionTables(db *gorm.DB) error {
+	// 重复 AutoMigrate(&User{}) 与 line 264 列表里的 User 调用是幂等的（AutoMigrate 检测到列
+	// 已存在就跳过）。把 User 字段加列集中在这里，是为了"task-10 范围内的新列"维护职责更清晰。
+	return db.AutoMigrate(&User{}, &CommissionRecord{})
 }
 
 // migrateTokenModelLimitsToText migrates model_limits column from varchar(1024) to text
