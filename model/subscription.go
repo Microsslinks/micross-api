@@ -154,11 +154,11 @@ type SubscriptionPlan struct {
 	Currency    string  `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
 
 	DurationUnit  string `json:"duration_unit" gorm:"type:varchar(16);not null;default:'month'"`
-	DurationValue int    `json:"duration_value" gorm:"type:int;not null;default:1"`
+	DurationValue int    `json:"duration_value" gorm:"not null;default:1"`
 	CustomSeconds int64  `json:"custom_seconds" gorm:"type:bigint;not null;default:0"`
 
 	Enabled   bool `json:"enabled" gorm:"default:true"`
-	SortOrder int  `json:"sort_order" gorm:"type:int;default:0"`
+	SortOrder int  `json:"sort_order" gorm:"default:0"`
 
 	AllowBalancePay *bool `json:"allow_balance_pay"`
 
@@ -170,13 +170,13 @@ type SubscriptionPlan struct {
 	WaffoPancakeProductId string `json:"waffo_pancake_product_id" gorm:"type:varchar(128);default:''"`
 
 	// Max purchases per user (0 = unlimited)
-	MaxPurchasePerUser int `json:"max_purchase_per_user" gorm:"type:int;default:0"`
+	MaxPurchasePerUser int `json:"max_purchase_per_user" gorm:"default:0"`
 
 	// DiscountPlanId：购买此订阅时，自动给用户绑定该折扣方案。
 	// 0 = 不绑定折扣。绑定行 source='subscription'，effective_to = user_subscription.EndTime，
 	// 到期后 pickActiveDiscountBinding 自动跳过，下一档方案接管。
 	// 任务文档 §三 12.1（master-plan §4.6）："SubscriptionPlan 关联折扣方案"。
-	DiscountPlanId int `json:"discount_plan_id" gorm:"type:int;default:0;index"`
+	DiscountPlanId int `json:"discount_plan_id" gorm:"default:0;index"`
 
 	// Upgrade user group after purchase (empty = no change)
 	UpgradeGroup string `json:"upgrade_group" gorm:"type:varchar(64);default:''"`

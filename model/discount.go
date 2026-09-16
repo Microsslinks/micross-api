@@ -48,12 +48,12 @@ type DiscountPlan struct {
 	Id              int    `json:"id"`
 	Name            string `json:"name" gorm:"type:varchar(64);not null;uniqueIndex:uk_plan_owner_name,priority:3"`
 	OwnerType       string `json:"owner_type" gorm:"type:varchar(16);not null;default:'platform';uniqueIndex:uk_plan_owner_name,priority:1"`
-	OwnerId         int    `json:"owner_id" gorm:"type:int;not null;default:0;uniqueIndex:uk_plan_owner_name,priority:2"`
+	OwnerId         int    `json:"owner_id" gorm:"not null;default:0;uniqueIndex:uk_plan_owner_name,priority:2"`
 	BaseDiscount    string `json:"base_discount" gorm:"type:decimal(10,6);not null"`
 	MinDiscount     string `json:"min_discount" gorm:"type:decimal(10,6);not null"`
 	BillingMode     string `json:"billing_mode" gorm:"type:varchar(16);not null;default:'usage'"`
 	CommissionRatio string `json:"commission_ratio" gorm:"type:decimal(10,6);not null"`
-	Status          int    `json:"status" gorm:"type:int;not null;default:1;index:idx_plan_status"`
+	Status          int    `json:"status" gorm:"not null;default:1;index:idx_plan_status"`
 	Remark          string `json:"remark" gorm:"type:varchar(255);default:''"`
 	CreatedAt       int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt       int64  `json:"updated_at" gorm:"bigint"`
@@ -102,14 +102,14 @@ type DiscountRule struct {
 	// IsDiscountRuleScopeDuplicated 一直按这个口径查询。最初建表标签漏了 plan_id，
 	// 建出来的是全表唯一——任何两个方案不能有同名规则，多方案定价（task-06）直接被卡死。
 	// 存量库由 fixDiscountRuleUniqueIndex 在启动时把旧索引换成这里的定义。
-	PlanId     int    `json:"plan_id" gorm:"type:int;not null;index:idx_rule_plan;uniqueIndex:uk_rule_plan_scope,priority:1"`
+	PlanId     int    `json:"plan_id" gorm:"not null;index:idx_rule_plan;uniqueIndex:uk_rule_plan_scope,priority:1"`
 	ScopeType  string `json:"scope_type" gorm:"type:varchar(16);not null;uniqueIndex:uk_rule_plan_scope,priority:2"`
 	ScopeValue string `json:"scope_value" gorm:"type:varchar(128);not null;uniqueIndex:uk_rule_plan_scope,priority:3"`
 	// Discount 字段废弃，保留列以兼容存量数据。解析与计费均不再读取，
 	// NormalizeDefaults / Update 都已不再写它——上层如果误填也会被忽略。
 	Discount  string `json:"discount" gorm:"type:decimal(10,6);not null"`
-	Priority  int    `json:"priority" gorm:"type:int;not null;default:0"`
-	Status    int    `json:"status" gorm:"type:int;not null;default:1"`
+	Priority  int    `json:"priority" gorm:"not null;default:0"`
+	Status    int    `json:"status" gorm:"not null;default:1"`
 	CreatedAt int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64  `json:"updated_at" gorm:"bigint"`
 }
@@ -481,12 +481,12 @@ func discountSourceRank(source string) int {
 type DiscountBinding struct {
 	Id            int    `json:"id"`
 	SubjectType   string `json:"subject_type" gorm:"type:varchar(16);not null;index:idx_binding_subject,priority:1"`
-	SubjectId     int    `json:"subject_id" gorm:"type:int;not null;index:idx_binding_subject,priority:2"`
-	PlanId        int    `json:"plan_id" gorm:"type:int;not null;index:idx_binding_plan"`
+	SubjectId     int    `json:"subject_id" gorm:"not null;index:idx_binding_subject,priority:2"`
+	PlanId        int    `json:"plan_id" gorm:"not null;index:idx_binding_plan"`
 	EffectiveFrom int64  `json:"effective_from" gorm:"type:bigint;not null;default:0"`
 	EffectiveTo   int64  `json:"effective_to" gorm:"type:bigint;not null;default:0"`
 	Source        string `json:"source" gorm:"type:varchar(16);not null;default:'manual'"`
-	Status        int    `json:"status" gorm:"type:int;not null;default:1;index:idx_binding_subject,priority:3"`
+	Status        int    `json:"status" gorm:"not null;default:1;index:idx_binding_subject,priority:3"`
 	CreatedAt     int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt     int64  `json:"updated_at" gorm:"bigint"`
 }

@@ -26,15 +26,15 @@ const (
 // 只有运营针对某个客户单独改过，才会有一行。
 type DiscountRoutingPolicy struct {
 	Id     int `json:"id"`
-	UserId int `json:"user_id" gorm:"type:int;not null;uniqueIndex:uk_routing_user"`
+	UserId int `json:"user_id" gorm:"not null;uniqueIndex:uk_routing_user"`
 	// RoutingStrategy 见 RoutingStrategyMargin / RoutingStrategyPriority。
 	RoutingStrategy string `json:"routing_strategy" gorm:"type:varchar(16);not null"`
 	// AllowCostBreach 表示允许这个客户走会亏本的线路（0 不允许／1 允许）。
 	// 刻意用 int 而不是 bool：三种数据库对布尔列的零值、默认值与列比对口径不一致，
 	// 会让 AutoMigrate 反复重建整张表（AGENTS.md 有明确警告）。
-	AllowCostBreach int `json:"allow_cost_breach" gorm:"type:int;not null"`
+	AllowCostBreach int `json:"allow_cost_breach" gorm:"not null"`
 	// UpdatedBy 是最后改这一行的人（管理员 id），出事时要说得清是谁开的。
-	UpdatedBy int    `json:"updated_by" gorm:"type:int;not null"`
+	UpdatedBy int    `json:"updated_by" gorm:"not null"`
 	Remark    string `json:"remark" gorm:"type:varchar(255);not null"`
 	CreatedAt int64  `json:"created_at" gorm:"type:bigint;not null"`
 	UpdatedAt int64  `json:"updated_at" gorm:"type:bigint;not null"`

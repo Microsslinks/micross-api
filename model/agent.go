@@ -52,11 +52,11 @@ var ErrAgentHasCustomerCodes = errors.New("该经销商名下还有客户号")
 // 不删是因为它们承载着历史数据，删掉就找不回来了。
 type AgentProfile struct {
 	Id                int    `json:"id"`
-	UserId            int    `json:"user_id" gorm:"type:int;not null;uniqueIndex:uk_agent_profile_user"`
+	UserId            int    `json:"user_id" gorm:"not null;uniqueIndex:uk_agent_profile_user"`
 	MarkupRatio       string `json:"markup_ratio" gorm:"type:decimal(10,6)"`
 	WholesaleDiscount string `json:"wholesale_discount" gorm:"type:decimal(10,6);not null"`
 	MinDiscount       string `json:"min_discount" gorm:"type:decimal(10,6);not null"`
-	IssueQuotaEnabled int    `json:"issue_quota_enabled" gorm:"type:int;not null;default:1"` // 1 允许给下属发额度，0 停发（已发额度不受影响）
+	IssueQuotaEnabled int    `json:"issue_quota_enabled" gorm:"not null;default:1"` // 1 允许给下属发额度，0 停发（已发额度不受影响）
 	Remark            string `json:"remark" gorm:"type:varchar(255);default:''"`
 	CreatedAt         int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt         int64  `json:"updated_at" gorm:"bigint"`
@@ -110,17 +110,17 @@ func (p *AgentProfile) EffectiveMarkupRatio() string {
 type CustomerCode struct {
 	Id        int    `json:"id"`
 	Code      string `json:"code" gorm:"type:varchar(32);not null;uniqueIndex:uk_customer_code"`
-	AgentId   int    `json:"agent_id" gorm:"type:int;not null;index:idx_customer_code_agent"` // 经销商用户 id
-	PlanId    int    `json:"plan_id" gorm:"type:int;not null;default:0"`                      // 客户用此号后绑定的折扣方案
-	MaxUses   int    `json:"max_uses" gorm:"type:int;not null;default:1"`                     // 恒为 1；这一列留着是为了兼容早于「一张号一位客户」的旧数据
-	UsedCount int    `json:"used_count" gorm:"type:int;not null;default:0"`
+	AgentId   int    `json:"agent_id" gorm:"not null;index:idx_customer_code_agent"` // 经销商用户 id
+	PlanId    int    `json:"plan_id" gorm:"not null;default:0"`                      // 客户用此号后绑定的折扣方案
+	MaxUses   int    `json:"max_uses" gorm:"not null;default:1"`                     // 恒为 1；这一列留着是为了兼容早于「一张号一位客户」的旧数据
+	UsedCount int    `json:"used_count" gorm:"not null;default:0"`
 	// BoundUserId 是用掉这张号的人，0 表示还没人用。一张号只给一位客户，一个字段就够。
-	BoundUserId int `json:"bound_user_id" gorm:"type:int;not null;default:0;index:idx_customer_code_bound"`
+	BoundUserId int `json:"bound_user_id" gorm:"not null;default:0;index:idx_customer_code_bound"`
 	// BoundUsername / BoundDisplayName 只在列表回显时按 BoundUserId 补上，不落库。
 	BoundUsername    string `json:"bound_username" gorm:"-"`
 	BoundDisplayName string `json:"bound_display_name" gorm:"-"`
 	ExpiredAt        int64  `json:"expired_at" gorm:"type:bigint;not null;default:0"` // 0 表示不过期
-	Status           int    `json:"status" gorm:"type:int;not null;default:1"`
+	Status           int    `json:"status" gorm:"not null;default:1"`
 	Remark           string `json:"remark" gorm:"type:varchar(255);default:''"`
 	CreatedAt        int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt        int64  `json:"updated_at" gorm:"bigint"`
