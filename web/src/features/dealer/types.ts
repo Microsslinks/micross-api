@@ -150,3 +150,12 @@ export interface DealerPlanList {
   min_discount: string
   items: DealerPlanOption[]
 }
+
+/**
+ * 重置下属客户密码的响应：明文密码只会在这里出现一次，
+ * 弹窗要把它展示出来并提示经销商当面/私聊告诉客户，不会再返回第二次。
+ */
+export interface ResetAgentCustomerPasswordResult {
+  customer_id: number
+  password: string
+}

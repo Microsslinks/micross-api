@@ -5925,7 +5925,7 @@
     "How it works": "使用说明",
     "Assistant": "助手",
     "You": "你",
-    "Group ratio is deprecated. Use customer discount plans instead.": "分组倍率已弃用，请改用客户折扣方案",
+"Group ratio is deprecated. Use customer discount plans instead.": "分组倍率已弃用，请改用客户折扣方案",
     "Subscription discount plan (optional)": "订阅绑定的折扣方案（可选）"
   },
   "Active bindings": "生效中的绑定",
@@ -5960,5 +5960,23 @@
   "Resetting...": "重置中…",
   "Inviter reset successfully": "邀请人重置成功",
   "Failed to reset inviter": "重置邀请人失败",
-  "{{count}} active": "生效 {{count}} 条"
+  "{{count}} active": "生效 {{count}} 条",
+  "dealer.registerCustomer": "代注册客户",
+  "dealer.registerCustomer.title": "代注册客户",
+  "Register a new customer under your account. They can log in right away.": "在您名下新开一位客户账号，他注册成功即可登录。",
+  "At least 8 characters.": "至少 8 位。",
+  "Hand a customer code to a customer, or register one for them; they show up here once bound.": "给客户一张客户号，或者直接在这里帮他们开一个——绑定或注册后就出现在这里。",
+  "Customer registered": "已代注册",
+  "Failed to register customer": "代注册失败",
+  "dealer.resetPassword": "重置密码",
+  "Password reset for {{name}}": "已重置 {{name}} 的密码",
+  "dealer.resetPassword.notify": "重置后的新密码只会显示一次，请务必当面或私聊告知客户。",
+  "Failed to reset password": "重置密码失败",
+  "Resetting password...": "正在重置密码…",
+  "More actions": "更多操作",
+  "dealer.disable": "停用",
+  "dealer.disable.confirm": "确认停用「{{name}}」？停用后他将无法登录，他的 API Key 也会一并失效。",
+  "Customer disabled": "已停用",
+  "Failed to disable customer": "停用失败"
+}
 }

@@ -102,6 +102,10 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/self/agent/customers", controller.GetSelfAgentCustomers)
 				selfRoute.PUT("/self/agent/customers/:customerId/discount", controller.SetSelfAgentCustomerDiscount)
 				selfRoute.POST("/self/agent/customers/:customerId/quota", middleware.CriticalRateLimit(), controller.IssueSelfAgentCustomerQuota)
+				// 经销商代注册/重置密码/停用客户（P3 task-08）：都挂在自助路径下，归属校验在 service 层做
+				selfRoute.POST("/self/agent/customers", middleware.CriticalRateLimit(), controller.RegisterSelfAgentCustomer)
+				selfRoute.POST("/self/agent/customers/:customerId/reset-password", middleware.CriticalRateLimit(), controller.ResetSelfAgentCustomerPassword)
+				selfRoute.POST("/self/agent/customers/:customerId/disable", middleware.CriticalRateLimit(), controller.DisableSelfAgentCustomer)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)

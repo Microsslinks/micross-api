@@ -811,6 +811,31 @@ func (user *User) Insert(inviterId int) error {
 	return nil
 }
 
+// InsertByAgent 由经销商自助 API 调用，在代注册客户场景下复用 Insert 的事务骨架。
+// 关键差异：写入 ParentAgentId 字段，并把 finishInsert 里那条「邀请码奖励」逻辑跳过
+// （代注册不能拿 InviterQuota，但被代注册的客户本身可以拿 QuotaForNewUser）。
+func (user *User) InsertByAgent(agentId int) error {
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		return withNormalizedEmailLock(tx, user.Email, func(tx *gorm.DB) error {
+			if err := user.prepareForInsert(tx); err != nil {
+				return err
+			}
+			user.Quota = common.QuotaForNewUser
+			user.AffCode = common.GetRandomString(4)
+			user.ParentAgentId = agentId // ★ 关键差异
+			if user.Setting == "" {
+				defaultSetting := dto.UserSetting{}
+				user.SetSetting(defaultSetting)
+			}
+			return tx.Create(user).Error
+		})
+	}); err != nil {
+		return err
+	}
+	user.finishInsert(0) // ★ inviterId=0，跳过邀请码奖励
+	return nil
+}
+
 func (user *User) finishInsert(inviterId int) {
 	// 用户创建成功后，根据角色初始化边栏配置
 	// 需要重新获取用户以确保有正确的ID和Role

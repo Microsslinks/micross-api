@@ -7,6 +7,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -150,4 +151,85 @@ func apiErrorForAgentCustomer(c *gin.Context, err error) {
 	default:
 		common.ApiError(c, err)
 	}
+}
+
+// ===================== 代注册 / 重置密码 / 停用（P3 task-08）=====================
+//
+// 三个动作都挂在自助路径下：调用方必须是经销商本人（service.requireAgent 兜底）。
+// 归属校验、状态校验、token 失效闭环都在 service 层做，这里只做参数解析、翻错误。
+
+// agentCustomerRegisterRequest 经销商代注册请求体：用户名 + 密码 + 可选显示名。
+type agentCustomerRegisterRequest struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	DisplayName string `json:"display_name"`
+}
+
+// RegisterSelfAgentCustomer 经销商给名下代注册一个客户。响应回写新客户行（含 id）。
+func RegisterSelfAgentCustomer(c *gin.Context) {
+	registerAgentCustomerFor(c, c.GetInt("id"))
+}
+
+// ResetSelfAgentCustomerPassword 经销商给名下客户重置密码，明文一次性放在 data.password 返回。
+//
+// 注意：明文只在这里出现一次，不会回写到数据库，也不会进日志。客户本人拿不到推送，
+// 弹窗顶部加显眼红字提示经销商必须当面/私聊把新密码告诉客户。
+func ResetSelfAgentCustomerPassword(c *gin.Context) {
+	resetAgentCustomerPasswordFor(c, c.GetInt("id"))
+}
+
+// DisableSelfAgentCustomer 经销商停用名下客户：users.status=disabled + 级联 token.status=disabled。
+//
+// 幂等：客户已是 disabled 时直接返回成功，不报错不重复写。
+func DisableSelfAgentCustomer(c *gin.Context) {
+	disableAgentCustomerFor(c, c.GetInt("id"))
+}
+
+// registerAgentCustomerFor 代注册的实现：取请求体 → 调 service → 把新客户行回给界面刷新那一行。
+func registerAgentCustomerFor(c *gin.Context, agentId int) {
+	var req agentCustomerRegisterRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	customer, err := service.RegisterCustomerByAgent(agentId, service.RegisterCustomerByAgentParams{
+		Username:    req.Username,
+		Password:    req.Password,
+		DisplayName: req.DisplayName,
+	})
+	if err != nil {
+		apiErrorForAgentCustomer(c, err)
+		return
+	}
+	common.ApiSuccess(c, customer)
+}
+
+// resetAgentCustomerPasswordFor 重置密码的实现：取路径 ID → 调 service → 把明文密码放进 data.password。
+func resetAgentCustomerPasswordFor(c *gin.Context, agentId int) {
+	customerId, ok := parseAgentCustomerId(c)
+	if !ok {
+		return
+	}
+	newPassword, err := service.ResetCustomerPasswordByAgent(agentId, customerId)
+	if err != nil {
+		apiErrorForAgentCustomer(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"customer_id": customerId,
+		"password":    newPassword, // 明文仅此一次
+	})
+}
+
+// disableAgentCustomerFor 停用的实现：取路径 ID → 调 service → 返回成功。
+func disableAgentCustomerFor(c *gin.Context, agentId int) {
+	customerId, ok := parseAgentCustomerId(c)
+	if !ok {
+		return
+	}
+	if err := service.DisableCustomerByAgent(agentId, customerId); err != nil {
+		apiErrorForAgentCustomer(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
 }
