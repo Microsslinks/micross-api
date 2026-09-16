@@ -70,12 +70,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
+  <a href="https://www.aliyun.com/" target="_blank">
     <img src="./docs/images/alibabacloud.svg" alt="Alibaba Cloud" height="100" /><br/>
     <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Alibaba Cloud</span>
   </a>
-  <a href="https://bailian.console.aliyun.com/" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
-    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="56" /><br/>
+  <a href="https://bailian.console.aliyun.com/" target="_blank">
+    <img src="./docs/images/bailian.svg" alt="Alibaba Bailian" height="100" /><br/>
     <span style="display: block; margin-top: 8px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">Alibaba Bailian</span>
   </a>
   <a href="https://www.volcengine.com/product/ark" target="_blank" style="display: inline-block; margin: 14px 16px; text-align: center; vertical-align: top;">
