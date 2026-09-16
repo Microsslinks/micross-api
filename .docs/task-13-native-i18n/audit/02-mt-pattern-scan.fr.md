@@ -9,21 +9,21 @@
 | 指标 | 值 |
 |---|---|
 | 总键数 | 5927 |
-| 完全未翻译（与 en 相同）| 697 |
-| 至少命中一条机翻特征 | 564 |
+| 完全未翻译（与 en 相同）| 665 |
+| 至少命中一条机翻特征 | 591 |
 | 句式分叉数 | 0 |
 
 ## 规则命中统计
 
 | 规则 | 命中数 | 说明 |
 |---|---|---|
-| `length-too-long` | 249 | value 长度 > en 原文 1.5×（典型：过度展开） |
-| `borrowed-english` | 175 | value 保留了英文技术借词（upstream / cache / token 等） |
-| `fr-punct-no-space` | 154 | 法语标点前/后缺空格（MT 典型问题） |
+| `length-too-long` | 275 | value 长度 > en 原文 1.5×（典型：过度展开） |
+| `borrowed-english` | 184 | value 保留了英文技术借词（upstream / cache / token 等） |
+| `fr-punct-no-space` | 155 | 法语标点前/后缺空格（MT 典型问题） |
 
 ## 详细命中清单（每规则前 30）
 
-### length-too-long（249 处，展示前 30）
+### length-too-long（275 处，展示前 30）
 
 | key | en | fr |
 |---|---|---|
@@ -43,6 +43,7 @@
 | `Add time rule group` | Add time rule group | Ajouter un groupe de règles temporelles |
 | `Add user group` | Add user group | Ajouter un groupe d'utilisateurs |
 | `Admin area` | Admin area | Espace administrateur |
+| `Admin Channel Permissions` | Admin Channel Permissions | Autorisations des fournisseurs amont administrateur |
 | `Admin notes (only visible to admins)` | Admin notes (only visible to admins) | Notes d'administration (visibles uniquement par les administrateurs) |
 | `Admin Only` | Admin Only | Administrateur uniquement |
 | `All Sync Status` | All Sync Status | Tous les statuts de synchronisation |
@@ -56,10 +57,9 @@
 | `Applying...` | Applying... | Application en cours... |
 | `Ask anything` | Ask anything | Demandez n'importe quoi |
 | `Async task polling` | Async task polling | Interrogation des tâches asynchrones |
-| `Async task refund` | Async task refund | Remboursement de tâche asynchrone |
-| ... | （剩余 219 处略）| |
+| ... | （剩余 245 处略）| |
 
-### borrowed-english（175 处，展示前 30）
+### borrowed-english（184 处，展示前 30）
 
 | key | en | fr |
 |---|---|---|
@@ -93,30 +93,27 @@
 | `Cache Creation (5m)` | Cache Creation (5m) | Création cache (5m) |
 | `Cache Directory` | Cache Directory | Répertoire de cache |
 | `Cache Directory Info` | Cache Directory Info | Infos du répertoire de cache |
-| ... | （剩余 145 处略）| |
+| ... | （剩余 154 处略）| |
 
-### fr-punct-no-space（154 处，展示前 30）
+### fr-punct-no-space（155 处，展示前 30）
 
 | key | en | fr |
 |---|---|---|
 | `JSON array of extra links, e.g. [{"label":"Forum","url":"https://..."}]` | JSON array of extra links, e.g. [{"label":"Forum","url":"https://..."}] | Tableau JSON de liens supplémentaires, ex. [{"label":"Forum","url":"https://..." |
-| `Enter HTML code or a URL (e.g., https://example.com) to embed as iframe` | Enter HTML code or a URL (e.g., https://example.com) to embed as iframe | Saisissez du code HTML ou une URL (ex. https://example.com) à intégrer en iframe |
+| `Enter HTML code or a URL (e.g., https://example.com) to embed as iframe` | Enter HTML code or a URL (e.g., https://example.com) to embed as iframe | Saisissez du code HTML ou une URL (ex. https://example. com) à intégrer en ifram |
 | `Welcome to our site...` | Welcome to our site... | Bienvenue sur notre site... |
+| `[{"ChatGPT":"https://chat.openai.com"},{"Lobe Chat":"https://chat-preview.lobehub.com/?settings={...}"}]` | [{"ChatGPT":"https://chat.openai.com"},{"Lobe Chat":"https://chat-preview.lobehu | [{"ChatGPT":"https://chat. openai. com"},{"Lobe Chat":"https://chat-preview. lob |
 | `Add from available models...` | Add from available models... | Ajouter à partir des modèles disponibles... |
 | `Add tags...` | Add tags... | Ajouter des étiquettes... |
 | `Applying...` | Applying... | Application en cours... |
-| `Available variables: {{provider}}, {{field}}, {{op}}, {{required}}, {{current}}, and paths such as {{current.roles}}.` | Available variables: {{provider}}, {{field}}, {{op}}, {{required}}, {{current}}, | Variables disponibles : {{provider}}, {{field}}, {{op}}, {{required}}, {{current |
 | `Batch testing models...` | Batch testing models... | Test des modèles par lots... |
 | `Binding...` | Binding... | Liaison en cours... |
-| `Block email aliases (e.g., user+alias@domain.com)` | Block email aliases (e.g., user+alias@domain.com) | Bloquer les alias d'e-mail (par exemple, utilisateur+alias@domaine.com) |
 | `Calculating...` | Calculating... | Calcul en cours... |
 | `Changing...` | Changing... | Modification en cours... |
 | `Checking name...` | Checking name... | Vérification du nom... |
 | `Checking updates...` | Checking updates... | Vérification des mises à jour... |
 | `Cleaning...` | Cleaning... | Nettoyage en cours... |
 | `Comma-separated model names, e.g., gpt-4,gpt-3.5-turbo` | Comma-separated model names, e.g., gpt-4,gpt-3.5-turbo | Noms de modèles séparés par des virgules, p. ex., gpt-4,gpt-3.5-turbo |
-| `Connected to io.net service normally.` | Connected to io.net service normally. | Connexion au service io.net réussie. |
-| `Copy selected models separated by commas (e.g. a,b)` | Copy selected models separated by commas (e.g. a,b) | Copier les modèles sélectionnés séparés par des virgules (par ex. a,b) |
 | `Copying...` | Copying... | Copie... |
 | `Creating...` | Creating... | Création... |
 | `Deleting...` | Deleting... | Suppression... |
@@ -124,10 +121,13 @@
 | `Describe this vendor...` | Describe this vendor... | Décrire ce fournisseur... |
 | `Disabling...` | Disabling... | Désactivation en cours... |
 | `Discovering...` | Discovering... | Découverte en cours... |
-| `e.g. example.com` | e.g. example.com | par ex. example.com |
 | `e.g., 0.95` | e.g., 0.95 | par ex., 0.95 |
 | `e.g., 100` | e.g., 100 | par ex., 100 |
 | `e.g., 123456` | e.g., 123456 | par ex., 123456 |
 | `e.g., 2025-04-01-preview` | e.g., 2025-04-01-preview | par ex., 2025-04-01-preview |
-| ... | （剩余 124 处略）| |
+| `e.g., 50` | e.g., 50 | par ex., 50 |
+| `e.g., 500000` | e.g., 500000 | p. ex., 500000 |
+| `e.g., 7342866812345` | e.g., 7342866812345 | par ex., 7342866812345 |
+| `e.g., 8 means 8 local currency per USD` | e.g., 8 means 8 local currency per USD | par ex., 8 signifie 8 unités de monnaie locale par USD |
+| ... | （剩余 125 处略）| |
 
