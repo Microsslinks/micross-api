@@ -25,6 +25,7 @@ import type {
   CustomerCode,
   CustomerCodeIssuePayload,
   DealerPlanList,
+  ResetAgentCustomerPasswordResult,
 } from './types'
 
 /**
@@ -145,6 +146,50 @@ export async function issueSelfAgentCustomerQuota(
   const res = await api.post(
     `/api/user/self/agent/customers/${customerId}/quota`,
     { quota }
+  )
+  return res.data
+}
+
+/**
+ * 经销商代注册一个客户：用户名 / 密码 / 可选显示名。
+ *
+ * 成功后返回那位新客户的台账行（与 getSelfAgentCustomers 一行的字段一致），
+ * 界面可以直接把它插进客户列表，省一次为了刷新再发的查询。
+ */
+export async function registerSelfAgentCustomer(payload: {
+  username: string
+  password: string
+  display_name?: string
+}): Promise<ApiResponse<AgentCustomer>> {
+  const res = await api.post('/api/user/self/agent/customers', payload)
+  return res.data
+}
+
+/**
+ * 给一位下属客户重置密码：新密码由后端生成 8 位随机串，只在这次响应里出现一次。
+ *
+ * 明文密码 **不会** 进数据库、不会进日志、不会再次返回：弹窗必须把它展示给经销商，
+ * 并明确提示必须当面/私聊告知客户，否则客户再也拿不到这个新密码。
+ */
+export async function resetSelfAgentCustomerPassword(
+  customerId: number
+): Promise<ApiResponse<ResetAgentCustomerPasswordResult>> {
+  const res = await api.post(
+    `/api/user/self/agent/customers/${customerId}/reset-password`
+  )
+  return res.data
+}
+
+/**
+ * 停用一位下属客户：用户状态置为 disabled，并级联把所有 token 一并停用。
+ *
+ * 幂等：客户已是 disabled 时接口仍返回成功，调用方不用单独判断。
+ */
+export async function disableSelfAgentCustomer(
+  customerId: number
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `/api/user/self/agent/customers/${customerId}/disable`
   )
   return res.data
 }

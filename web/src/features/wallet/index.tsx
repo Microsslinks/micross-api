@@ -22,8 +22,9 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
 import { AffiliateRewardsCard } from '@/features/earnings/components/affiliate-rewards-card'
+import { CommissionRecordsTable } from '@/features/earnings/components/commission-records-table'
 import { TransferDialog } from '@/features/earnings/components/dialogs/transfer-dialog'
-import { useAffiliate } from '@/features/earnings/hooks'
+import { useAffiliate, useCommission } from '@/features/earnings/hooks'
 import { getSelf } from '@/lib/api'
 import { ROLE } from '@/lib/roles'
 
@@ -109,6 +110,15 @@ export function Wallet(props: WalletProps) {
     transferQuota,
     transferring,
   } = useAffiliate()
+
+  const {
+    records: commissionRecords,
+    loading: commissionLoading,
+    page: commissionPage,
+    total: commissionTotal,
+    pageSize: commissionPageSize,
+    setPage: setCommissionPage,
+  } = useCommission(20)
 
   // 管理员才在快捷充值区域装配「添加充值金额 / 折扣管理」入口
   const isAdminUser = !!user && (user.role ?? 0) >= ROLE.ADMIN
@@ -342,6 +352,15 @@ export function Wallet(props: WalletProps) {
                 topupInfo?.payment_compliance_confirmed !== false
               }
               loading={affiliateLoading || userLoading}
+            />
+
+            <CommissionRecordsTable
+              records={commissionRecords}
+              page={commissionPage}
+              total={commissionTotal}
+              pageSize={commissionPageSize}
+              loading={commissionLoading}
+              onPageChange={setCommissionPage}
             />
 
             {isAdminUser && <CheckinAdminCard />}

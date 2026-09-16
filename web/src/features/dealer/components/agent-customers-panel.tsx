@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
-import { Loader2, Users } from 'lucide-react'
+import { Loader2, Plus, Users } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table'
 import { getDiscountBindingSourceLabel } from '@/features/discounts/constants'
 import { formatRatioText } from '@/features/discounts/lib/format'
+import { parseRatioText } from '@/features/discounts/lib/format'
 import { DISCOUNT_BINDING_SOURCE } from '@/features/discounts/types'
 import { USER_STATUSES } from '@/features/users/constants'
 import {
@@ -58,6 +59,8 @@ import {
   issueSelfAgentCustomerQuota,
 } from '../api'
 import type { AgentCustomer, AgentCustomerBinding } from '../types'
+import { CustomerRowActions } from './customer-row-actions'
+import { RegisterCustomerDialog } from './register-customer-dialog'
 
 const PAGE_SIZE = 20
 
@@ -86,6 +89,7 @@ export function AgentCustomersPanel() {
   const [loading, setLoading] = useState(true)
   const [quotaTarget, setQuotaTarget] = useState<AgentCustomer | null>(null)
   const [detailTarget, setDetailTarget] = useState<AgentCustomer | null>(null)
+  const [registerOpen, setRegisterOpen] = useState(false)
 
   const load = useCallback(async (targetPage: number) => {
     setLoading(true)
@@ -135,14 +139,36 @@ export function AgentCustomersPanel() {
         <div className='flex items-center gap-2'>
           <Users className='text-muted-foreground size-4' />
           <span className='text-sm font-medium'>{t('Customers')}</span>
+          <span className='text-muted-foreground text-xs tabular-nums'>
+            {total}
+          </span>
+          <div className='ml-auto'>
+            <Button
+              size='sm'
+              onClick={() => setRegisterOpen(true)}
+            >
+              <Plus className='size-4' />
+              {t('dealer.registerCustomer')}
+            </Button>
+          </div>
         </div>
         <EmptyState
           icon={Users}
           title={t('No customers yet')}
           description={t(
-            'Hand a customer code to a customer; they show up here once they register or bind it.'
+            'Hand a customer code to a customer, or register one for them; they show up here once bound.'
           )}
           size='md'
+        />
+        <RegisterCustomerDialog
+          open={registerOpen}
+          onOpenChange={setRegisterOpen}
+          onSuccess={(created) => {
+            // 直接把新行插到列表顶部，省一次刷新；同时刷新台账金额等
+            setCustomers([created])
+            setTotal((value) => value + 1)
+            void load(1)
+          }}
         />
       </div>
     )
@@ -156,6 +182,15 @@ export function AgentCustomersPanel() {
         <span className='text-muted-foreground text-xs tabular-nums'>
           {total}
         </span>
+        <div className='ml-auto'>
+          <Button
+            size='sm'
+            onClick={() => setRegisterOpen(true)}
+          >
+            <Plus className='size-4' />
+            {t('dealer.registerCustomer')}
+          </Button>
+        </div>
       </div>
 
       <div className='overflow-hidden rounded-lg border'>
@@ -237,6 +272,10 @@ export function AgentCustomersPanel() {
                     >
                       {t('Issue quota')}
                     </Button>
+                    <CustomerRowActions
+                      customer={item}
+                      onRefresh={() => void load(page)}
+                    />
                   </TableCell>
                 </TableRow>
               )
@@ -283,6 +322,16 @@ export function AgentCustomersPanel() {
         customer={detailTarget}
         onOpenChange={(open) => {
           if (!open) setDetailTarget(null)
+        }}
+      />
+      <RegisterCustomerDialog
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        onSuccess={(created) => {
+          // 把新行插到列表顶部让经销商立即看到，再异步刷一次拿服务端最终态
+          setCustomers((previous) => [created, ...previous])
+          setTotal((value) => value + 1)
+          void load(1)
         }}
       />
     </div>
@@ -411,6 +460,11 @@ function QuotaDialog({ customer, onOpenChange, onSaved }: QuotaDialogProps) {
 
   const name = customer?.display_name || customer?.username || ''
   const quota = parseQuotaFromDollars(Number.parseFloat(amount) || 0)
+  // 折算预览：客户主方案的 TopupConversionRate（task-09）。空字符串走 1.0 兜底，
+  // 与后端 resolveAgentTopupCost 同口径。预览按 ceil(quota × rate) 估算，与后端实扣一致。
+  const topupRate = customer ? (parseRatioText(customer.topup_conversion_rate) ?? 1) : 1
+  const agentCostPreview = Math.ceil(quota * topupRate)
+  const showTopupPreview = customer !== null && quota > 0 && topupRate < 1
   const exceeding = available !== null && quota > available
   const canSend =
     customer !== null && quota >= minimumQuota && !exceeding && !sending
@@ -500,6 +554,29 @@ function QuotaDialog({ customer, onOpenChange, onSaved }: QuotaDialogProps) {
           </p>
         )}
       </div>
+
+      {/*
+       * task-09：折算预览。客户主方案配了 < 1 的比例时显示「面值 X 实扣 Y」+ 比例百分比。
+       * 后端仍按自己的 TopupConversionRate 实扣（不依赖前端传的 agentCost），
+       * 这里只是给经销商看个估算，让他发之前心里有数。
+       */}
+      {showTopupPreview && (
+        <div className='text-muted-foreground space-y-1 text-xs'>
+          <p>
+            {t('Face value: {{face}}', {
+              face: formatQuota(quota),
+            })}
+          </p>
+          <p>
+            {t('Actually deducted: {{actual}}', {
+              actual: formatQuota(agentCostPreview),
+            })}
+            <span className='ml-1'>
+              ({formatRatioText(customer?.topup_conversion_rate)})
+            </span>
+          </p>
+        </div>
+      )}
     </Dialog>
   )
 }

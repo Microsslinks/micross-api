@@ -103,6 +103,14 @@ type User struct {
 	AffCount         int                        `json:"aff_count" gorm:"default:0;column:aff_count"`
 	AffQuota         int                        `json:"aff_quota" gorm:"default:0;column:aff_quota"`           // 邀请剩余额度
 	AffHistoryQuota  int                        `json:"aff_history_quota" gorm:"default:0;column:aff_history"` // 邀请历史额度
+	// AffCommissionBalance 邀请佣金钱包余额（独立钱包，与 AffQuota 区分）。
+	// task-10 起每次成功计费后由 service/commission.go:ProcessCommission 写入。
+	// 不可提现、只进不出；提现/转出能力在 task-11（P4 UI + 不可提现）实现 TransferCommissionToQuota。
+	//
+	// A 类债提醒：不要写 `type:int`——项目早期 type:int 标签在某些迁移场景出过兼容性 bug。
+	// 沿用 DiscountPlan.CommissionRatio 等 decimal/纯 int 字段的写法，只留 default + column。
+	// 老库 ALTER ADD 时由 default 0 自动填值，不会让 NOT NULL 失败。
+	AffCommissionBalance int `json:"aff_commission_balance" gorm:"default:0;column:aff_commission_balance"`
 	InviterId        int                        `json:"inviter_id" gorm:"column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
@@ -637,6 +645,21 @@ func (user *User) TransferAffQuotaToQuota(quota int) error {
 	return tx.Commit().Error
 }
 
+// TransferCommissionToQuota 把 commission 钱包余额转入主 quota。
+//
+// 关键设计：commission 钱包是任务文档 §三"资金闭环"的"不可提现"入口——
+// 佣金只能继续在系统里消费（调 API 走主 quota），不允许套现。
+// 因此此端点永远返回 error，前端调它时会显示"Commission is not withdrawable"。
+//
+// 为什么保留端点而不是删掉：
+//  1. 老用户已发出去的 aff_quota（注册一次性返利）走 TransferAffQuotaToQuota，
+//     前端入口下线但端点保留兼容；
+//  2. 新 commission 钱包走此端点，但语义是"永远拒绝"——前端据此隐藏按钮；
+//  3. 防止未来误调用 commission 钱包：显式失败 > 静默空操作。
+func (user *User) TransferCommissionToQuota(quota int) error {
+	return errors.New("commission is not withdrawable")
+}
+
 // ResetInviterParams task-16：超管重置某用户的邀请人。
 //
 // 设计要点：
@@ -808,6 +831,31 @@ func (user *User) Insert(inviterId int) error {
 	}
 
 	user.finishInsert(inviterId)
+	return nil
+}
+
+// InsertByAgent 由经销商自助 API 调用，在代注册客户场景下复用 Insert 的事务骨架。
+// 关键差异：写入 ParentAgentId 字段，并把 finishInsert 里那条「邀请码奖励」逻辑跳过
+// （代注册不能拿 InviterQuota，但被代注册的客户本身可以拿 QuotaForNewUser）。
+func (user *User) InsertByAgent(agentId int) error {
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		return withNormalizedEmailLock(tx, user.Email, func(tx *gorm.DB) error {
+			if err := user.prepareForInsert(tx); err != nil {
+				return err
+			}
+			user.Quota = common.QuotaForNewUser
+			user.AffCode = common.GetRandomString(4)
+			user.ParentAgentId = agentId // ★ 关键差异
+			if user.Setting == "" {
+				defaultSetting := dto.UserSetting{}
+				user.SetSetting(defaultSetting)
+			}
+			return tx.Create(user).Error
+		})
+	}); err != nil {
+		return err
+	}
+	user.finishInsert(0) // ★ inviterId=0，跳过邀请码奖励
 	return nil
 }
 

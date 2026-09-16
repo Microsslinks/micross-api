@@ -376,6 +376,11 @@ export interface DiscountPlan {
   min_discount: string
   billing_mode: string
   commission_ratio: string
+  /**
+   * 经销商给客户发额度时的折算比例（task-09），6 位小数字符串（"0.875000"）。
+   * 取值 0~1；1.0 表示保持 1:1 不折算。后端不允许 0 或 > 1。
+   */
+  topup_conversion_rate: string
   status: number
   remark: string
   created_at: number
@@ -421,6 +426,8 @@ export interface DiscountPlanPayload {
   min_discount: string
   billing_mode: string
   commission_ratio: string
+  /** 经销商发额度折算比例（task-09）；0~1，6 位小数；后端空值兜底 1.000000。 */
+  topup_conversion_rate: string
   status: number
   remark: string
 }

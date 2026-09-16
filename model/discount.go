@@ -40,6 +40,11 @@ const (
 
 	// 无折扣（即官方标价）
 	DiscountNone = "1.000000"
+
+	// DiscountTopupConversionDefault 经销商给客户发额度时的折算比例缺省值 = 1.0（保持 1:1）。
+	// 运营可以按方案调到 0~1：发 100 实扣 = 100 × 比例（详见 task-09）。
+	// decimal(6,6) 与同表其他比例字段口径一致；空值由 NormalizeDefaults 兜到这个缺省。
+	DiscountTopupConversionDefault = "1.000000"
 )
 
 // DiscountPlan 是给客户计价的折扣方案：客户实付 = 官方标价 × 命中折扣。
@@ -53,10 +58,14 @@ type DiscountPlan struct {
 	MinDiscount     string `json:"min_discount" gorm:"type:decimal(10,6);not null"`
 	BillingMode     string `json:"billing_mode" gorm:"type:varchar(16);not null;default:'usage'"`
 	CommissionRatio string `json:"commission_ratio" gorm:"type:decimal(10,6);not null"`
-	Status          int    `json:"status" gorm:"not null;default:1;index:idx_plan_status"`
-	Remark          string `json:"remark" gorm:"type:varchar(255);default:''"`
-	CreatedAt       int64  `json:"created_at" gorm:"bigint"`
-	UpdatedAt       int64  `json:"updated_at" gorm:"bigint"`
+// TopupConversionRate 经销商给客户发额度时的折算比例：实扣 = 面值 × 比例。
+	// 取值 0~1 之间，比例 = 1.0 表示保持 1:1（与改前一致）；缺省由 NormalizeDefaults 兜底。
+	// 老库缺这一列由 migrateDiscountTables 的 SQLite 分支补上（task-09）。
+	TopupConversionRate string `json:"topup_conversion_rate" gorm:"type:decimal(6,6);not null;default:1.0"`
+	Status              int    `json:"status" gorm:"not null;default:1;index:idx_plan_status"`
+	Remark              string `json:"remark" gorm:"type:varchar(255);default:''"`
+	CreatedAt           int64  `json:"created_at" gorm:"bigint"`
+	UpdatedAt           int64  `json:"updated_at" gorm:"bigint"`
 }
 
 func (DiscountPlan) TableName() string {
@@ -77,6 +86,8 @@ func (p *DiscountPlan) BeforeUpdate(tx *gorm.DB) error {
 
 // NormalizeDefaults 补全折扣的零值口径。列定义里刻意不写 DEFAULT：
 // SQLite 对 decimal 列默认值的判定不稳定，写在列上会导致每次启动重建整张表。
+// TopupConversionRate 例外：它的缺省不是"无意义兜底"而是 1.0（保持 1:1），
+// 写在 gorm tag 里让 AutoMigrate 自带 default 子句；这里再兜一次以防上游直接走内存构造。
 func (p *DiscountPlan) NormalizeDefaults() {
 	if p.BaseDiscount == "" {
 		p.BaseDiscount = DiscountNone
@@ -86,6 +97,9 @@ func (p *DiscountPlan) NormalizeDefaults() {
 	}
 	if p.CommissionRatio == "" {
 		p.CommissionRatio = "0"
+	}
+	if p.TopupConversionRate == "" {
+		p.TopupConversionRate = DiscountTopupConversionDefault
 	}
 }
 

@@ -317,6 +317,9 @@ func migrateDB() error {
 	if err := migrateAgentTables(DB); err != nil {
 		return err
 	}
+	if err := migrateCommissionTables(DB); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -402,6 +405,9 @@ func migrateDBFast() error {
 		return err
 	}
 	if err := migrateAgentTables(DB); err != nil {
+		return err
+	}
+	if err := migrateCommissionTables(DB); err != nil {
 		return err
 	}
 	common.SysLog("database migrated")
@@ -616,9 +622,29 @@ func migrateDiscountTables(db *gorm.DB) error {
 		db.Migrator().HasTable(&DiscountBinding{}) {
 		// 折扣三表建过就不再重复迁移（decimal 列比对不相等会让每次启动重建整张表）。
 		// 路由策略表与模型清单表都没有 decimal 列，不受这个坑影响，所以与三表分开、每次照常迁移。
+		// 给老库补 topup_conversion_rate 列（task-09）；这一列 SQLite 不会自动加，要在这里兜。
+		if err := ensureSQLiteDiscountPlanColumns(db); err != nil {
+			return err
+		}
 		return db.AutoMigrate(&DiscountRoutingPolicy{}, &DiscountModelList{})
 	}
 	return db.AutoMigrate(&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{}, &DiscountRoutingPolicy{}, &DiscountModelList{})
+}
+
+// ensureSQLiteDiscountPlanColumns 给老库的 discount_plans 补缺失的列。
+//
+// 只补 DiscountPlan 加进来时未建过的列：MySQL/PG 由 AutoMigrate 自己加，这里只管 SQLite。
+// 用 db 参数而不是全局 DB——与 migrateDiscountTables 的 db 形参保持一致，让测试可以传任意 db。
+//
+// 漏了它的后果：老库缺 topup_conversion_rate，发额度时会报 "no such column"，按面值扣经销商
+// 余额的现有路径仍然能跑，但 Phase 2 引入的"按比例折算"那条新路径会直接 500。
+func ensureSQLiteDiscountPlanColumns(db *gorm.DB) error {
+	if db.Migrator().HasColumn(&DiscountPlan{}, "topup_conversion_rate") {
+		return nil
+	}
+	// 列定义与 DiscountPlan 的 gorm tag 对齐：decimal(6,6) NOT NULL DEFAULT 1.0。
+	// 老行 ALTER ADD COLUMN 时由 DEFAULT 1.0 自动填，不会让 NOT NULL 失败。
+	return db.Exec("ALTER TABLE `discount_plans` ADD COLUMN `topup_conversion_rate` decimal(6,6) NOT NULL DEFAULT 1.0").Error
 }
 
 // fixDiscountRuleUniqueIndex 修正 discount_rules 的唯一索引 uk_rule_plan_scope。
@@ -720,6 +746,23 @@ func migrateAgentTables(db *gorm.DB) error {
 		return db.AutoMigrate(&CustomerCode{})
 	}
 	return db.AutoMigrate(&AgentProfile{}, &CustomerCode{})
+}
+
+// migrateCommissionTables 迁移 commission_records + 给 users 老库补 aff_commission_balance 列。
+//
+// 设计：users 表本身已经在 line 264 的 AutoMigrate 列表里，新加的 AffCommissionBalance 列
+// 三库都会自动 ALTER ADD。users 表不含 decimal 列，所以 SQLite 上不会撞"列比对不等→重建表"
+// 的坑（与 discount_plans / agent_proprofiles 不同），不需要 ensureSQLiteTableColumns。
+//
+// commission_records 是一张全新表，三库都走 AutoMigrate 建表：
+//   - 索引 inviter_id / invitee_id / (consume_log_id, inviter_id) 由 gorm tag 自动建。
+//   - 唯一约束 uk_consume_inviter 防重试返佣（README §七第 4 条）。
+//
+// 调用顺序：必须放在 migrateAgentTables 之后，与折扣/经销商迁移同一阶段。
+func migrateCommissionTables(db *gorm.DB) error {
+	// 重复 AutoMigrate(&User{}) 与 line 264 列表里的 User 调用是幂等的（AutoMigrate 检测到列
+	// 已存在就跳过）。把 User 字段加列集中在这里，是为了"task-10 范围内的新列"维护职责更清晰。
+	return db.AutoMigrate(&User{}, &CommissionRecord{})
 }
 
 // migrateTokenModelLimitsToText migrates model_limits column from varchar(1024) to text

@@ -134,6 +134,11 @@ export interface AgentCustomer {
   /** manual / agent / subscription / customer_code / migration / default，空表示没有生效方案 */
   binding_source: string
   priced_by_me: boolean
+  /**
+   * 主方案的折算比例字符串（"0.875000"），task-09 用：经销商给客户发额度时按这个比例
+   * 扣经销商余额（预览与实扣共用）。空字符串表示该客户没有生效的折扣方案，按 1.0 兜底。
+   */
+  topup_conversion_rate: string
 }
 
 /** 货架上的一个折扣方案：经销商挑给客户用哪套价。 */
@@ -149,4 +154,13 @@ export interface DealerPlanOption {
 export interface DealerPlanList {
   min_discount: string
   items: DealerPlanOption[]
+}
+
+/**
+ * 重置下属客户密码的响应：明文密码只会在这里出现一次，
+ * 弹窗要把它展示出来并提示经销商当面/私聊告诉客户，不会再返回第二次。
+ */
+export interface ResetAgentCustomerPasswordResult {
+  customer_id: number
+  password: string
 }

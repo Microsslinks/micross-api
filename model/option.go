@@ -168,6 +168,9 @@ func InitOptionMap() {
 	common.OptionMap["CheckSensitiveEnabled"] = strconv.FormatBool(setting.CheckSensitiveEnabled)
 	common.OptionMap["DemoSiteEnabled"] = strconv.FormatBool(operation_setting.DemoSiteEnabled)
 	common.OptionMap["SelfUseModeEnabled"] = strconv.FormatBool(operation_setting.SelfUseModeEnabled)
+	// 邀请佣金全局返佣率（task-10 / P4 佣金核心，运营在系统设置改）。
+	// 写法与 DemoSiteEnabled 一致：OptionMap 镜像 DB，启动时同步到内存 var。
+	common.OptionMap["CommissionRate"] = operation_setting.CommissionRate
 	common.OptionMap["ModelRequestRateLimitEnabled"] = strconv.FormatBool(setting.ModelRequestRateLimitEnabled)
 	common.OptionMap["CheckSensitiveOnPromptEnabled"] = strconv.FormatBool(setting.CheckSensitiveOnPromptEnabled)
 	common.OptionMap["StopOnSensitiveEnabled"] = strconv.FormatBool(setting.StopOnSensitiveEnabled)
@@ -215,6 +218,11 @@ func validateOptionValue(key string, value string) error {
 	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
+	}
+	// 邀请佣金全局返佣率（task-10 / P4 佣金核心）：
+	// 必须能解析为 decimal、范围 [0, 1]。0 表示关闭返佣；负数 / NaN / >1 直接拒绝保存。
+	if key == "CommissionRate" {
+		return operation_setting.ValidateCommissionRate(value)
 	}
 	return nil
 }
@@ -605,6 +613,11 @@ func updateOptionMap(key string, value string) (err error) {
 		// WaffoPayMethods is read directly from OptionMap via setting.GetWaffoPayMethods().
 		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
 		// No additional in-memory variable to update.
+	case "CommissionRate":
+		// 邀请佣金全局返佣率（task-10 / P4 佣金核心）：
+		// 校验后落 DB + 同步内存 var。validateOptionValue 已经拒绝空串 / 非 decimal / 负 / >1，
+		// 这里只做赋值即可。
+		operation_setting.CommissionRate = value
 	}
 	return err
 }
