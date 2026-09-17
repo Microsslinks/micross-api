@@ -56,4 +56,8 @@ var (
 	ErrInviterTooNew         = errors.New("inviter account is too new (must be at least 24h old)")
 	ErrInviterSameEmailDomain = errors.New("inviter and invitee share the same email domain")
 	ErrInviterTooActive       = errors.New("inviter has reached the daily invitation cap")
+
+	// task-20 §20.6: 同一笔 commission 已被冲销，重复调用 ReverseCommission 时返回。
+	// controller 看到它会翻译为 HTTP 409 Conflict，UI 上展示"该返佣已撤销"提示。
+	ErrCommissionAlreadyReversed = errors.New("commission record already reversed")
 )

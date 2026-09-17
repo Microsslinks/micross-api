@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -396,7 +397,143 @@ func TestProcessCommissionNegativeGrossWritesNegativeAmount(t *testing.T) {
 	assert.Equal(t, int64(0), auditCount, "负 amount 不应写 audit")
 }
 
-// 时间戳导入检查——确认 _ = time.Now() 不会因 unused import 编译失败。
+// 这里的 _ = time.Now() 不会因 unused import 编译失败。
 // （commission_records 需要时间戳字段，但 Go 静态检查不强制每个 time 引用都被用上，
 // 上面的 fmt.Sprintf 没用 time，这里补一个无副作用的引用避免 unused import。）
 var _ = time.Now
+
+// ----------------------------------------------------------------------
+// task-20 §20.6: ReverseCommission 测试（风控冲销 / admin 撤销 commission_records）
+// ----------------------------------------------------------------------
+
+// TestReverseCommissionRollsBackWalletAndWritesReverseLedger
+// happy path: 写 commission → ReverseCommission → 钱包 -= amount + ledger commission_reverse
+func TestReverseCommissionRollsBackWalletAndWritesReverseLedger(t *testing.T) {
+	setupCommissionTest(t)
+	operation_setting.SetCommissionRate("0.050000")
+
+	operator := &model.User{Username: "rev-op-" + uniqueAffCode(t), Password: "unused", Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default", AffCode: "rev-op-" + uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(operator).Error)
+	inviter := &model.User{Username: "rev-inv-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
+	invitee := &model.User{Username: "rev-invee-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(invitee).Error)
+
+	consumeLogId := int64(999001)
+	require.NoError(t, ProcessCommission(nil, consumeLogId, invitee.Id, 200, 100),
+		"写入一笔 commission amount=10（200 * 0.05）")
+
+	// 验证：钱包已 +10
+	require.NoError(t, model.DB.First(&inviter, inviter.Id).Error)
+	assert.Equal(t, 10, inviter.AffCommissionBalance, "commission 入账后钱包应 +10")
+
+	// 拿 commission_record id
+	var rec model.CommissionRecord
+	require.NoError(t, model.DB.Where("invitee_id = ?", invitee.Id).First(&rec).Error)
+	assert.False(t, rec.Reversed, "初始 Reversed=false")
+
+	// 触发 ReverseCommission
+	require.NoError(t, ReverseCommission(nil, rec.Id, "风控扫描发现返佣为薅羊毛产出", operator.Id))
+
+	// 验证：钱包被扣回
+	require.NoError(t, model.DB.First(&inviter, inviter.Id).Error)
+	assert.Equal(t, 0, inviter.AffCommissionBalance, "撤销后钱包应扣回 amount=10 → 0")
+
+	// 验证：commission_record 标记已撤销
+	require.NoError(t, model.DB.First(&rec, rec.Id).Error)
+	assert.True(t, rec.Reversed, "Reversed=true")
+	assert.Equal(t, operator.Id, rec.ReversedBy)
+	assert.Contains(t, rec.ReverseReason, "风控扫描")
+
+	// 验证：ledger 行 event_type=commission_reverse, amount=-10
+	var ledger model.AccountLedger
+	require.NoError(t, model.DB.Where("ref_type = ? AND ref_id = ? AND event_type = ?",
+		"commission_record", rec.Id, model.AccountEventCommissionReverse).First(&ledger).Error)
+	assert.Equal(t, model.AccountEventCommissionReverse, ledger.EventType)
+	assert.Equal(t, int64(-10), ledger.Amount)
+	assert.Equal(t, int64(0), ledger.BalanceAfter, "balance_after = 扣回后余额")
+	assert.Equal(t, operator.Id, ledger.OperatorId)
+	assert.Contains(t, ledger.Memo, "风控扫描")
+}
+
+// TestReverseCommissionIdempotent: 重复调用返回 ErrCommissionAlreadyReversed
+func TestReverseCommissionIdempotent(t *testing.T) {
+	setupCommissionTest(t)
+	operation_setting.SetCommissionRate("0.050000")
+
+	operator := &model.User{Username: "rev-idem-op-" + uniqueAffCode(t), Password: "unused", Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(operator).Error)
+	inviter := &model.User{Username: "rev-idem-inv-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
+	invitee := &model.User{Username: "rev-idem-invee-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(invitee).Error)
+
+	consumeLogId := int64(999002)
+	require.NoError(t, ProcessCommission(nil, consumeLogId, invitee.Id, 200, 100))
+
+	var rec model.CommissionRecord
+	require.NoError(t, model.DB.Where("invitee_id = ?", invitee.Id).First(&rec).Error)
+
+	// 第一次撤销成功
+	require.NoError(t, ReverseCommission(nil, rec.Id, "first reverse", operator.Id))
+
+	// 第二次撤销失败
+	err := ReverseCommission(nil, rec.Id, "second reverse", operator.Id)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, model.ErrCommissionAlreadyReversed),
+		"二次撤销应返回 ErrCommissionAlreadyReversed, got: %v", err)
+
+	// 验证：钱包只扣一次
+	require.NoError(t, model.DB.First(&inviter, inviter.Id).Error)
+	assert.Equal(t, 0, inviter.AffCommissionBalance, "二次撤销不应再扣款")
+}
+
+// TestReverseCommissionZeroAmountOnlyWritesAuditLedger:
+// amount=0 的 commission 撤销不扣钱包，但仍写 ledger 留下审计痕迹。
+// 典型场景：ProcessCommission 内 AssertNoLoss 触发 breach 的 commission_records，
+// 这条记录 Amount=0 但 Breach=true，风控扫描发现后撤销只为审计。
+func TestReverseCommissionZeroAmountOnlyWritesAuditLedger(t *testing.T) {
+	setupCommissionTest(t)
+	operation_setting.SetCommissionRate("0.050000")
+
+	operator := &model.User{Username: "rev-zero-op-" + uniqueAffCode(t), Password: "unused", Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(operator).Error)
+	inviter := &model.User{Username: "rev-zero-inv-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(inviter).Error)
+	// 不调 seedFirstTopupConsume —— 让 §20.5 首充门槛触发，amount=0
+	invitee := &model.User{Username: "rev-zero-invee-" + uniqueAffCode(t), Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
+	require.NoError(t, model.DB.Create(invitee).Error)
+
+	consumeLogId := int64(999003)
+	require.NoError(t, ProcessCommission(nil, consumeLogId, invitee.Id, 100, 50),
+		"首充门槛未满足，amount 应为 0")
+
+	var rec model.CommissionRecord
+	require.NoError(t, model.DB.Where("invitee_id = ?", invitee.Id).First(&rec).Error)
+	assert.Equal(t, 0, rec.Amount, "首充门槛触发后 Amount=0")
+
+	require.NoError(t, ReverseCommission(nil, rec.Id, "audit only", operator.Id))
+
+	// 验证：钱包不变（amount=0 → 无扣款）
+	require.NoError(t, model.DB.First(&inviter, inviter.Id).Error)
+	assert.Equal(t, 0, inviter.AffCommissionBalance, "amount=0 撤销不应动钱包")
+
+	// 验证：ledger 行依然写入（amount=0 但 event_type=commission_reverse 留痕）
+	var ledgerCount int64
+	require.NoError(t, model.DB.Model(&model.AccountLedger{}).
+		Where("ref_type = ? AND ref_id = ? AND event_type = ?",
+			"commission_record", rec.Id, model.AccountEventCommissionReverse).
+		Count(&ledgerCount).Error)
+	assert.Equal(t, int64(1), ledgerCount, "amount=0 也写 ledger 留痕")
+}
+
+// TestReverseCommissionInvalidRecordID: 不存在的 ID 返回 error，不 panic
+func TestReverseCommissionInvalidRecordID(t *testing.T) {
+	err := ReverseCommission(nil, 999999999, "test invalid", 1)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "panic")
+	assert.False(t, errors.Is(err, model.ErrCommissionAlreadyReversed),
+		"无效 ID 不应返回 ErrCommissionAlreadyReversed（区分 not found 与 already reversed）")
+}
