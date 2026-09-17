@@ -265,6 +265,13 @@ func Register(c *gin.Context) {
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
+	// task-20 §20.4 自邀拦截：inviterId > 0 时调风控检查（24h 新账号 / 同 email 域名 /
+	// 24h 内邀请数超过 5）。失败直接拒绝，不创建账号。
+	if err := model.ValidateInviterForRegistration(inviterId, user.Email); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		common.SysLog(fmt.Sprintf("register rejected by self-invite guard: inviter_id=%d invitee_email=%s err=%s", inviterId, user.Email, err.Error()))
+		return
+	}
 	cleanUser := model.User{
 		Username:    user.Username,
 		Password:    user.Password,

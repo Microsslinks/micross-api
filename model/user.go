@@ -577,6 +577,97 @@ func GetUserIdByAffCode(affCode string) (int, error) {
 	return user.Id, err
 }
 
+// selfInviteConfig 集中 §20.4 自邀拦截参数，便于运维不重启调阈值。
+// 默认值是"防批号薅羊毛"的下限——足够拦 90% 攻击又不误伤真人邀请。
+type selfInviteConfig struct {
+	MinInviterAgeHours    int
+	MaxInvitesPerInviter24h int
+}
+
+// 默认 24h / 5 次/24h。可被 ValidateInviterForRegistration 的 caller 覆盖；
+// 现阶段先写死，后续可与 redis 配合做 per-inviter 限速。
+var defaultSelfInviteConfig = selfInviteConfig{
+	MinInviterAgeHours:    24,
+	MaxInvitesPerInviter24h: 5,
+}
+
+// ValidateInviterForRegistration 检查 inviter 是否符合 §20.4 风控要求。
+// 在 Register / OAuth 创建新账号的 controller 入口调：拿到 inviterId 后，
+// 给被摄者 email，调本函数，任一失败即拒绝注册。
+//
+// 检查项（顺序按代价由低到高）：
+//   1. inviter 存在 + 未软删（沿用 ErrInviterNotFound / ErrInviterDeleted）
+//   2. inviter 注册时间距今 ≥ MinInviterAgeHours（拦批号脚本）
+//   3. inviter 与被摄者 email 域名不同（拦同 @example.com 自邀）
+//   4. inviter 过去 24h 邀请数 < MaxInvitesPerInviter24h（拦刷单主控账号）
+//
+// 不查 inviter 的 commission/balance：那是 commission 风控，不在 §20.4 范围。
+func ValidateInviterForRegistration(inviterId int, inviteeEmail string) error {
+	if inviterId <= 0 {
+		return nil // 无邀请人，跳过所有风控检查
+	}
+	cfg := defaultSelfInviteConfig
+
+	// 1. inviter 存在 + 未软删
+	var inviter User
+	if err := DB.Unscoped().
+		Select("id", "email", "created_at", "deleted_at").
+		Where("id = ?", inviterId).
+		Take(&inviter).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInviterNotFound
+		}
+		return err
+	}
+	if inviter.DeletedAt.Valid {
+		return ErrInviterDeleted
+	}
+
+	// 2. inviter 注册时间距今 ≥ MinInviterAgeHours
+	now := common.GetTimestamp()
+	ageHours := (now - inviter.CreatedAt) / 3600
+	if ageHours < int64(cfg.MinInviterAgeHours) {
+		return ErrInviterTooNew
+	}
+
+	// 3. email 域名不同：同 @example.com 自邀是薅羊毛最常见伪装。
+	// 两个 email 都 TrimSpace + Lower 后取 @ 后的部分比较。
+	inviterDomain := extractEmailDomain(inviter.Email)
+	inviteeDomain := extractEmailDomain(inviteeEmail)
+	if inviterDomain != "" && inviteeDomain != "" && inviterDomain == inviteeDomain {
+		return ErrInviterSameEmailDomain
+	}
+
+	// 4. inviter 过去 24h 邀请数：count(users where inviter_id=? AND created_at > now-24h)
+	// 排除被摄者自己（虽然在 created_at 之前不会有），仅作防御。
+	var recentInviteCount int64
+	cutoff := now - int64(24*3600)
+	if err := DB.Model(&User{}).
+		Where("inviter_id = ? AND created_at >= ?", inviterId, cutoff).
+		Count(&recentInviteCount).Error; err != nil {
+		return err
+	}
+	if recentInviteCount >= int64(cfg.MaxInvitesPerInviter24h) {
+		return ErrInviterTooActive
+	}
+
+	return nil
+}
+
+// extractEmailDomain 取 email 的 @ 后部分（小写），用于 §20.4 自邀拦截的同域名检查。
+// 空字符串（含无 @ 的非法 email）返回 ""，让 caller 跳过同域检查（视为未知）。
+func extractEmailDomain(email string) string {
+	email = NormalizeEmail(email)
+	if email == "" {
+		return ""
+	}
+	at := strings.LastIndex(email, "@")
+	if at < 0 || at == len(email)-1 {
+		return ""
+	}
+	return email[at+1:]
+}
+
 func DeleteUserById(id int) (err error) {
 	if id == 0 {
 		return errors.New("id 为空！")
