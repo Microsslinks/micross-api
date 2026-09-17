@@ -32,7 +32,11 @@ func setupCommissionTest(t *testing.T) {
 	model.DB, model.LOG_DB = db, db
 	// Log 表让 TestProcessCommissionBreachWritesAudit 能 SELECT 验证 audit 日志；
 	// User + CommissionRecord 是 ProcessCommission 直接读写两张表。
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.CommissionRecord{}, &model.Log{}))
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.CommissionRecord{}, &model.Log{},
+		// task-17 §17.3：ProcessCommission 写 ledger 必须在 setup 里建 account_ledger 表，
+		// 否则 SQLite 报 "no such table: account_ledger"。
+		&model.AccountLedger{},
+	))
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)

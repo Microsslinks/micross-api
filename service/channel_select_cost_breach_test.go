@@ -77,7 +77,11 @@ func setupAutoGroupCostBreachTest(t *testing.T) (*autoGroupCostBreachFixture, *g
 	plan := &model.DiscountPlan{
 		Name:         fmt.Sprintf("cost-breach-plan-%d", time.Now().UnixNano()),
 		OwnerType:    model.DiscountOwnerPlatform,
-		BaseDiscount: "1.000000",
+		// task-17 §17.1 (c) 修复：v0.32.0 规则退化为纯范围标记后，计费用的折扣
+		// 等于 plan.BaseDiscount 而不是 rule.Discount。ResolveBillingDiscount
+		// 在 BaseDiscount=1 时视为不打折（"价目本写 1.0"等同于没绑方案）。
+		// 这里改成 0.5 让 model-scope rule 真正生效。
+		BaseDiscount: "0.500000",
 		MinDiscount:  "0",
 		BillingMode:  model.DiscountBillingUsage,
 		Status:       model.DiscountStatusEnabled,

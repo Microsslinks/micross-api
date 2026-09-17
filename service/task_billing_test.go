@@ -21,7 +21,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	// task-17 §17.1 (b) 修复：用真实磁盘 file 数据库（task_billing_test.db），
+	// 避免 service 包其他 setup（commission_test / discount_simulate_test / auth_session_test）
+	// 用 file:%d?cache=shared 替换 model.DB 后 cleanup 关 DB 时把 shared cache 内存清掉，
+	// 导致 system_task scheduler 后台 goroutine 找不到 system_tasks 表。
+	// 之前 :memory: 模式下多次 setup 关闭 sqlDB 会破坏所有引用同一 cache 的连接。
+	// 现在用磁盘文件 + 同一连接名（task_billing_shared），所有 setup 共享此 DB 不替换。
+	dbPath := "file:task_billing_shared.db?cache=shared&_pragma=busy_timeout(5000)"
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		panic("failed to open test db: " + err.Error())
 	}
@@ -30,6 +37,8 @@ func TestMain(m *testing.M) {
 		panic("failed to get sql.DB: " + err.Error())
 	}
 	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
+	sqlDB.SetConnMaxLifetime(0)
 
 	model.DB = db
 	model.LOG_DB = db
@@ -50,9 +59,17 @@ func TestMain(m *testing.M) {
 		&model.UserSubscription{},
 		&model.SystemTask{},
 		&model.SystemTaskLock{},
+		&model.CommissionRecord{},
+		&model.DiscountPlan{},
+		&model.DiscountRule{},
+		&model.DiscountBinding{},
+		&model.Vendor{},
+		&model.Ability{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
+	// 不主动 Close：测试进程退出时 Go runtime 自动清理；中途 Close 会影响所有
+	// 引用同一 shared cache 的连接（包括 model.SystemTask scheduler 的后台 goroutine）。
 
 	os.Exit(m.Run())
 }

@@ -31,14 +31,19 @@ func TestAuditCustomerPricing(t *testing.T) {
 	t.Run("多方案各管一片模型，核算表按裁决结果算赚亏", func(t *testing.T) {
 		setupDiscountSimulateTest(t)
 		user := seedSimulateCustomer(t, "", "")
-		platformPlan := bindSimulatePlan(t, user.Id, "0.950000",
+		// task-17 §17.1 (c) 修复：v0.32.0 规则退化为纯范围标记（commit 003c2755），
+		// 计费用 discount 等于 plan.BaseDiscount 而非 rule.Discount。原来测试期望
+		// 命中的 rule.Discount=0.8（gpt）/ 0.85（claude），实际只会用 plan.BaseDiscount。
+		// 这里把 platformPlan / agentPlan 的 BaseDiscount 分别设为 0.8 / 0.85，
+		// 让两个方案仍能体现"不同模型不同价"但走 base discount 路径。
+		platformPlan := bindSimulatePlan(t, user.Id, "0.800000",
 			&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: model.DiscountStatusEnabled},
 		)
-		// 经销商来源的第二套方案：claude 模型他更便宜。
+		// 经销商来源的第二套方案：claude 模型他更便宜（BaseDiscount 0.85 → 进货 0.9 会亏）。
 		agentPlan := &model.DiscountPlan{
 			Name:         fmt.Sprintf("audit-agent-plan-%d", time.Now().UnixNano()),
 			OwnerType:    model.DiscountOwnerAgent,
-			BaseDiscount: "0.950000",
+			BaseDiscount: "0.850000",
 			MinDiscount:  "0",
 			BillingMode:  model.DiscountBillingUsage,
 			Status:       model.DiscountStatusEnabled,
@@ -62,7 +67,9 @@ func TestAuditCustomerPricing(t *testing.T) {
 		result, err := AuditCustomerPricing(user.Id, []string{"gpt-4o", "claude-3-5-sonnet"})
 		require.NoError(t, err)
 
-		// gpt-4o：平台方案模型级 0.8，进货 0.7 → 保本，毛利 0.8/0.7-1。
+		// gpt-4o：platformPlan BaseDiscount=0.8（v0.32.0 规则退化为纯范围标记后，
+		// discount 用 plan.BaseDiscount 而不是 rule.Discount）。
+		// 进货 0.7 → 保本，毛利 0.8/0.7-1 = 0.142857。
 		gptRow := auditModelRow(t, result, "gpt-4o")
 		assert.Equal(t, "0.800000", gptRow.Discount)
 		assert.Equal(t, model.DiscountResolvedFromModel, gptRow.Source)
@@ -74,7 +81,7 @@ func TestAuditCustomerPricing(t *testing.T) {
 		require.NotNil(t, gptRow.GrossMargin)
 		assert.Equal(t, "0.142857", *gptRow.GrossMargin)
 
-		// claude：经销商方案模型级 0.85，进货 0.9 → 亏。
+		// claude：agentPlan BaseDiscount=0.85，进货 0.9 → 亏（毛利 0.85/0.9-1 = -0.055556）。
 		claudeRow := auditModelRow(t, result, "claude-3-5-sonnet")
 		assert.Equal(t, "0.850000", claudeRow.Discount)
 		assert.Equal(t, agentPlan.Id, claudeRow.Plan.Id)

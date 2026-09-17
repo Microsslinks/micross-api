@@ -119,9 +119,13 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/aff", controller.GetAffCode)
 				// 邀请佣金钱包（task-10 / P4 佣金核心）：余额 / 流水 / 累计 / 转账，
 				// 与 /aff 的邀请码查询并行挂在 selfRoute 上。
-				selfRoute.GET("/aff/commission/balance", controller.GetAffCommissionBalance)
-				selfRoute.GET("/aff/commission/records", controller.ListAffCommissionRecords)
-				selfRoute.GET("/aff/commission/summary", controller.GetAffCommissionSummary)
+				//
+				// task-17 §17.4：流水/累计查询加 UserCriticalRateLimit 防爆刷——用户高频刷
+				// commission_records 可被用来推断「我何时有返佣 → 谁在我附近消费」，是业务
+				// 侧情报泄漏路径。同一 user_id 全局限速；IP-based 限速会被代理轮换绕过。
+				selfRoute.GET("/aff/commission/balance", middleware.UserCriticalRateLimit("aff-commission-balance"), controller.GetAffCommissionBalance)
+				selfRoute.GET("/aff/commission/records", middleware.UserCriticalRateLimit("aff-commission-records"), controller.ListAffCommissionRecords)
+				selfRoute.GET("/aff/commission/summary", middleware.UserCriticalRateLimit("aff-commission-summary"), controller.GetAffCommissionSummary)
 				// 提取佣金到主 quota：端点存在但永远返回"commission 不可提现"，
 				// 前端 wallet 面板据此隐藏按钮并显示 tooltip。
 				selfRoute.POST("/aff/commission/transfer", controller.TransferCommission)

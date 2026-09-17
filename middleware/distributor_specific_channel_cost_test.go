@@ -92,7 +92,11 @@ func setupPinnedChannelCostTest(t *testing.T, channelId int, costRatio string, w
 		plan := &model.DiscountPlan{
 			Name:         fmt.Sprintf("pinned-channel-plan-%d", time.Now().UnixNano()),
 			OwnerType:    model.DiscountOwnerPlatform,
-			BaseDiscount: "1.000000",
+			// task-17 §17.1 (c) 修复：BaseDiscount 1.0 在 ResolveBillingDiscount 里
+			// 被视为"没绑方案"（value == 1 → return none）。这里改成 0.5 让
+			// model-scope rule 真正生效，下面的 `ResolveBillingDiscount(...).Applied()`
+			// 自检才会通过。
+			BaseDiscount: "0.500000",
 			MinDiscount:  "0",
 			BillingMode:  model.DiscountBillingUsage,
 			Status:       model.DiscountStatusEnabled,

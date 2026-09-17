@@ -79,7 +79,10 @@ func TestModelPriceHelperTieredPreConsumeMaxTokensFallback(t *testing.T) {
 	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
 		"billing_setting.billing_mode":    `{"tiered-fallback-model":"tiered_expr"}`,
 		"billing_setting.billing_expr":    `{"tiered-fallback-model":"tier(\"base\", p * 3 + c * 15)"}`,
-		"group_ratio_setting.group_ratio": `{"default":1,"free":0}`,
+		// task-17 §17.1 (c) 修复：v0.35.0 倍率退役后 GetGroupRatio 永远返 1，
+		// "free group ratio=0" 的语义已不再成立。group_ratio 配置仍保留
+		// （便于回滚），但代码不读。原"free group stays zero"用例已不适用。
+		"group_ratio_setting.group_ratio": `{"default":1}`,
 	}))
 
 	const promptTokens = 1000
@@ -105,13 +108,6 @@ func TestModelPriceHelperTieredPreConsumeMaxTokensFallback(t *testing.T) {
 			group:     "default",
 			maxTokens: 100,
 			expected:  2250,
-		},
-		{
-			// free group (ratio 0) stays zero; fallback is gated on non-zero group ratio.
-			name:      "free group stays zero without fallback",
-			group:     "free",
-			maxTokens: 0,
-			expected:  0,
 		},
 	}
 
