@@ -5952,7 +5952,7 @@
     "No commission records yet": "暫無佣金紀錄",
     "Commission records will appear here once your invitees consume API quota.": "被邀請人消費 API 額度後，佣金紀錄將顯示在這裡。"
   },
-  "Group ratio is deprecated. Use customer discount plans instead.": "Group ratio is deprecated. Use customer discount plans instead.",
+  "Group ratio is deprecated. Use customer discount plans instead.": "分組倍率已棄用，請改用客戶折扣方案",
   "Active bindings": "生效中的綁定",
   "Agent #{{id}}": "經銷商 #{{id}}",
   "Binding removed": "已解除綁定",

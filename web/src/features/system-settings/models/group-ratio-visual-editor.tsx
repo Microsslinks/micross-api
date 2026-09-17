@@ -35,6 +35,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { StaticDataTable } from '@/components/data-table/static/static-data-table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StaticRowActions } from '@/components/data-table/static/static-row-actions'
 import { Dialog } from '@/components/dialog'
 import {
@@ -546,6 +547,16 @@ function GroupPricingTable({
           </Button>
         </div>
       </CardHeader>
+      <CardContent className='pt-0'>
+        <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
+          <AlertTriangle data-icon='inline-start' />
+          <AlertDescription>
+            {t(
+              'Group ratio is deprecated. Use customer discount plans instead.'
+            )}
+          </AlertDescription>
+        </Alert>
+      </CardContent>
       <CardContent>
         <div className='space-y-3'>
           <StaticDataTable
