@@ -292,6 +292,10 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&CasbinRule{},
 		&AuthzRole{},
+		// task-17 §17.3：统一账本，append-only，每笔余额变动都落 account_ledger。
+		// 三库都建表；AutoMigrate 幂等，重启不会重建。后续 PR 会补 topup / refund
+		// / agent_quota_grant 等事件类型的写账点。
+		&AccountLedger{},
 	)
 	if err != nil {
 		return err

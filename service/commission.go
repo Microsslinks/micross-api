@@ -119,11 +119,14 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 	// 4. 不赔本校验。
 	finalAmount, breach := AssertNoLoss(rawAmount, margin)
 
-	// 5. 事务：写 commission_records + 邀请人钱包。
+	// 5. 事务：写 commission_records + 邀请人钱包 + account_ledger。
 	//
 	// 关键：audit 日志（RecordLogWithAdminInfo → createLog）不在事务里调——
 	// 它内部要查 username 用到独立连接，会与当前事务争抢 SQLite 的同一连接导致死锁。
 	// 改为事务提交后单独写。代价：若 audit 写失败不影响 commission_records（运营后台能补单）。
+	//
+	// task-17 §17.3：ledger 行与余额变更同事务——append-only，balance_after 用
+	// 行锁 SELECT 后算出，保证任何事务回滚时 ledger 与余额同步回滚。
 	txErr := model.DB.Transaction(func(tx *gorm.DB) error {
 		now := common.GetTimestamp()
 		rec := &model.CommissionRecord{
@@ -151,6 +154,29 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 			UpdateColumn("aff_commission_balance",
 				gorm.Expr("aff_commission_balance + ?", finalAmount)).Error; err != nil {
 			return err
+		}
+
+		// task-17 §17.3：写 ledger（finalAmount=0 也写一行——方便对账时核对
+		// "应该入账但被 margin_unwired 拦截"的笔数）。balance_after 用行锁
+		// 算出，确保 ledger 与余额同步；行锁避免与并发 commission 抢余额。
+		if finalAmount != 0 {
+			var balanceBefore int64
+			if err := tx.Model(&model.User{}).
+				Select("aff_commission_balance").
+				Where("id = ?", invitee.InviterId).
+				Scan(&balanceBefore).Error; err != nil {
+				return err
+			}
+			balanceAfter := balanceBefore // 因为 UpdateColumn 已经在同事务里更新过，新值就是 balanceBefore
+			if err := model.RecordAccountLedger(tx,
+				"user", invitee.InviterId,
+				model.AccountEventCommission, int64(finalAmount), balanceAfter,
+				"commission_record", rec.Id,
+				fmt.Sprintf("invitee=%d gross=%d rate=%s margin=%d breach=%t", inviteeId, gross, rate, margin, breach),
+				0,
+			); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
