@@ -112,6 +112,25 @@ func TestAssertNoLossZeroMarginReturnsZeroBreach(t *testing.T) {
 	assert.True(t, breach)
 }
 
+// seedFirstTopupConsume 给 inviter 喂一条满足 §20.5 首充门槛的 consume log。
+// task-20 §20.5：ProcessCommission 加了首充门槛（inviter 累计消费 < 5000 quota
+// 时 commission amount 归零）。现有测试的 inviter 大多没消费历史，跑旧测试会全 FAIL。
+// 这个 helper 给 inviter 喂一条 10000 quota 的 consume log，门槛满足，测试期望
+// 的 amount 行为不被 §20.5 影响。
+//
+// 调用时机：创建 inviter + invitee 之后、调 ProcessCommission 之前。
+func seedFirstTopupConsume(t *testing.T, inviter *model.User) {
+	t.Helper()
+	require.NoError(t, model.DB.Create(&model.Log{
+		UserId:    inviter.Id,
+		Username:  inviter.Username,
+		Type:      model.LogTypeConsume,
+		Content:   "test seed consume to satisfy §20.5 first-topup threshold",
+		Quota:     10000,
+		CreatedAt: common.GetTimestamp(),
+	}).Error)
+}
+
 // TestProcessCommissionNoInviterSkipped
 //
 // invitee.InviterId == 0（无邀请关系）→ 直接返回 nil，commission_records 不写。
@@ -158,6 +177,8 @@ func TestProcessCommissionInviterBalanceIncreased(t *testing.T) {
 		AffCode:  uniqueAffCode(t),
 	}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
+	seedFirstTopupConsume(t, inviter)
 
 	invitee := &model.User{
 		Username:  "invitee-test",
@@ -201,6 +222,7 @@ func TestProcessCommissionBreachWritesAudit(t *testing.T) {
 
 	inviter := &model.User{Username: "inviter-breach", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
 	invitee := &model.User{Username: "invitee-breach", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(invitee).Error)
 
@@ -244,6 +266,7 @@ func TestProcessCommissionMarginUnwiredAudit(t *testing.T) {
 
 	inviter := &model.User{Username: "inviter-unwired", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
 	invitee := &model.User{Username: "invitee-unwired", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(invitee).Error)
 
@@ -296,6 +319,7 @@ func TestProcessCommissionIdempotentOnRetry(t *testing.T) {
 
 	inviter := &model.User{Username: "inviter-retry", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
 	invitee := &model.User{Username: "invitee-retry", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(invitee).Error)
 
@@ -340,6 +364,7 @@ func TestProcessCommissionNegativeGrossWritesNegativeAmount(t *testing.T) {
 
 	inviter := &model.User{Username: "inviter-refund", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
 	invitee := &model.User{Username: "invitee-refund", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", InviterId: inviter.Id, AffCode: uniqueAffCode(t)}
 	require.NoError(t, model.DB.Create(invitee).Error)
 

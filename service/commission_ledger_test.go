@@ -38,6 +38,7 @@ func TestProcessCommissionWritesAccountLedger(t *testing.T) {
 		InviterId: 0,
 	}
 	require.NoError(t, model.DB.Create(inviter).Error)
+	seedFirstTopupConsume(t, inviter)
 	require.NoError(t, model.DB.Create(invitee).Error)
 	// 关键：把 InviterId 写回去（User 创建时 InviterId=0，存进去；现在再 UPDATE）
 	require.NoError(t, model.DB.Model(invitee).Update("inviter_id", inviter.Id).Error)

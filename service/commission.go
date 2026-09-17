@@ -12,6 +12,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// defaultCommissionFirstTopUpQuota 与 model.GetUserTotalConsumeQuota 配合：
+// inviter 累计消费 < 此阈值时 commission amount 归零。task-20 §20.5 默认值。
+// QuotaPerUnit=500000 时 5000 quota ≈ $0.01——极低门槛，主要拦截"纯邀请账号"。
+// 改为可配置变量（而非 const）方便后续接运营配置中心：直接覆写此值。
+var defaultCommissionFirstTopUpQuota int64 = 5000
+
 // CalculateCommission 按口径 A①（全局一个数）× B②（平台实收）计算原始返佣额。
 //
 // 参数：
@@ -116,8 +122,30 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 		return nil
 	}
 
-	// 4. 不赔本校验。
+	// 4. P4 风控（task-20 §20.5）：成环检测 + 首充门槛。
+	//   - 成环：A.inviter=B, B.inviter=A 这种闭环返佣是薅羊毛最经典手法。
+	//     命中 → breach=true, amount=0（与 cost_ratio 未录入同口径，走 breach audit log）。
+	//   - 首充门槛：inviter 必须先有过消费，否则 commission 全部归零——拦截"纯邀请
+	//     账号从邀请人钱包空套"的手法。
+	// 两道风控独立触发：任一命中都把 amount 归零 + breach=true。
+	breachReason := ""
+	if model.DetectInviteRing(invitee.InviterId) {
+		breachReason = "invite_ring"
+	} else {
+		totalConsume, err := model.GetUserTotalConsumeQuota(invitee.InviterId)
+		if err == nil && totalConsume < defaultCommissionFirstTopUpQuota {
+			breachReason = "first_topup_threshold"
+		}
+	}
+
+	// 5. 不赔本校验 + P4 风控叠加（task-20 §20.5）。
+	// AssertNoLoss 在 rawAmount 上限归零；P4 风控叠加：breachReason 非空时强制归零。
 	finalAmount, breach := AssertNoLoss(rawAmount, margin)
+	if breachReason != "" {
+		finalAmount = 0
+		breach = true
+		_ = breachReason // 占位防 unused 误删；后续可写 audit log content
+	}
 
 	// 5. 事务：写 commission_records + 邀请人钱包 + account_ledger。
 	//

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -18,12 +19,15 @@ import (
 // 这些是 §20.4 第一阶段（自邀拦截）的"基础事实"——后续 §20.5（首充门槛 / 成环检测）
 // 在同一 controller 入口叠加，但不互斥。
 
-func seedInviterWithCreatedAt(t *testing.T, id int, email string, createdAt int64) *User {
+func seedInviterWithCreatedAt(t *testing.T, _ int, email string, createdAt int64) *User {
 	t.Helper()
+	// 不显式设 Id —— 让 SQLite 自增分配。前面跑的测试（agent_test / customer_codes_test）
+	// 已用 unique suffix 分配过一堆 Id，固定 id=6001/6002 会被占。
+	// 这里用 email 衍生 unique username + aff_code 避免撞库。
+	suffix := strings.ReplaceAll(strings.ReplaceAll(email, "@", "-at-"), ".", "-")
 	user := &User{
-		Id:        id,
-		Username:  "inviter-" + email,
-		AffCode:   "inviter-aff-" + email,
+		Username:  "inviter-" + suffix,
+		AffCode:   "inviter-aff-" + suffix,
 		Email:     email,
 		Status:    common.UserStatusEnabled,
 		Group:     "default",
