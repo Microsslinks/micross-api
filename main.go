@@ -128,6 +128,11 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// Commission risk scan cron (P4 anti-fraud): periodic scan of commission_records
+	// to auto-reverse those that fall under invite-ring or first-topup threshold.
+	// task-20 §20.7 — same pattern as StartSubscriptionQuotaResetTask.
+	service.StartCommissionRiskScanTask()
+
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
 	service.StartSystemInstanceReporter()

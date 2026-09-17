@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/QuantumNous/new-api/common"
@@ -256,7 +257,11 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 //
 // ledger 行 event_type=commission_reverse, amount=-commission_record.Amount,
 // ref_type=commission_record, ref_id=record.Id, memo 含撤销原因。
-func ReverseCommission(c *gin.Context, recordID int64, reason string, operatorID int) error {
+//
+// ctx 参数保留 context.Context（兼容 HTTP handler 的 gin.Context 与 cron 调用）
+// ——实际实现里 ctx 当前未使用（事务只走 model.DB.Transaction），但留着接口
+// 稳定性，将来需要日志/cancel tracing 时不用改签名。
+func ReverseCommission(ctx context.Context, recordID int64, reason string, operatorID int) error {
 	if recordID <= 0 {
 		return fmt.Errorf("invalid record id: %d", recordID)
 	}

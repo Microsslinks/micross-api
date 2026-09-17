@@ -370,6 +370,9 @@ func SetApiRouter(router *gin.Engine) {
 		adminCommissionRoute.Use(middleware.AdminAuth())
 		{
 			adminCommissionRoute.POST("/rate", controller.AdminSetCommissionRate)
+			// task-20 §20.7: commission_records 管理 + 撤销入口。
+			adminCommissionRoute.GET("/records", controller.AdminListCommissionRecords)
+			adminCommissionRoute.POST("/records/:id/reverse", controller.AdminReverseCommission)
 		}
 
 		redemptionRoute := apiRouter.Group("/redemption")
