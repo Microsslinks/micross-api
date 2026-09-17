@@ -63,6 +63,9 @@ func setupDiscountSimulateTest(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(
 		&model.User{}, &model.Vendor{}, &model.Model{}, &model.Channel{}, &model.Ability{},
 		&model.DiscountPlan{}, &model.DiscountRule{}, &model.DiscountBinding{},
+		// task-17 §17.1 (b) 修复：discount_routing_policies 表在 setup 里漏建，
+		// resolve customer routing policy 时报 "no such table"。
+		&model.DiscountRoutingPolicy{},
 	))
 	sqlDB, err := db.DB()
 	require.NoError(t, err)

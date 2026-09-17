@@ -27,17 +27,19 @@ func priceQueryModelRow(t *testing.T, result *CustomerPriceQueryResult, modelNam
 	return nil
 }
 
-// seedPriceQueryTwoPlans 造一个挂了两套价的客户：平台方案（gpt-4o 模型级 0.8）与
-// 经销商方案（claude 模型级 0.85），返回两套方案，供断言按方案 id 取价目本条目。
+// seedPriceQueryTwoPlans 造一个挂了两套价的客户：平台方案（BaseDiscount 0.8）
+// 与经销商方案（BaseDiscount 0.85），返回两套方案，供断言按方案 id 取价目本条目。
+// task-17 §17.1 (c) 修复：v0.32.0 规则退化为纯范围标记，platformPlan / agentPlan
+// 的 BaseDiscount 决定 gpt / claude 实际折扣（不是 rule.Discount）。
 func seedPriceQueryTwoPlans(t *testing.T, userId int) (*model.DiscountPlan, *model.DiscountPlan) {
 	t.Helper()
-	platformPlan := bindSimulatePlan(t, userId, "0.950000",
+	platformPlan := bindSimulatePlan(t, userId, "0.800000",
 		&model.DiscountRule{ScopeType: model.DiscountScopeModel, ScopeValue: "gpt-4o", Discount: "0.800000", Status: model.DiscountStatusEnabled},
 	)
 	agentPlan := &model.DiscountPlan{
 		Name:         fmt.Sprintf("price-query-agent-plan-%d", time.Now().UnixNano()),
 		OwnerType:    model.DiscountOwnerAgent,
-		BaseDiscount: "0.950000",
+		BaseDiscount: "0.850000",
 		MinDiscount:  "0",
 		BillingMode:  model.DiscountBillingUsage,
 		Status:       model.DiscountStatusEnabled,
@@ -79,7 +81,8 @@ func TestQueryCustomerPricing(t *testing.T) {
 		assert.Equal(t, model.DiscountSourceManual, platformEntry.Source)
 		assert.True(t, platformEntry.InWindow)
 		assert.Empty(t, platformEntry.WindowReason)
-		assert.Equal(t, "0.950000", platformEntry.BaseDiscount)
+		// task-17 §17.1 (c)：seedPriceQueryTwoPlans 已把 BaseDiscount 改成 0.8。
+		assert.Equal(t, "0.800000", platformEntry.BaseDiscount)
 		require.Len(t, platformEntry.Rules, 1)
 		assert.Equal(t, "gpt-4o", platformEntry.Rules[0].ScopeValue)
 		assert.Equal(t, "0.800000", platformEntry.Rules[0].Discount)
