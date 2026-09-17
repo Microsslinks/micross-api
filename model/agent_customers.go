@@ -389,8 +389,45 @@ func IssueQuotaToCustomer(agentId int, customerId int, quota int) error {
 			Update("quota", gorm.Expr("quota - ?", agentCost)).Error; err != nil {
 			return err
 		}
-		return tx.Model(&User{}).Where("id = ?", customerId).
-			Update("quota", gorm.Expr("quota + ?", quota)).Error
+		if err := tx.Model(&User{}).Where("id = ?", customerId).
+			Update("quota", gorm.Expr("quota + ?", quota)).Error; err != nil {
+			return err
+		}
+
+		// task-20 §20.3：经销商 grant 写两条 ledger 行（agent 扣 + customer 加），
+		// 同事务：回滚时两条 ledger 同步回滚。
+		//
+		// amount 符号约定：amount 正数=入账（customer 收到），负数=出账（agent 付出）。
+		// balance_after 紧跟 UPDATE 之后 SELECT，与 §20.1 topup、§20.2 refund 同口径。
+		//
+		// refType="agent_quota_grant"，refId=0 表示 grant 还没建专门的 grant_records 表——
+		// 等 P3 客户管理加 grant 历史表时，refId 改为 grant_records.id，本接口签名不变。
+		var agentBalanceAfter, customerBalanceAfter int64
+		if err := tx.Model(&User{}).Select("quota").Where("id = ?", agentId).Scan(&agentBalanceAfter).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&User{}).Select("quota").Where("id = ?", customerId).Scan(&customerBalanceAfter).Error; err != nil {
+			return err
+		}
+		if err := RecordAccountLedger(tx,
+			"user", agentId,
+			AccountEventAgentQuotaGrant, -int64(agentCost), agentBalanceAfter,
+			"agent_quota_grant", 0,
+			fmt.Sprintf("agent grant to customer=%d face=%d cost=%d rate=%s", customerId, quota, agentCost, rate.String()),
+			agentId, // operator_id=经销商自己（区别于系统自动 topup）
+		); err != nil {
+			return err
+		}
+		if err := RecordAccountLedger(tx,
+			"user", customerId,
+			AccountEventAgentQuotaGrant, int64(quota), customerBalanceAfter,
+			"agent_quota_grant", 0,
+			fmt.Sprintf("agent grant from agent=%d face=%d cost=%d rate=%s", agentId, quota, agentCost, rate.String()),
+			agentId,
+		); err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
 		return err

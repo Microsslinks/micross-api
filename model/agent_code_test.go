@@ -35,6 +35,8 @@ func setupAgentCodeTest(t *testing.T) {
 		&User{}, &AgentProfile{}, &CustomerCode{},
 		&DiscountPlan{}, &DiscountRule{}, &DiscountBinding{},
 		&Vendor{}, &Model{},
+		// task-20 §20.3：IssueQuotaToCustomer 写 account_ledger，setup 必须建表。
+		&AccountLedger{},
 	))
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
