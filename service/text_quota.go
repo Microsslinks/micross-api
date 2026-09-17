@@ -538,21 +538,86 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
 	})
-	// task-10 · P4 佣金核心：异步结算邀请佣金。
+	// task-10 + task-17 §17.2：异步结算邀请佣金。
 	// 旁路调用，panic 由 defer recover 兜底，绝不污染主计费链路。
 	//
-	// 当前 margin 传 0 占位——cost_ratio 数据源（Channel.Ratio / 成本折扣字段）尚未接入，
-	// margin 暂不可算。AssertNoLoss 会在 margin<=0 时把 amount 归零，
+	// margin 现在从 channel.CostRatio 算出真实毛利快照：
+	//   margin = summary.Quota × (1 − cost_ratio)
+	// cost_ratio 未录入（channel.CostRatio 为空）时返 0 → commission_records
+	//   走 margin_unwired audit 路径，与 task-10 既有 behavior 完全一致。
 	// commission_records.consume_log_id 用 0 占位（task-11 补 logId 拿取）。
-	// 等 cost_ratio 接入后，此处改为从 summary.GroupRatio + cost_ratio 算出真实 margin。
 	//
 	// 用 gopool.Go 而不是裸 go func：与下一行 perfmetrics.RecordRelaySample 同模式，
 	// 统一由 bytedance/gopkg/util/gopool 管理 goroutine 池。
+	margin := calculateCommissionMargin(ctx, relayInfo, &summary)
 	gopool.Go(func() {
 		defer func() { _ = recover() }()
-		ProcessCommission(ctx, 0, relayInfo.UserId, int64(summary.Quota), 0)
+		ProcessCommission(ctx, 0, relayInfo.UserId, int64(summary.Quota), margin)
 	})
 	gopool.Go(func() {
 		perfmetrics.RecordRelaySample(relayInfo, true, int64(summary.CompletionTokens))
 	})
+}
+
+// calculateCommissionMargin 计算当次平台毛利快照，传给 ProcessCommission 用。
+//
+// task-17 §17.2 修复：之前传 0 占位导致 AssertNoLoss(margin<=0) 永远归零，
+// P4「按消费额返佣」业务承诺形同虚设（邀请人 aff_commission_balance 永远 0）。
+//
+// 公式：
+//
+//	margin = summary.Quota × (1 − channel.CostRatio)
+//
+// rationale：
+//   - 平台收入 = summary.Quota（按 group_ratio 折扣后的客户实付，整数 quota，1 quota = 1/QuotaPerUnit 美元）
+//   - 上游成本 = summary.Quota × cost_ratio（cost_ratio=0.7 表示上游收 7 折）
+//   - 毛利 = 收入 − 成本 = summary.Quota × (1 − cost_ratio)
+//   - summary.GroupRatio 不参与——v0.35.0 退役后永远 = 1，与 summary.Quota 已被应用过折扣一致
+//   - 用 decimal 算避免 float64 精度漂移；返回整数 quota（Round(0)，与 commission quota 同口径）
+//
+// 返回：
+//   - 正常：整数 margin（quota）
+//   - 异常：返回 0 + 写入日志（让 caller 在 commission_records 走 margin_unwired audit 路径）
+//
+// 异常判定（与 model.CacheGetChannelCostRatio 同口径）：
+//   - channel == nil（无渠道上下文，例如内部调试请求）
+//   - channel.CostRatio == nil 或 TrimSpace 后为空（运营未录进货折扣）
+//   - 解析失败 / 非正数 / > 1（数据异常，与 controller/channel_cost.go validateChannelCostRatio 同一规则）
+//
+// 安全：与 AssertNoLoss 安全垫协同——即使 margin 算偏（极端 case），commission 也不会超 cap；
+// 退一万步就算算错，aff_commission_balance 是独立钱包，不污染 user.Quota（主余额）。
+func calculateCommissionMargin(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, summary *textQuotaSummary) int64 {
+	if summary == nil || summary.Quota <= 0 {
+		return 0
+	}
+	if relayInfo == nil || relayInfo.GetChannelID() <= 0 {
+		return 0
+	}
+	channel, err := model.CacheGetChannel(relayInfo.GetChannelID())
+	if err != nil || channel == nil {
+		return 0
+	}
+	if channel.CostRatio == nil {
+		return 0
+	}
+	raw := strings.TrimSpace(*channel.CostRatio)
+	if raw == "" {
+		return 0
+	}
+	costRatio, err := decimal.NewFromString(raw)
+	if err != nil || !costRatio.IsPositive() {
+		return 0
+	}
+	if costRatio.GreaterThan(decimal.NewFromInt(1)) {
+		return 0
+	}
+	one := decimal.NewFromInt(1)
+	marginBeforeGroup := one.Sub(costRatio).Mul(decimal.NewFromInt(int64(summary.Quota)))
+	if marginBeforeGroup.IsNegative() {
+		return 0
+	}
+	// 写一行 debug：单笔 margin 计算口径，便于运维核对"返佣为什么会是这个数"。
+	logger.LogDebug(ctx, "commission margin: channel=#%d cost_ratio=%s quota=%d margin=%s",
+		channel.Id, raw, summary.Quota, marginBeforeGroup.StringFixed(6))
+	return marginBeforeGroup.Round(0).IntPart()
 }
