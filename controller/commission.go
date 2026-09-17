@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
@@ -149,10 +151,54 @@ func AdminSetCommissionRate(c *gin.Context) {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}
+
+	// task-17 §17.4 修复关键点：必须在 UpdateOption **之前**读 oldRate。
+	// UpdateOption 内部 model/option.go:620 会把 var 同步到新值，之后再读只会拿到新值，
+	// audit 永远显示 from==to，运营出现"我的佣金变少了"工单时无法定位调参时间。
+	oldRate := operation_setting.GetCommissionRate()
+
 	if err := model.UpdateOption("CommissionRate", *req.Rate); err != nil {
 		common.ApiError(c, err)
 		return
 	}
+
+	// task-17 §17.4：运营调返佣率是高敏感写操作——直接决定所有邀请人钱包入账速率。
+	// 必须在 audit log 留痕：哪个 admin 何时改成多少 rate → 出现"我的佣金变少了"
+	// 工单时能立刻定位到调参时间。
+	//
+	// 双轨日志：
+	//   1. logger.LogInfo → stdout / 文件日志，便于运维 grep（与 rate change 同日的事件相关）
+	//   2. model.RecordLogWithAdminInfo → logs 表 + admin_info JSON，前端 admin_log 面板能查
+	adminId := c.GetInt("id")
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf(
+		"audit commission_rate_changed admin_id=%d old_rate=%s new_rate=%s",
+		adminId, oldRate, *req.Rate))
+	if adminId > 0 {
+		model.RecordLogWithAdminInfo(adminId, model.LogTypeManage,
+			fmt.Sprintf("admin_set_commission_rate: from=%s to=%s", oldRate, *req.Rate),
+			map[string]interface{}{
+				"old_rate":  oldRate,
+				"new_rate":  *req.Rate,
+				"admin_id":  adminId,
+				"action":    "set_commission_rate",
+				"audit_tag": "commission_rate_changed",
+			})
+	}
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf(
+		"audit commission_rate_changed admin_id=%d old_rate=%s new_rate=%s",
+		adminId, oldRate, *req.Rate))
+	if adminId > 0 {
+		model.RecordLogWithAdminInfo(adminId, model.LogTypeManage,
+			fmt.Sprintf("admin_set_commission_rate: from=%s to=%s", oldRate, *req.Rate),
+			map[string]interface{}{
+				"old_rate":  oldRate,
+				"new_rate":  *req.Rate,
+				"admin_id":  adminId,
+				"action":    "set_commission_rate",
+				"audit_tag": "commission_rate_changed",
+			})
+	}
+
 	common.ApiSuccess(c, gin.H{
 		"rate":     *req.Rate,
 		"currency": "USD",

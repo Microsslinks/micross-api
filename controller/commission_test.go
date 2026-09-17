@@ -34,6 +34,11 @@ func setupCommissionControllerTest(t *testing.T) *gorm.DB {
 	// OptionMap 是 nil map 会 panic。手动初始化 + 还原。
 	previousOptionMap := common.OptionMap
 	common.OptionMap = make(map[string]string)
+	// 关闭 Redis：测试环境没初始化 Redis client，但 RedisEnabled=true 会让
+	// GetUsernameById 走到 common.RDB.HGetAll 触发 nil pointer panic。
+	// RecordLogWithAdminInfo 内部会查 username 触发此路径。
+	previousRedisEnabled := common.RedisEnabled
+	common.RedisEnabled = false
 
 	// i18n.T 走 Localizer 渲染；测试环境没初始化 localizers，TranslateMessage
 	// 会 fallback 到 key（"user.transfer_failed"）。Mock 一个简单的模板替换实现，
@@ -52,7 +57,14 @@ func setupCommissionControllerTest(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 	model.DB, model.LOG_DB = db, db
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.CommissionRecord{}, &model.Option{}))
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.CommissionRecord{}, &model.Option{},
+		// task-17 §17.4：AdminSetCommissionRate 写 audit log 落到 logs 表，
+		// 测试 setup 必须建表；同时 Redis 未启用，避免 GetUsernameById 走 Redis cache 触发 nil。
+		&model.Log{},
+	))
+	// 测试用 admin 用户存到 DB 里，让 GetUsernameById → DB 路径（不走 Redis 缓存）。
+	require.NoError(t, db.Create(&model.User{Id: 1, Username: "test-admin", AffCode: "test-admin-aff",
+		Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default"}).Error)
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
@@ -62,6 +74,7 @@ func setupCommissionControllerTest(t *testing.T) *gorm.DB {
 		operation_setting.SetCommissionRate(previousRate)
 		common.OptionMap = previousOptionMap
 		common.TranslateMessage = previousTranslateMessage
+		common.RedisEnabled = previousRedisEnabled
 		_ = sqlDB.Close()
 	})
 	return db
@@ -401,6 +414,49 @@ func TestTransferCommissionZeroQuotaStillFails(t *testing.T) {
 	var u model.User
 	require.NoError(t, db.First(&u, user.Id).Error)
 	assert.EqualValues(t, 5000, u.AffCommissionBalance, "binding 拒绝时余额不变")
+}
+
+// TestAdminSetCommissionRateWritesAuditLog 守住 task-17 §17.4：超管调返佣率必须在 logs 表
+// 留痕，content 包含 old/new rate，admin_info JSON 包含 audit_tag。
+// 出现 "我的佣金变少了" 工单时，运营能 grep 准确定位。
+func TestAdminSetCommissionRateWritesAuditLog(t *testing.T) {
+	db := setupCommissionControllerTest(t)
+
+	// 1. 把初始 rate 设成 0.05，再调一次到 0.07，触发 old/new diff 都有意义
+	operation_setting.SetCommissionRate("0.05")
+	t.Logf("after set to 0.05, GetCommissionRate=%s", operation_setting.GetCommissionRate())
+
+	c, w := newCommissionCtx(1) // setupCommissionControllerTest 已建 id=1 admin
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/admin/commission/rate", strings.NewReader(`{"rate":"0.07"}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	AdminSetCommissionRate(c)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// 2. logs 表必须有 1 行 audit log
+	var logs []model.Log
+	require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
+	require.NotEmpty(t, logs, "admin 调 rate 后 logs 表必须有 manage 类型审计行")
+
+	// 3. content / admin_info 必含关键字段
+	found := false
+	for _, lg := range logs {
+		if !strings.Contains(lg.Content, "admin_set_commission_rate") {
+			continue
+		}
+		if !strings.Contains(lg.Content, "from=0.05") || !strings.Contains(lg.Content, "to=0.07") {
+			t.Fatalf("audit content must include from/to, got: %s", lg.Content)
+		}
+		// admin_info 在 Other 字段（JSON 字符串）里——RecordLogWithAdminInfo 写入路径。
+		if !strings.Contains(lg.Other, "audit_tag") || !strings.Contains(lg.Other, "commission_rate_changed") {
+			t.Fatalf("Other must include audit_tag=commission_rate_changed, got: %s", lg.Other)
+		}
+		if lg.UserId != 1 {
+			t.Fatalf("audit user_id must be the acting admin (1), got: %d", lg.UserId)
+		}
+		found = true
+		break
+	}
+	require.True(t, found, "必须找到一条 audit 内容含 admin_set_commission_rate 的 log 行")
 }
 
 // TestTransferCommissionInvalidQuotaRejected
