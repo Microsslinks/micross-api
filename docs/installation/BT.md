@@ -1,6 +1,6 @@
 # 宝塔面板部署教程
 
-本文档提供使用宝塔面板 Docker 功能部署 New API 的图文教程。
+本文档提供使用宝塔面板 Docker 功能部署 **MicrossAPI / Microsslink 微观互联**（本 fork）的图文教程。镜像名称、容器名、目录名等均使用本项目对应的 `micross-api` 标识；上游 New API 仓库（`QuantumNous/new-api`）按 AGPLv3 §7 保留在本节"相关链接"。
 
 > 📖 官方文档：[宝塔面板部署](https://docs.newapi.pro/zh/docs/installation/deployment-methods/bt-docker-installation)
 
@@ -32,15 +32,15 @@
 
 ***
 
-## 步骤三：安装 New API
+## 步骤三：安装 MicrossAPI
 
 ### 方法一：使用宝塔应用商店（推荐）
 
 1. 在宝塔面板 Docker 功能中，点击 **应用商店**
-2. 搜索并找到 **New-API**
+2. 搜索并找到 **MicrossAPI**（或 `new-api`，原镜像名在部分商店模板中可能仍保留此名）
 3. 点击 **安装**
 4. 配置以下基本选项：
-   - **容器名称**：可自定义，默认为 `new-api`
+   - **容器名称**：可自定义，默认为 `micross-api`
    - **端口映射**：默认为 `3000:3000`
    - **环境变量**：
      - `SESSION_SECRET`：会话密钥（**必填**，多机部署时必须一致）
@@ -50,15 +50,15 @@
 
 ### 方法二：使用 Docker Compose
 
-1. 在宝塔面板中创建网站目录，如 `/www/wwwroot/new-api`
+1. 在宝塔面板中创建网站目录，如 `/www/wwwroot/micross-api`
 2. 创建 `docker-compose.yml` 文件：
 
 ```yaml
 version: '3'
 services:
-  new-api:
-    image: calciumion/new-api:latest
-    container_name: new-api
+  micross-api:
+    image: dukaworks/micross-api:latest
+    container_name: micross-api
     restart: always
     ports:
       - "3000:3000"
@@ -72,7 +72,7 @@ services:
 1. 在终端中进入目录并启动：
 
 ```bash
-cd /www/wwwroot/new-api
+cd /www/wwwroot/micross-api
 docker-compose up -d
 ```
 
@@ -126,7 +126,7 @@ volumes:
 
 ```bash
 # 拉取最新镜像
-docker pull calciumion/new-api:latest
+docker pull dukaworks/micross-api:latest
 
 # 重启容器
 docker-compose down && docker-compose up -d
@@ -136,10 +136,11 @@ docker-compose down && docker-compose up -d
 
 ## 相关链接
 
-- [官方文档](https://docs.newapi.pro/zh/docs/installation)
-- [环境变量配置](https://docs.newapi.pro/zh/docs/installation/config-maintenance/environment-variables)
-- [常见问题](https://docs.newapi.pro/zh/docs/support/faq)
-- [GitHub 仓库](https://github.com/QuantumNous/new-api)
+- [本项目 GitHub 仓库](https://github.com/dukaworks/micross-api)（部署、升级请使用此仓库）
+- [上游文档](https://docs.newapi.pro/zh/docs/installation)（AGPLv3 §7 保留，可参考其原始字段说明）
+- [上游环境变量](https://docs.newapi.pro/zh/docs/installation/config-maintenance/environment-variables)
+- [上游常见问题](https://docs.newapi.pro/zh/docs/support/faq)
+- [上游仓库 QuantumNous/new-api](https://github.com/QuantumNous/new-api)（AGPLv3 §7 归集）
 
 ***
 
