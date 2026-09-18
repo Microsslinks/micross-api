@@ -75,15 +75,20 @@ jobs:
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
             REST=${BASH_REMATCH[4]}
-          
+
             VERSION="$MAJOR.$MINOR.$PATCH"
-          
+
             # If there's extra content, append it without adding -dev
             if [[ -n "$REST" ]]; then
               VERSION="$VERSION$REST"
             fi
           fi
-          npm version $VERSION --no-git-tag-version --allow-same-version
+          # Use `npm pkg set` rather than `npm version` — npm version enforces
+          # strict semver (major.minor.patch) and rejects any 4-segment form
+          # like v0.37.1.1 with "Invalid Version". pkg set writes the field
+          # directly, which is what we actually want here (Electron-builder reads
+          # the version field verbatim from package.json).
+          npm pkg set version="$VERSION"
 
       - name: Install Electron dependencies
         run: |
