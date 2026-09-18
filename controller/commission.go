@@ -110,7 +110,7 @@ func GetAffCommissionSummary(c *gin.Context) {
 	}
 	var row summaryRow
 	if err := db.Model(&model.CommissionRecord{}).
-		Select("COALESCE(SUM(amount), 0) AS total_amount, COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN breach = 1 THEN 1 ELSE 0 END), 0) AS breach_count").
+		Select("COALESCE(SUM(amount), 0) AS total_amount, COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN breach THEN 1 ELSE 0 END), 0) AS breach_count").
 		Where("inviter_id = ?", userId).
 		Scan(&row).Error; err != nil {
 		common.ApiError(c, err)
