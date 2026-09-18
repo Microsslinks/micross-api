@@ -74,7 +74,7 @@ services:
       dockerfile: Dockerfile
       args:
         VERSION: v0.37.1
-    image: dukaworks/micross-api:v0.37.1
+    image: ghcr.io/dukaworks/micross-api:v0.37.1
     container_name: micross-api
     restart: always
     command: --log-dir /app/logs
@@ -377,11 +377,11 @@ sqlite> UPDATE users SET password = '<new-hash>' WHERE username = 'root';
 
 ## 11. 进阶：CI/CD 自动镜像
 
-CI 已在 GitHub Actions 配好（项目根 `.github/workflows/`），每次打 tag 自动 publish `dukaworks/micross-api:v0.X.Y`。
+CI 已在 GitHub Actions 配好（项目根 `.github/workflows/`），每次打 tag 自动 publish 到 **`ghcr.io/dukaworks/micross-api:v0.X.Y`**（用 GitHub 自动 token，仓库无需任何 secrets）。镜像默认 private，部署前先在 https://github.com/dukaworks/micross-api/pkgs/container/micross-api 把 visibility 改成 public，或给 VPS 创建 PAT 用于 `docker login ghcr.io`。
 
 部署机拉新版只需：
 ```bash
-docker pull dukaworks/micross-api:v0.37.1
+docker pull ghcr.io/dukaworks/micross-api:v0.37.1
 docker compose down && docker compose up -d
 ```
 

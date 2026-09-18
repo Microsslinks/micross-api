@@ -11,10 +11,10 @@
 #  github.com/QuantumNous/new-api/common.Version even though the produced
 #  binary, container image, and source repo belong to dukaworks/micross-api.
 #
-#  Build:    docker build -t dukaworks/micross-api:latest -f Dockerfile .
-#  Publish:  docker push dukaworks/micross-api:latest
+#  Build:    docker build -t ghcr.io/dukaworks/micross-api:latest -f Dockerfile .
+#  Publish:  docker push ghcr.io/dukaworks/micross-api:latest
 #  Run:      docker run --rm -p 3000:3000 -v $(pwd)/data:/data \
-#                -e TZ=Asia/Shanghai dukaworks/micross-api:latest
+#                -e TZ=Asia/Shanghai ghcr.io/dukaworks/micross-api:latest
 # =============================================================================
 
 # ---- Stage 1: web frontend (Rsbuild via Bun) ---------------------------------

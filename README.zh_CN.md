@@ -134,14 +134,14 @@ docker-compose up -d
 
 ```bash
 # 拉取最新镜像
-docker pull dukaworks/micross-api:latest
+docker pull ghcr.io/dukaworks/micross-api:latest
 
 # 使用 SQLite（默认）
 docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  ghcr.io/dukaworks/micross-api:latest
 
 # 使用 MySQL
 docker run --name micross-api -d --restart always \
@@ -149,7 +149,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  ghcr.io/dukaworks/micross-api:latest
 ```
 
 > **💡 提示：** `-v ./data:/data` 会将数据保存在当前目录的 `data` 文件夹中，你也可以改为绝对路径如 `-v /your/custom/path:/data`
@@ -303,7 +303,7 @@ docker run --name micross-api -d --restart always \
 ## 🚢 部署
 
 > [!TIP]
-> **最新版 Docker 镜像：** `dukaworks/micross-api:latest`
+> **最新版 Docker 镜像：** `ghcr.io/dukaworks/micross-api:latest`
 
 ### 📋 部署要求
 
@@ -378,7 +378,7 @@ docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  ghcr.io/dukaworks/micross-api:latest
 ```
 
 **使用 MySQL：**
@@ -388,7 +388,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  ghcr.io/dukaworks/micross-api:latest
 ```
 
 > **💡 路径说明：**
