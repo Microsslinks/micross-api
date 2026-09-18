@@ -115,11 +115,18 @@ jobs:
         run: |
           cd electron
           # Invoke electron-builder directly (rather than via `npm run build:win`)
-          # so we can pass --config.version and avoid npm's argv-mangling. Step 8
-          # already trimmed package.json's version field to strict semver (so
-          # app-builder-lib/normalizePackageData accepts it); here we re-attach
-          # the full tag so the installer metadata carries the real version.
-          npx electron-builder --win --config.version="$ECHO_FULL_VERSION"
+          # so we can pass --config.extraMetadata.version and avoid npm's argv
+          # mangling. Step 8 already trimmed package.json's version field to
+          # strict semver (so app-builder-lib/normalizePackageData accepts it);
+          # here we re-attach the full tag via extraMetadata.version so the
+          # installer metadata carries the real version (e.g. 0.37.1.1 instead
+          # of the trimmed 0.37.1).
+          #
+          # Note: --config.<key>=<value> (no "extraMetadata" prefix) is rejected
+          # with "configuration has an unknown property 'version'" — electron-
+          # builder's schema only exposes extraMetadata.version as the writable
+          # override path. Confirmed via electron-builder --help on 26.15.3.
+          npx electron-builder --win --config.extraMetadata.version="$ECHO_FULL_VERSION"
 
       # - name: Upload artifacts (macOS)
       #   if: runner.os == 'macOS'
