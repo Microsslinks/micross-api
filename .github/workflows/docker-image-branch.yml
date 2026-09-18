@@ -105,6 +105,9 @@ jobs:
           tags: |
             ghcr.io/dukaworks/micross-api:${{ needs.prepare.outputs.tag_prefix }}-${{ matrix.arch }}
             ghcr.io/dukaworks/micross-api:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+          build-args: |
+            VERSION=${{ needs.prepare.outputs.version }}
+            GIT_COMMIT=${{ needs.prepare.outputs.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -131,6 +134,8 @@ jobs:
     needs: [prepare, build_single_arch]
     runs-on: ubuntu-latest
     permissions:
+      packages: write
+      contents: read
       id-token: write
     steps:
       - name: Log in to GitHub Container Registry

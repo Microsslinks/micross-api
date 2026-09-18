@@ -84,6 +84,10 @@ jobs:
           tags: |
             ghcr.io/dukaworks/micross-api:${{ env.TAG }}-${{ matrix.arch }}
             ghcr.io/dukaworks/micross-api:latest-${{ matrix.arch }}
+          build-args: |
+            VERSION=${{ env.TAG }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -111,6 +115,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
 
     permissions:
+      packages: write
+      contents: read
       id-token: write
 
     steps:
