@@ -28,6 +28,7 @@ plans
 !/web/src/routes/_authenticated/plans/
 .claude
 .cursor
+.codebuddy/
 
 electron/node_modules
 electron/dist
