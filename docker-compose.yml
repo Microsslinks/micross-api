@@ -34,7 +34,11 @@ services:
         VERSION: ${MICROSS_VERSION:-local}
         GIT_COMMIT: ${MICROSS_GIT_COMMIT:-unknown}
         BUILD_TIME: ${MICROSS_BUILD_TIME:-unknown}
-    image: dukaworks/micross-api:latest
+    # Pin the image tag so `docker compose pull` is deterministic.
+    # Override at deploy time with:
+    #   MICROSS_VERSION=v0.37.1 docker compose pull
+    # To fall back to local build, comment out `image:` and run `docker compose build`.
+    image: dukaworks/micross-api:${MICROSS_VERSION:-v0.37.1}
     container_name: micross-api
     restart: always
     command: --log-dir /app/logs
@@ -71,8 +75,10 @@ services:
 #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 脚本 URL，默认为官方地址 (Umami Script URL, defaults to the official address)
 
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 #      - mysql  # Uncomment if using MySQL
 #      - clickhouse  # Uncomment if using ClickHouse for LOG_SQL_DSN
     networks:
@@ -82,12 +88,30 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
+    # Resource limits — tune to your VPS. The API process is memory-hungry
+    # under load (model streaming buffers, log SQL aggregation). 1G is a sane
+    # baseline for small fleets; bump to 2-4G if you see OOMKills.
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   redis:
     image: redis:latest
     container_name: micross-api-redis
     restart: always
     command: ["redis-server", "--requirepass", "123456"]  # ⚠️ IMPORTANT: Change this password in production!
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "123456", "--no-auth-warning", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     networks:
       - micross-api-network
 
@@ -101,6 +125,12 @@ services:
       POSTGRES_DB: micross-api
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d micross-api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - micross-api-network
 #    ports:
@@ -141,6 +171,21 @@ volumes:
   pg_data:
 #  mysql_data:
 #  clickhouse_data:
+
+# =============================================================================
+#  Backup recommendations
+# =============================================================================
+#  - Postgres (named volume `pg_data`):
+#      docker exec micross-api-postgres pg_dump -U root micross-api \
+#        | gzip > backup-$(date +%F).sql.gz
+#  - Host bind mount `./data` (SQLite mode — when SQL_DSN is unset):
+#      This directory also holds license files, exported CSVs, etc.
+#      Recommended: daily tarball of `./data` and `./logs`, offsite.
+#  - Logs (`./logs`):
+#      Rotate at the OS level (logrotate) and/or rely on Docker's json-file
+#      log driver size cap:
+#        docker run --log-opt max-size=50m --log-opt max-file=5 ...
+# =============================================================================
 
 networks:
   micross-api-network:
