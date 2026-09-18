@@ -65,6 +65,10 @@ func TestMain(m *testing.M) {
 		&model.DiscountBinding{},
 		&model.Vendor{},
 		&model.Ability{},
+		// task-20 §20.2：refundWalletQuota 写 account_ledger 行，TestMain 必须建表。
+		// 任何 service 包测试如果触发 WalletFunding.Refund 或 .Settle(delta<0)
+		// 路径都会触发此表查询。
+		&model.AccountLedger{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -91,6 +95,11 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM user_subscriptions")
 		model.DB.Exec("DELETE FROM system_task_locks")
 		model.DB.Exec("DELETE FROM system_tasks")
+		// task-20 §20.2：refund / commission 等 ledger 行测试要求每个 case 干净环境。
+		// append-only 表没有 UNIQUE 约束（不是 commission_records 那种唯一索引），
+		// 不清就会跨测试累积，导致 count 断言失效。
+		model.DB.Exec("DELETE FROM account_ledger")
+		model.DB.Exec("DELETE FROM commission_records")
 	})
 }
 

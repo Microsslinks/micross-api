@@ -28,13 +28,21 @@ type CommissionRecord struct {
 	// Rate 字段类型选择 decimal(6,6) 字符串——A 类债提醒：
 	// 不要写 `int` 或 `type:int`（项目早期 type:int 标签在迁移场景出过 bug，沿用
 	// DiscountPlan.CommissionRatio 的 decimal 字符串做法，Float→String 转换无精度漂移）。
-	Rate      string `json:"rate" gorm:"type:decimal(6,6);default:0"`
-	Amount    int    `json:"amount" gorm:"default:0"`
-	Margin    int    `json:"margin" gorm:"default:0"`
-	Breach    bool   `json:"breach" gorm:"default:false;index"`
-	Currency  string `json:"currency" gorm:"type:varchar(8);default:'USD'"`
-	SettledAt int64  `json:"settled_at" gorm:"bigint;index"`
-	CreatedAt int64  `json:"created_at" gorm:"bigint;index"`
+	Rate         string `json:"rate" gorm:"type:decimal(6,6);default:0"`
+	Amount       int    `json:"amount" gorm:"default:0"`
+	Margin       int    `json:"margin" gorm:"default:0"`
+	Breach       bool   `json:"breach" gorm:"default:false;index"`
+	Currency     string `json:"currency" gorm:"type:varchar(8);default:'USD'"`
+	SettledAt    int64  `json:"settled_at" gorm:"bigint;index"`
+	CreatedAt    int64  `json:"created_at" gorm:"bigint;index"`
+	// task-20 §20.6：风控冲销字段。Reversed=true 表示该 commission 已被撤销
+	// （admin 手动触发或自动风控扫描触发）；后续 ledger 行用 commission_reverse
+	// 事件类型标识。ReversedBy / ReversedReason / ReversedAt 由 ReverseCommission
+	// 函数填充，与 ledger 行同事务——追溯链条 audit-tag 风格统一。
+	Reversed     bool   `json:"reversed" gorm:"default:false;index"`
+	ReversedAt   int64  `json:"reversed_at" gorm:"bigint;default:0"`
+	ReversedBy   int    `json:"reversed_by" gorm:"default:0"`
+	ReverseReason string `json:"reverse_reason" gorm:"type:varchar(255);default:''"`
 }
 
 func (cr *CommissionRecord) TableName() string { return "commission_records" }

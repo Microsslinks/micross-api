@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/QuantumNous/new-api/common"
@@ -10,7 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// defaultCommissionFirstTopUpQuota 与 model.GetUserTotalConsumeQuota 配合：
+// inviter 累计消费 < 此阈值时 commission amount 归零。task-20 §20.5 默认值。
+// QuotaPerUnit=500000 时 5000 quota ≈ $0.01——极低门槛，主要拦截"纯邀请账号"。
+// 改为可配置变量（而非 const）方便后续接运营配置中心：直接覆写此值。
+var defaultCommissionFirstTopUpQuota int64 = 5000
 
 // CalculateCommission 按口径 A①（全局一个数）× B②（平台实收）计算原始返佣额。
 //
@@ -116,8 +124,30 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 		return nil
 	}
 
-	// 4. 不赔本校验。
+	// 4. P4 风控（task-20 §20.5）：成环检测 + 首充门槛。
+	//   - 成环：A.inviter=B, B.inviter=A 这种闭环返佣是薅羊毛最经典手法。
+	//     命中 → breach=true, amount=0（与 cost_ratio 未录入同口径，走 breach audit log）。
+	//   - 首充门槛：inviter 必须先有过消费，否则 commission 全部归零——拦截"纯邀请
+	//     账号从邀请人钱包空套"的手法。
+	// 两道风控独立触发：任一命中都把 amount 归零 + breach=true。
+	breachReason := ""
+	if model.DetectInviteRing(invitee.InviterId) {
+		breachReason = "invite_ring"
+	} else {
+		totalConsume, err := model.GetUserTotalConsumeQuota(invitee.InviterId)
+		if err == nil && totalConsume < defaultCommissionFirstTopUpQuota {
+			breachReason = "first_topup_threshold"
+		}
+	}
+
+	// 5. 不赔本校验 + P4 风控叠加（task-20 §20.5）。
+	// AssertNoLoss 在 rawAmount 上限归零；P4 风控叠加：breachReason 非空时强制归零。
 	finalAmount, breach := AssertNoLoss(rawAmount, margin)
+	if breachReason != "" {
+		finalAmount = 0
+		breach = true
+		_ = breachReason // 占位防 unused 误删；后续可写 audit log content
+	}
 
 	// 5. 事务：写 commission_records + 邀请人钱包 + account_ledger。
 	//
@@ -211,4 +241,95 @@ func ProcessCommission(c *gin.Context, consumeLogId int64, inviteeId int, gross 
 		model.RecordLogWithAdminInfo(invitee.InviterId, model.LogTypeManage, content, adminInfo)
 	}
 	return nil
+}
+
+// ReverseCommission 撤销一笔 commission（task-20 §20.6）。
+// 应用场景：
+//   - 风控扫描（§20.5 ring / first-topup 阈值）发现历史 commission 是薅羊毛产出
+//   - 客户投诉某笔 commission 计算错误，admin 核实后手动撤销
+//   - commission_records.amount 因 AssertNoLoss 边缘场景下被高估
+//
+// 调用契约：
+//   - 事务内：commission_record.Reversed=true + inviter 钱包扣回 amount + ledger 写 commission_reverse 行
+//   - balance_after 用行锁 SELECT 算出；事务回滚时 ledger 与钱包同步回滚
+//   - 已 Reversed=true 的 record 二次调用返回 ErrCommissionAlreadyReversed（不重复扣款）
+//   - operatorId 写到 commission_record.ReversedBy 与 ledger.OperatorId
+//
+// ledger 行 event_type=commission_reverse, amount=-commission_record.Amount,
+// ref_type=commission_record, ref_id=record.Id, memo 含撤销原因。
+//
+// ctx 参数保留 context.Context（兼容 HTTP handler 的 gin.Context 与 cron 调用）
+// ——实际实现里 ctx 当前未使用（事务只走 model.DB.Transaction），但留着接口
+// 稳定性，将来需要日志/cancel tracing 时不用改签名。
+func ReverseCommission(ctx context.Context, recordID int64, reason string, operatorID int) error {
+	if recordID <= 0 {
+		return fmt.Errorf("invalid record id: %d", recordID)
+	}
+	if reason == "" {
+		reason = "admin reverse (no reason given)"
+	}
+
+	return model.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. 行锁拿 commission_record
+		var rec model.CommissionRecord
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&rec, recordID).Error; err != nil {
+			return fmt.Errorf("commission record %d not found", recordID)
+		}
+		if rec.Reversed {
+			return model.ErrCommissionAlreadyReversed
+		}
+		if rec.Amount == 0 {
+			// amount=0 的 record 撤销无意义，但保留 ledger 行做审计痕迹
+			rec.Reversed = true
+			rec.ReversedAt = common.GetTimestamp()
+			rec.ReversedBy = operatorID
+			rec.ReverseReason = reason
+			if err := tx.Save(&rec).Error; err != nil {
+				return err
+			}
+			// ledger 行 amount=0 也写——标识"操作发生过"，便于追溯
+			return model.RecordAccountLedger(tx,
+				"user", rec.InviterId,
+				model.AccountEventCommissionReverse, 0, 0,
+				"commission_record", rec.Id,
+				fmt.Sprintf("reverse zero-amount commission record (was breach), reason=%s", reason),
+				operatorID,
+			)
+		}
+
+		// 2. 扣回 inviter 钱包（aff_commission_balance -= amount）
+		if err := tx.Model(&model.User{}).
+			Where("id = ?", rec.InviterId).
+			UpdateColumn("aff_commission_balance",
+				gorm.Expr("aff_commission_balance - ?", rec.Amount)).Error; err != nil {
+			return err
+		}
+
+		// 3. 标记 commission_record 为已冲销
+		now := common.GetTimestamp()
+		rec.Reversed = true
+		rec.ReversedAt = now
+		rec.ReversedBy = operatorID
+		rec.ReverseReason = reason
+		if err := tx.Save(&rec).Error; err != nil {
+			return err
+		}
+
+		// 4. 写 ledger 行
+		var balanceAfter int64
+		if err := tx.Model(&model.User{}).
+			Select("aff_commission_balance").
+			Where("id = ?", rec.InviterId).
+			Scan(&balanceAfter).Error; err != nil {
+			return err
+		}
+		return model.RecordAccountLedger(tx,
+			"user", rec.InviterId,
+			model.AccountEventCommissionReverse, -int64(rec.Amount), balanceAfter,
+			"commission_record", rec.Id,
+			fmt.Sprintf("reverse amount=%d, reason=%s", rec.Amount, reason),
+			operatorID,
+		)
+	})
 }

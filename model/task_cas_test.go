@@ -57,6 +57,9 @@ func TestMain(m *testing.M) {
 		&SystemInstance{},
 		&SystemTask{},
 		&SystemTaskLock{},
+		// task-20 §20.1：topup 路径写 account_ledger 行，TestMain 必须建表。
+		// 任何后续 ledger 写账（refund / agent_quota_grant / 风控冲销）也共用此 setup。
+		&AccountLedger{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}

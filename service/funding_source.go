@@ -2,10 +2,16 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+
+	"gorm.io/gorm"
 )
+
+var _ = common.GetTimestamp // 占位防止 unused import 误删（common 后续 RecordLogWithAdminInfo 可能会用）
 
 // ---------------------------------------------------------------------------
 // FundingSource — 资金来源接口（钱包 or 订阅）
@@ -61,16 +67,68 @@ func (w *WalletFunding) Settle(delta int) error {
 	if delta > 0 {
 		return model.DecreaseUserQuota(w.userId, delta, false)
 	}
-	return model.IncreaseUserQuota(w.userId, -delta, false)
+	// task-20 §20.2：delta<0 表示预扣超额 → 给用户加回额度（refund 路径）。
+	// 走 refundWalletQuota：事务内 quota += N + 写 ledger。
+	return refundWalletQuota(w.userId, -delta, "billing_session_settle", 0)
 }
 
 func (w *WalletFunding) Refund() error {
 	if w.consumed <= 0 {
 		return nil
 	}
-	// IncreaseUserQuota 是 quota += N 的非幂等操作，不能重试，否则会多退额度。
-	// 订阅的 RefundSubscriptionPreConsume 有 requestId 幂等保护所以可以重试。
-	return model.IncreaseUserQuota(w.userId, w.consumed, false)
+	// task-20 §20.2：失败 / 取消时退还预扣 → 走 refundWalletQuota 写 ledger。
+	// IncreaseUserQuota 内部是 quota += N 的非幂等操作，不能重试（否则多退）。
+	// refundWalletQuota 同样单写一行：重试会双写，所以依赖 IncreaseUserQuota
+	// 同款的非重试语义。
+	return refundWalletQuota(w.userId, w.consumed, "billing_session_refund", 0)
+}
+
+// refundWalletQuota 在事务内给用户加回额度并写一行 ledger。task-20 §20.2：
+// 所有给用户"加回 quota"的路径（WalletFunding.Settle 负数 + WalletFunding.Refund
+// 失败退还）都走这里。ledger 与 quota 变更同事务——事务回滚时 ledger 同步回滚，
+// 不可能"额度退还了但没记账"。
+//
+// 为什么用独立 helper 而不是在 model.IncreaseUserQuota 里加 eventType 参数：
+//
+//   - IncreaseUserQuota 现有 7 个调用点（邀请赠送 / 注册赠送 / 退款 / 等），
+//     eventType 各不相同，加参数要动 7 处。
+//   - task-20 §20.2 只关心"refund"一类事件类型，独立 helper 把范围收紧：
+//     之后（§20.3 agent_quota_grant / §20.6 风控冲销）再加事件类型时改
+//     helper 而不是改 IncreaseUserQuota。
+//   - IncreaseUserQuota 是公共 API（外部包可能引用），改签名影响面大。
+//
+// 直接绕开 IncreaseUserQuota：因为它有 BatchUpdateEnabled 异步批更新分支，
+// ledger 在事务里但 quota 写入异步 batch 会乱序。refundWalletQuota 走底层 DB
+// + ledger 同步写，确保 ledger 与 quota 严格同事务。
+func refundWalletQuota(userId int, quota int, refType string, refId int64) error {
+	if quota <= 0 {
+		return nil
+	}
+	return model.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&model.User{}).
+			Where("id = ?", userId).
+			Update("quota", gorm.Expr("quota + ?", quota))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		var balanceAfter int64
+		if err := tx.Model(&model.User{}).
+			Select("quota").
+			Where("id = ?", userId).
+			Scan(&balanceAfter).Error; err != nil {
+			return err
+		}
+		return model.RecordAccountLedger(tx,
+			"user", userId,
+			model.AccountEventRefund, int64(quota), balanceAfter,
+			refType, refId,
+			fmt.Sprintf("refund quota=%d", quota),
+			0,
+		)
+	})
 }
 
 // ---------------------------------------------------------------------------

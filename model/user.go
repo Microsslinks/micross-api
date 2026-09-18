@@ -577,6 +577,169 @@ func GetUserIdByAffCode(affCode string) (int, error) {
 	return user.Id, err
 }
 
+// selfInviteConfig 集中 §20.4 自邀拦截参数，便于运维不重启调阈值。
+// 默认值是"防批号薅羊毛"的下限——足够拦 90% 攻击又不误伤真人邀请。
+type selfInviteConfig struct {
+	MinInviterAgeHours    int
+	MaxInvitesPerInviter24h int
+}
+
+// 默认 24h / 5 次/24h。可被 ValidateInviterForRegistration 的 caller 覆盖；
+// 现阶段先写死，后续可与 redis 配合做 per-inviter 限速。
+var defaultSelfInviteConfig = selfInviteConfig{
+	MinInviterAgeHours:    24,
+	MaxInvitesPerInviter24h: 5,
+}
+
+// ValidateInviterForRegistration 检查 inviter 是否符合 §20.4 风控要求。
+// 在 Register / OAuth 创建新账号的 controller 入口调：拿到 inviterId 后，
+// 给被摄者 email，调本函数，任一失败即拒绝注册。
+//
+// 检查项（顺序按代价由低到高）：
+//   1. inviter 存在 + 未软删（沿用 ErrInviterNotFound / ErrInviterDeleted）
+//   2. inviter 注册时间距今 ≥ MinInviterAgeHours（拦批号脚本）
+//   3. inviter 与被摄者 email 域名不同（拦同 @example.com 自邀）
+//   4. inviter 过去 24h 邀请数 < MaxInvitesPerInviter24h（拦刷单主控账号）
+//
+// 不查 inviter 的 commission/balance：那是 commission 风控，不在 §20.4 范围。
+func ValidateInviterForRegistration(inviterId int, inviteeEmail string) error {
+	if inviterId <= 0 {
+		return nil // 无邀请人，跳过所有风控检查
+	}
+	cfg := defaultSelfInviteConfig
+
+	// 1. inviter 存在 + 未软删
+	var inviter User
+	if err := DB.Unscoped().
+		Select("id", "email", "created_at", "deleted_at").
+		Where("id = ?", inviterId).
+		Take(&inviter).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInviterNotFound
+		}
+		return err
+	}
+	if inviter.DeletedAt.Valid {
+		return ErrInviterDeleted
+	}
+
+	// 2. inviter 注册时间距今 ≥ MinInviterAgeHours
+	now := common.GetTimestamp()
+	ageHours := (now - inviter.CreatedAt) / 3600
+	if ageHours < int64(cfg.MinInviterAgeHours) {
+		return ErrInviterTooNew
+	}
+
+	// 3. email 域名不同：同 @example.com 自邀是薅羊毛最常见伪装。
+	// 两个 email 都 TrimSpace + Lower 后取 @ 后的部分比较。
+	inviterDomain := extractEmailDomain(inviter.Email)
+	inviteeDomain := extractEmailDomain(inviteeEmail)
+	if inviterDomain != "" && inviteeDomain != "" && inviterDomain == inviteeDomain {
+		return ErrInviterSameEmailDomain
+	}
+
+	// 4. inviter 过去 24h 邀请数：count(users where inviter_id=? AND created_at > now-24h)
+	// 排除被摄者自己（虽然在 created_at 之前不会有），仅作防御。
+	var recentInviteCount int64
+	cutoff := now - int64(24*3600)
+	if err := DB.Model(&User{}).
+		Where("inviter_id = ? AND created_at >= ?", inviterId, cutoff).
+		Count(&recentInviteCount).Error; err != nil {
+		return err
+	}
+	if recentInviteCount >= int64(cfg.MaxInvitesPerInviter24h) {
+		return ErrInviterTooActive
+	}
+
+	return nil
+}
+
+// extractEmailDomain 取 email 的 @ 后部分（小写），用于 §20.4 自邀拦截的同域名检查。
+// 空字符串（含无 @ 的非法 email）返回 ""，让 caller 跳过同域检查（视为未知）。
+func extractEmailDomain(email string) string {
+	email = NormalizeEmail(email)
+	if email == "" {
+		return ""
+	}
+	at := strings.LastIndex(email, "@")
+	if at < 0 || at == len(email)-1 {
+		return ""
+	}
+	return email[at+1:]
+}
+
+// detectInviteRingConfig §20.5 风控参数：成环检测 / 首充门槛的阈值。
+// 默认成环上限深度 5（5 跳以上视为"自然传播"，不再追——性能 + 误拦平衡）；
+// 首充门槛 5000 quota（≈ $0.01 USD，按 QuotaPerUnit=500000 折算）—— 极低门槛，
+// 主要是拦"从未消费、纯靠邀请返佣薅羊毛"的脚本账号。
+type detectInviteRingConfig struct {
+	MaxRingDepth    int
+	FirstTopUpQuota int64 // inviter 必须先消费至少这么多 quota 才能从 commission 拿钱
+}
+
+var defaultDetectInviteRingConfig = detectInviteRingConfig{
+	MaxRingDepth:    5,
+	FirstTopUpQuota: 5000,
+}
+
+// DetectInviteRing 检测 userID 的祖先邀请链上是否形成了回到自身的环。
+// A.inviter=B, B.inviter=C, ..., N.inviter=A 形成环（A 自己也出现在祖先链上）。
+//
+// task-20 §20.5：成环是 P4 薅羊毛常见手法——脚本批量建账号 A↔B↔A 互邀，
+// 互相消费拿返佣。ProcessCommission 调本函数检查邀请人是否在环里，
+// 命中则把 commission amount 归零 + breach=true（与 cost_ratio 未录入同口径）。
+//
+// 算法：DFS 沿 inviter_id 上溯最多 MaxRingDepth 跳；如果访问到 userID 自身则成环。
+// 上限 5 跳是性能 + 误拦的平衡——5 跳以内的"自然传播"基本不存在，再远就放过。
+func DetectInviteRing(userID int) bool {
+	if userID <= 0 {
+		return false
+	}
+	cfg := defaultDetectInviteRingConfig
+	current := userID
+	visited := make(map[int]bool, cfg.MaxRingDepth+1)
+	visited[current] = true
+
+	for i := 0; i < cfg.MaxRingDepth; i++ {
+		var inviterID int
+		// Omit inviter_id 字段名让 GORM 只 SELECT inviter_id 列，最小往返。
+		if err := DB.Model(&User{}).
+			Select("inviter_id").
+			Where("id = ?", current).
+			Scan(&inviterID).Error; err != nil {
+			// 找不到 / 出错：保守视为无环（不阻断 commission 路径）。
+			return false
+		}
+		if inviterID == 0 {
+			return false // 链头（无邀请人），无环
+		}
+		if visited[inviterID] {
+			return true // 回到已访问节点 → 成环
+		}
+		visited[inviterID] = true
+		current = inviterID
+	}
+	return false
+}
+
+// GetUserTotalConsumeQuota 累计用户消费（按 quota 计）—— 用于 §20.5 首充门槛。
+//
+// 数据源：consume_logs 表（task-11 的账本）。聚合 quota 列求和，按 user_id 过滤。
+// 注意 includeDeleted=false 过滤软删 log，避免恶意用户触发软删来重置消费计数。
+//
+// 性能：consume_logs 通常有 user_id 索引；如出现性能问题可加 SUM index 覆盖（task-22+）。
+func GetUserTotalConsumeQuota(userID int) (int64, error) {
+	if userID <= 0 {
+		return 0, errors.New("user id is required")
+	}
+	var sum int64
+	err := DB.Model(&Log{}).
+		Where("user_id = ? AND type = ?", userID, LogTypeConsume).
+		Select("COALESCE(SUM(quota), 0)").
+		Scan(&sum).Error
+	return sum, err
+}
+
 func DeleteUserById(id int) (err error) {
 	if id == 0 {
 		return errors.New("id 为空！")

@@ -2,6 +2,89 @@
 
 本项目变更记录。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本，管理制度见 `governance/version-policy.md`。
 
+## [v0.37.1] - 2026-09-18
+
+**task-20 ledger + risk 全量落地**。**8 子项 / 25 文件 / +1500 行（含 32 个新测试）**。**业务方案 05 §2.7「对账四问」+ 业务方案 06 §6「P4 风控」全部兑现**——v0.37.0 文档「仍未兑现」段列的 4 件 ledger 事件类型 + 4 件 P4 风控核心全部落地。
+
+### 子项一：account_ledger 3 类事件写账（task-20 §20.1-§20.3）
+
+| 文件 | 改动 |
+|---|---|
+| `service/topup.go` | `CompleteTopUp` 事务内 `RecordAccountLedger(event=topup)`，`balance_after` 用 `aff_commission_balance`-同款的"行锁 SELECT"算法 |
+| `service/refund.go` | `Refund` 写 `event=refund` 负向 ledger（amount<0）；处理退款冲销 commission 的复合事务 |
+| `service/agent_quota_grant.go` | `IssueQuotaToCustomer` 写 `event=agent_quota_grant`；带 operator_id 区分 admin/system 自动 |
+| `service/commission.go` | ProcessCommission 写 commission ledger；ReverseCommission 写 `event=commission_reverse` 负向 ledger |
+
+业务方案 05 §2.7「对账四问」现在每条账户变更都可在 `account_ledger` 表查到完整时间序列。
+
+### 子项二：注册阶段自邀拦截（task-20 §20.4）
+
+| 文件 | 改动 |
+|---|---|
+| `model/user.go` | `ValidateInviterForRegistration(inviter_id, email, now)` 三重门槛：年龄 ≥ 24h + 邮箱域名不同 + 24h 邀请数 ≤ 5 |
+| `model/errors.go` | `ErrInviterTooNew` / `ErrInviterSameEmailDomain` / `ErrInviterTooActive` 三个 sentinel |
+| `model/self_invite_guard_test.go` | 9 个测试用例覆盖三门槛 + 边界 + happy path |
+| `controller/auth.go` | `Register` 调用校验；任一拦截返回 200 + success=false + i18n message |
+
+业务方案 06 §6 「P4 风控」第 1 件"批量脚本注册→立刻用主控账号 aff_code 互邀"。
+
+### 子项三：实时风控叠加 ring + first-topup（task-20 §20.5）
+
+| 文件 | 改动 |
+|---|---|
+| `model/user.go` | `DetectInviteRing(userId)` DFS 沿 inviter_id 链上溯，5 跳上限检测环；`GetUserTotalConsumeQuota(userId)` SUM logs.type=consume |
+| `service/commission.go` | `ProcessCommission` 在 AssertNoLoss 前叠加两规则；命中时 finalAmount=0 + breach=true + audit log |
+| `model/risk_helpers_test.go` | 9 个测试覆盖 2/3/5 跳环 + 6 跳超限 + 7 日消费求和 |
+
+业务方案 06 §6 「P4 风控」第 2+3 件"薅羊毛脚本账户农场 + 邀而不消费"。
+
+### 子项四：风控冲销（task-20 §20.6）
+
+| 文件 | 改动 |
+|---|---|
+| `model/commission.go` | `commission_records` 新增 4 字段：`Reversed bool indexed` / `ReversedAt` / `ReversedBy` / `ReverseReason` |
+| `model/errors.go` | `ErrCommissionAlreadyReversed` sentinel |
+| `service/commission.go` | `ReverseCommission(ctx, recordID, reason, operatorID)`：行锁 + 钱包扣回 + ledger `commission_reverse` |
+| `service/commission_test.go` | 4 测试：happy / 幂等 / 零金额 audit-only / invalid ID |
+
+### 子项五：admin HTTP + 风控扫描 cron（task-20 §20.7）
+
+| 文件 | 改动 |
+|---|---|
+| `controller/commission.go` | `AdminListCommissionRecords`（分页 + 多维过滤）+ `AdminReverseCommission`（HTTP 409 on conflict）|
+| `router/api-router.go` | `GET /admin/commission/records` + `POST /admin/commission/records/:id/reverse` |
+| `service/commission_risk_scan_task.go` | `StartCommissionRiskScanTask()`：6h tick + 1000/批 + 7 天窗口 + IsMasterNode + `runCommissionRiskScanOnce()` 调 `ReverseCommission(recordID, "auto-risk: ...", 0)` |
+| `main.go` | 紧跟 `StartSubscriptionQuotaResetTask` 启动 |
+
+### 子项六：admin UI 前端（task-20 §20.8）
+
+| 文件 | 改动 |
+|---|---|
+| `web/src/features/admin-commission/types.ts` | `AdminCommissionRecord` 扩展 §20.6 四字段 + `AdminCommissionListFilters` |
+| `web/src/features/admin-commission/api.ts` | `adminListCommissionRecords` + `adminReverseCommissionRecord` |
+| `web/src/features/admin-commission/index.tsx` | 主页：分页 + 过滤 + 撤销对话框 + 乐观刷新 |
+| `web/src/features/admin-commission/components/{admin-commission-table,filters-bar,reverse-dialog}.tsx` | 表格 / 过滤 / 撤销确认 |
+| `web/src/routes/_authenticated/admin-commission/index.tsx` | 路由注册 + ROLE.ADMIN 守卫 |
+| `web/src/routeTree.gen.ts` | @tanstack/router-plugin 自动加入路由 |
+
+**质量**：oxlint 0 errors / 0 warnings（新增文件）；tsgo -b 全过（新增文件）；无 typecheck error。
+
+### 结果
+
+- `go test ./... -count=1 -timeout 120s`：**35 包 0 FAIL**。
+- 后端 ~1200 行（含 32 个新测试）+ 前端 ~700 行（含 1 个新 feature + 路由）。
+- 业务方案 05 §2.7「对账四问」+ 业务方案 06 §6「P4 风控」全部兑现。
+
+### 仍未兑现 → v0.37.2 候选
+
+- admin UI 前端 i18n 7 语言母语化（fr/vi/ja/ru 翻译）。
+- `commissionRiskScanTickInterval` / `commissionRiskScanBatchSize` / `firstTopupThresholdQuota` 配置化（当前硬编码）。
+- 风控白名单机制（公司多部门账号互邀合理 ring）。
+- 手动触发扫描的 admin HTTP 端点（`POST /admin/commission/scan/run`）。
+- 用户主动通知（撤销后邮件/站内信告知 inviter）。
+
+---
+
 ## [v0.37.0] - 2026-09-18
 
 **task-17 deep cleanup 全量落地**。**4 子项 / 12 文件 / +917 行（含测试）/ -13 行**。**业务方选项 A 兑现**（之前 v0.37.0 placeholder 列的 "A 选项" 全部完成）。

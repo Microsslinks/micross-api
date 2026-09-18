@@ -23,7 +23,10 @@ func setupAgentTest(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 	DB, LOG_DB = db, db
-	require.NoError(t, db.AutoMigrate(&User{}, &AgentProfile{}, &CustomerCode{}, &DiscountPlan{}, &DiscountBinding{}))
+	require.NoError(t, db.AutoMigrate(&User{}, &AgentProfile{}, &CustomerCode{}, &DiscountPlan{}, &DiscountBinding{},
+		// task-20 §20.3：IssueQuotaToCustomer 写 ledger 行，setup 必须建表。
+		&AccountLedger{},
+	))
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	t.Cleanup(func() {

@@ -1,15 +1,18 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetAffCommissionBalance 当前用户独立钱包余额（task-10 / P4 佣金核心）。
@@ -207,3 +210,175 @@ func AdminSetCommissionRate(c *gin.Context) {
 
 // 编译期兜底：model.DB 引用确认（防止 unused import 编译失败）。
 var _ = model.DB
+
+// ----------------------------------------------------------------------
+// task-20 §20.7: admin commission_records 管理接口
+//
+//  - GET  /admin/commission/records          分页列出 + 过滤
+//  - POST /admin/commission/records/:id/reverse   撤销单条
+//
+// 为什么需要这两个：
+//   - 列出接口：财务/客服在 admin 后台查"某人最近 30 天返佣明细"用——
+//     不能直接给 commission_records 表的 SQL 权限给 admin UI。
+//   - 撤销接口：把 §20.6 的 service.ReverseCommission 挂到 HTTP 路由；
+//     ErrCommissionAlreadyReversed 翻译为 HTTP 409 + 文案复用。
+//
+// 路由已在 router/api-router.go:adminCommissionRoute 注册（§20.7 一并加）。
+// ----------------------------------------------------------------------
+
+// adminListCommissionRecordsRequest 列表查询参数。
+//
+// 字段可选：
+//   - page / page_size: 分页（默认 page=1, page_size=20, page_size 最大 200）
+//   - inviter_id / invitee_id: 精确过滤
+//   - reversed: true=仅已撤销, false=仅未撤销, 缺省=全部
+//   - breach:   true=仅 breach, false=仅非 breach, 缺省=全部
+type adminListCommissionRecordsRequest struct {
+	Page      int  `json:"page"`
+	PageSize  int  `json:"page_size"`
+	InviterID int  `json:"inviter_id"`
+	InviteeID int  `json:"invitee_id"`
+	Reversed  *bool `json:"reversed"`
+	Breach    *bool `json:"breach"`
+}
+
+// AdminListCommissionRecords 分页列出 commission_records。
+//
+// 响应：{"items": [...], "total": N, "page": ..., "page_size": ...}。
+//
+// 与全表扫描相关：commission_records 索引已存在（inviter_id 单列 +
+// idx_invitee_consume 复合），按 inviter_id 过滤命中索引；不带过滤的
+// 全表扫描返回 page_size 默认 20 条 + total 数字——可接受。
+func AdminListCommissionRecords(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if pageSize <= 0 || pageSize > 200 {
+		pageSize = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	inviterID, _ := strconv.Atoi(c.Query("inviter_id"))
+	inviteeID, _ := strconv.Atoi(c.Query("invitee_id"))
+	var reversedFilter *bool
+	if s := c.Query("reversed"); s != "" {
+		b, err := strconv.ParseBool(s)
+		if err == nil {
+			reversedFilter = &b
+		}
+	}
+	var breachFilter *bool
+	if s := c.Query("breach"); s != "" {
+		b, err := strconv.ParseBool(s)
+		if err == nil {
+			breachFilter = &b
+		}
+	}
+
+	q := model.DB.Model(&model.CommissionRecord{})
+	if inviterID > 0 {
+		q = q.Where("inviter_id = ?", inviterID)
+	}
+	if inviteeID > 0 {
+		q = q.Where("invitee_id = ?", inviteeID)
+	}
+	if reversedFilter != nil {
+		q = q.Where("reversed = ?", *reversedFilter)
+	}
+	if breachFilter != nil {
+		q = q.Where("breach = ?", *breachFilter)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	var items []model.CommissionRecord
+	if err := q.Order("id DESC").
+		Limit(pageSize).Offset((page - 1) * pageSize).
+		Find(&items).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	common.ApiSuccess(c, gin.H{
+		"items":     items,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
+}
+
+type adminReverseCommissionRequest struct {
+	Reason string `json:"reason"`
+}
+
+// AdminReverseCommission 撤销一笔 commission_records（task-20 §20.7 admin HTTP 入口）。
+//
+// 调用契约：
+//   - body: {"reason": "..."}，reason 必填；空 reason 会被 service 兜底为
+//     "admin reverse (no reason given)"。
+//   - 成功 → 200 + commission_record 详情。
+//   - record 不存在 → 404（service 内 error 不带 ErrCommissionAlreadyReversed）。
+//   - 已撤销 → 409（errors.Is(err, model.ErrCommissionAlreadyReversed)）。
+//   - 其它事务错误 → 500。
+//
+// 审计：admin_id / reason / record 详情都写 logs 表 LogTypeManage 行（§20.6
+// 的 ledger 行是账本追踪，logs 表是 admin 行为追踪，两者不冲突）。
+func AdminReverseCommission(c *gin.Context) {
+	idStr := c.Param("id")
+	recordID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || recordID <= 0 {
+		common.ApiErrorMsg(c, "无效的 commission record id")
+		return
+	}
+
+	var req adminReverseCommissionRequest
+	_ = c.ShouldBindJSON(&req) // reason 可选：service 会兜底
+
+	adminID := c.GetInt("id")
+	if err := service.ReverseCommission(c, recordID, req.Reason, adminID); err != nil {
+		if errors.Is(err, model.ErrCommissionAlreadyReversed) {
+			// 用 ApiError + 自定义 status code 难，改为直接 409。
+			c.JSON(409, gin.H{
+				"success": false,
+				"message": "该返佣记录已被撤销",
+				"data":    nil,
+			})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			common.ApiErrorMsg(c, fmt.Sprintf("commission record %d 不存在", recordID))
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+
+	// 审计：写一条 logs 表行，便于 admin_log 面板追溯。
+	if adminID > 0 {
+		model.RecordLogWithAdminInfo(adminID, model.LogTypeManage,
+			fmt.Sprintf("admin_reverse_commission: record_id=%d reason=%s", recordID, req.Reason),
+			map[string]interface{}{
+				"action":        "reverse_commission",
+				"record_id":     recordID,
+				"reason":        req.Reason,
+				"admin_id":      adminID,
+				"audit_tag":     "commission_reversed",
+			})
+	}
+
+	// 读回最新 record 给前端
+	var rec model.CommissionRecord
+	if err := model.DB.First(&rec, recordID).Error; err != nil {
+		common.ApiSuccess(c, gin.H{
+			"record_id": recordID,
+			"reversed":  true,
+		})
+		return
+	}
+	common.ApiSuccess(c, rec)
+}
