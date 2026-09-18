@@ -83,12 +83,19 @@ jobs:
               VERSION="$VERSION$REST"
             fi
           fi
-          # Use `npm pkg set` rather than `npm version` — npm version enforces
-          # strict semver (major.minor.patch) and rejects any 4-segment form
-          # like v0.37.1.1 with "Invalid Version". pkg set writes the field
-          # directly, which is what we actually want here (Electron-builder reads
-          # the version field verbatim from package.json).
-          npm pkg set version="$VERSION"
+          # electron-builder itself enforces strict semver via
+          # app-builder-lib/src/util/normalizePackageData.ts:146 (fixVersionField)
+          # and rejects 4-segment versions like "0.37.1.1" with
+          #   Error: Invalid version: "0.37.1.1"
+          # before any config override can be applied. So we MUST keep
+          # package.json's `version` field strict-valid (3 segments) and pass
+          # the full tag as an explicit override via --config.version on the
+          # electron-builder CLI invocation downstream.
+          # ECHO_FULL_VERSION is consumed by the next step.
+          echo "ECHO_FULL_VERSION=$VERSION" >> $GITHUB_ENV
+          STRICT_VERSION=$(echo "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "Setting package.json version to strict semver $STRICT_VERSION (full tag was $VERSION)"
+          npm pkg set version="$STRICT_VERSION"
 
       - name: Install Electron dependencies
         run: |
@@ -107,7 +114,12 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd electron
-          npm run build:win
+          # Invoke electron-builder directly (rather than via `npm run build:win`)
+          # so we can pass --config.version and avoid npm's argv-mangling. Step 8
+          # already trimmed package.json's version field to strict semver (so
+          # app-builder-lib/normalizePackageData accepts it); here we re-attach
+          # the full tag so the installer metadata carries the real version.
+          npx electron-builder --win --config.version="$ECHO_FULL_VERSION"
 
       # - name: Upload artifacts (macOS)
       #   if: runner.os == 'macOS'
