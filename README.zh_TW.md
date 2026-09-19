@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 ![new-api](/web/public/logo.png)
 
@@ -23,8 +23,8 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/dukaworks/micross-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dukaworks/micross-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/microsslinks/micross-api/main/LICENSE">
+    <img src="https://img.shields.io/github/license/microsslinks/micross-api?color=brightgreen" alt="license">
   </a>
 </p>
 
@@ -138,7 +138,7 @@
 
 ```bash
 # 複製項目
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # 編輯 docker-compose.yml 配置
@@ -153,14 +153,14 @@ docker-compose up -d
 
 ```bash
 # 拉取最新鏡像
-docker pull dukaworks/micross-api:latest
+docker pull microsslinks/micross-api:latest
 
 # 使用 SQLite（預設）
 docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 
 # 使用 MySQL
 docker run --name micross-api -d --restart always \
@@ -168,7 +168,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 提示：** `-v ./data:/data` 會將數據保存在當前目錄的 `data` 資料夾中，你也可以改為絕對路徑如 `-v /your/custom/path:/data`
@@ -322,7 +322,7 @@ docker run --name micross-api -d --restart always \
 ## 🚢 部署
 
 > [!TIP]
-> **最新版 Docker 鏡像：** `dukaworks/micross-api:latest`
+> **最新版 Docker 鏡像：** `microsslinks/micross-api:latest`
 
 ### 📋 部署要求
 
@@ -376,7 +376,7 @@ docker run --name micross-api -d --restart always \
 
 ```bash
 # 複製項目
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # 編輯配置
@@ -397,7 +397,7 @@ docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 **使用 MySQL：**
@@ -407,7 +407,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 路徑說明：**
@@ -511,7 +511,7 @@ Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階�
 
 如果這個項目對你有幫助，歡迎給我們一個 ⭐️ Star！
 
-**[官方文件](https://github.com/dukaworks/micross-api/blob/main/README.zh_TW.md)** • **[問題回饋](https://github.com/dukaworks/micross-api/issues)** • **[最新發布](https://github.com/dukaworks/micross-api/releases)**
+**[官方文件](https://github.com/microsslinks/micross-api/blob/main/README.zh_TW.md)** • **[問題回饋](https://github.com/microsslinks/micross-api/issues)** • **[最新發布](https://github.com/microsslinks/micross-api/releases)**
 
 <sub>Built with ❤️ by MicrossAPI / Microsslink 微观互联</sub>
 

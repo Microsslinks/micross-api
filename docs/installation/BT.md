@@ -1,4 +1,4 @@
-# 宝塔面板部署教程
+﻿# 宝塔面板部署教程
 
 本文档提供使用宝塔面板 Docker 功能部署 **MicrossAPI / Microsslink 微观互联**（本 fork）的图文教程。镜像名称、容器名、目录名等均使用本项目对应的 `micross-api` 标识；上游 New API 仓库（`QuantumNous/new-api`）按 AGPLv3 §7 保留在本节"相关链接"。
 
@@ -57,7 +57,7 @@
 version: '3'
 services:
   micross-api:
-    image: dukaworks/micross-api:latest
+    image: microsslinks/micross-api:latest
     container_name: micross-api
     restart: always
     ports:
@@ -126,7 +126,7 @@ volumes:
 
 ```bash
 # 拉取最新镜像
-docker pull dukaworks/micross-api:latest
+docker pull microsslinks/micross-api:latest
 
 # 重启容器
 docker-compose down && docker-compose up -d
@@ -136,7 +136,7 @@ docker-compose down && docker-compose up -d
 
 ## 相关链接
 
-- [本项目 GitHub 仓库](https://github.com/dukaworks/micross-api)（部署、升级请使用此仓库）
+- [本项目 GitHub 仓库](https://github.com/microsslinks/micross-api)（部署、升级请使用此仓库）
 - [上游文档](https://docs.newapi.pro/zh/docs/installation)（AGPLv3 §7 保留，可参考其原始字段说明）
 - [上游环境变量](https://docs.newapi.pro/zh/docs/installation/config-maintenance/environment-variables)
 - [上游常见问题](https://docs.newapi.pro/zh/docs/support/faq)

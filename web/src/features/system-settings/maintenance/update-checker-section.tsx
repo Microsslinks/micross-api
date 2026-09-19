@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ export function UpdateCheckerSection({
     setChecking(true)
     try {
       const response = await fetch(
-        'https://api.github.com/repos/dukaworks/micross-api/releases/latest',
+        'https://api.github.com/repos/microsslinks/micross-api/releases/latest',
         {
           headers: {
             Accept: 'application/vnd.github+json',

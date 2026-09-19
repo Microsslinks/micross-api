@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 ![new-api](/web/public/logo.png)
 
@@ -23,8 +23,8 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/dukaworks/micross-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dukaworks/micross-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/microsslinks/micross-api/main/LICENSE">
+    <img src="https://img.shields.io/github/license/microsslinks/micross-api?color=brightgreen" alt="license">
   </a>
 </p>
 
@@ -141,7 +141,7 @@
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # docker-compose.yml 設定を編集
@@ -156,14 +156,14 @@ docker-compose up -d
 
 ```bash
 # 最新のイメージをプル
-docker pull dukaworks/micross-api:latest
+docker pull microsslinks/micross-api:latest
 
 # SQLiteを使用（デフォルト）
 docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 
 # MySQLを使用
 docker run --name micross-api -d --restart always \
@@ -171,7 +171,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 ヒント:** `-v ./data:/data` は現在のディレクトリの `data` フォルダにデータを保存します。絶対パスに変更することもできます：`-v /your/custom/path:/data`
@@ -327,7 +327,7 @@ docker run --name micross-api -d --restart always \
 ## 🚢 デプロイ
 
 > [!TIP]
-> **最新のDockerイメージ:** `dukaworks/micross-api:latest`
+> **最新のDockerイメージ:** `microsslinks/micross-api:latest`
 
 ### 📋 デプロイ要件
 
@@ -381,7 +381,7 @@ docker run --name micross-api -d --restart always \
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # 設定を編集
@@ -402,7 +402,7 @@ docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 **MySQLを使用:**
@@ -412,7 +412,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 パス説明:**
@@ -516,7 +516,7 @@ Token、Origin 検証、PAT の契約については[ユーザー認証とログ
 
 このプロジェクトがあなたのお役に立てたなら、ぜひ ⭐️ スターをください！
 
-**[公式ドキュメント](https://github.com/dukaworks/micross-api/blob/main/README.ja.md)** • **[問題フィードバック](https://github.com/dukaworks/micross-api/issues)** • **[最新リリース](https://github.com/dukaworks/micross-api/releases)**
+**[公式ドキュメント](https://github.com/microsslinks/micross-api/blob/main/README.ja.md)** • **[問題フィードバック](https://github.com/microsslinks/micross-api/issues)** • **[最新リリース](https://github.com/microsslinks/micross-api/releases)**
 
 <sub>❤️ で構築された MicrossAPI / Microsslink 微观互联</sub>
 

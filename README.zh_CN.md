@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 ![micross-api](/web/public/logo.png)
 
@@ -119,7 +119,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # 编辑 docker-compose.yml 配置
@@ -134,14 +134,14 @@ docker-compose up -d
 
 ```bash
 # 拉取最新镜像
-docker pull ghcr.io/dukaworks/micross-api:latest
+docker pull ghcr.io/microsslinks/micross-api:latest
 
 # 使用 SQLite（默认）
 docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  ghcr.io/dukaworks/micross-api:latest
+  ghcr.io/microsslinks/micross-api:latest
 
 # 使用 MySQL
 docker run --name micross-api -d --restart always \
@@ -149,7 +149,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  ghcr.io/dukaworks/micross-api:latest
+  ghcr.io/microsslinks/micross-api:latest
 ```
 
 > **💡 提示：** `-v ./data:/data` 会将数据保存在当前目录的 `data` 文件夹中，你也可以改为绝对路径如 `-v /your/custom/path:/data`
@@ -303,7 +303,7 @@ docker run --name micross-api -d --restart always \
 ## 🚢 部署
 
 > [!TIP]
-> **最新版 Docker 镜像：** `ghcr.io/dukaworks/micross-api:latest`
+> **最新版 Docker 镜像：** `ghcr.io/microsslinks/micross-api:latest`
 
 ### 📋 部署要求
 
@@ -357,7 +357,7 @@ docker run --name micross-api -d --restart always \
 
 ```bash
 # 克隆项目
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # 编辑配置
@@ -378,7 +378,7 @@ docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  ghcr.io/dukaworks/micross-api:latest
+  ghcr.io/microsslinks/micross-api:latest
 ```
 
 **使用 MySQL：**
@@ -388,7 +388,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  ghcr.io/dukaworks/micross-api:latest
+  ghcr.io/microsslinks/micross-api:latest
 ```
 
 > **💡 路径说明：**
@@ -480,7 +480,7 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api,dukaworks/micross-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api,microsslinks/micross-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
 
 </div>
 
@@ -492,7 +492,7 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 如果这个项目对你有帮助，欢迎给我们一个 ⭐️ Star！
 
-**[官方文档](https://github.com/dukaworks/micross-api/blob/main/README.zh_CN.md)** • **[问题反馈](https://github.com/dukaworks/micross-api/issues)** • **[最新发布](https://github.com/dukaworks/micross-api/releases)**
+**[官方文档](https://github.com/microsslinks/micross-api/blob/main/README.zh_CN.md)** • **[问题反馈](https://github.com/microsslinks/micross-api/issues)** • **[最新发布](https://github.com/microsslinks/micross-api/releases)**
 
 <sub>Built with ❤️ by MicrossAPI / Microsslink 微观互联</sub>
 

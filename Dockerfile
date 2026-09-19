@@ -1,6 +1,6 @@
-# =============================================================================
+﻿# =============================================================================
 #  MicrossAPI / Microsslink 微观互联 — production image
-#  Repository: https://github.com/dukaworks/micross-api
+#  Repository: https://github.com/microsslinks/micross-api
 #
 #  This Dockerfile is the build recipe for THIS repository. It compiles the
 #  Go backend and embeds the Rsbuild-built web/dist (Bun stage), then ships
@@ -9,12 +9,12 @@
 #  Upstream Go module path (github.com/QuantumNous/new-api/...) is preserved
 #  unchanged per AGPLv3 §7 attribution, so the ldflags target stays as
 #  github.com/QuantumNous/new-api/common.Version even though the produced
-#  binary, container image, and source repo belong to dukaworks/micross-api.
+#  binary, container image, and source repo belong to microsslinks/micross-api.
 #
-#  Build:    docker build -t ghcr.io/dukaworks/micross-api:latest -f Dockerfile .
-#  Publish:  docker push ghcr.io/dukaworks/micross-api:latest
+#  Build:    docker build -t ghcr.io/microsslinks/micross-api:latest -f Dockerfile .
+#  Publish:  docker push ghcr.io/microsslinks/micross-api:latest
 #  Run:      docker run --rm -p 3000:3000 -v $(pwd)/data:/data \
-#                -e TZ=Asia/Shanghai ghcr.io/dukaworks/micross-api:latest
+#                -e TZ=Asia/Shanghai ghcr.io/microsslinks/micross-api:latest
 # =============================================================================
 
 # ---- Stage 1: web frontend (Rsbuild via Bun) ---------------------------------
@@ -72,9 +72,9 @@ ARG BUILD_TIME=unknown
 # OCI image metadata
 LABEL org.opencontainers.image.title="MicrossAPI" \
       org.opencontainers.image.description="新一代大模型网关与 AI 资产管理系统（Microsslink 微观互联出品）" \
-      org.opencontainers.image.source="https://github.com/dukaworks/micross-api" \
-      org.opencontainers.image.url="https://github.com/dukaworks/micross-api" \
-      org.opencontainers.image.documentation="https://github.com/dukaworks/micross-api/blob/main/README.zh_CN.md" \
+      org.opencontainers.image.source="https://github.com/microsslinks/micross-api" \
+      org.opencontainers.image.url="https://github.com/microsslinks/micross-api" \
+      org.opencontainers.image.documentation="https://github.com/microsslinks/micross-api/blob/main/README.zh_CN.md" \
       org.opencontainers.image.vendor="MicrossAPI / Microsslink 微观互联" \
       org.opencontainers.image.licenses="AGPL-3.0" \
       org.opencontainers.image.version="${VERSION}" \

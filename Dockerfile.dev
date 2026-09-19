@@ -1,6 +1,6 @@
-# =============================================================================
+﻿# =============================================================================
 #  MicrossAPI / Microsslink 微观互联 — backend-only dev image
-#  Repository: https://github.com/dukaworks/micross-api
+#  Repository: https://github.com/microsslinks/micross-api
 #
 #  This Dockerfile builds the Go backend from THIS repository WITHOUT bundling
 #  the frontend. A placeholder `web/dist/index.html` is generated so the
@@ -55,9 +55,9 @@ ARG BUILD_TIME=unknown
 # OCI image metadata
 LABEL org.opencontainers.image.title="MicrossAPI (dev backend)" \
       org.opencontainers.image.description="MicrossAPI 后端开发镜像 —— 不打包前端，与 Rsbuild dev server 配合使用" \
-      org.opencontainers.image.source="https://github.com/dukaworks/micross-api" \
-      org.opencontainers.image.url="https://github.com/dukaworks/micross-api" \
-      org.opencontainers.image.documentation="https://github.com/dukaworks/micross-api/blob/main/docker-compose.dev.yml" \
+      org.opencontainers.image.source="https://github.com/microsslinks/micross-api" \
+      org.opencontainers.image.url="https://github.com/microsslinks/micross-api" \
+      org.opencontainers.image.documentation="https://github.com/microsslinks/micross-api/blob/main/docker-compose.dev.yml" \
       org.opencontainers.image.vendor="MicrossAPI / Microsslink 微观互联" \
       org.opencontainers.image.licenses="AGPL-3.0" \
       org.opencontainers.image.version="${VERSION}" \

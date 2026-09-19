@@ -1,6 +1,6 @@
-# =============================================================================
+﻿# =============================================================================
 #  MicrossAPI / Microsslink 微观互联 — production Docker Compose
-#  Repository: https://github.com/dukaworks/micross-api
+#  Repository: https://github.com/microsslinks/micross-api
 #
 #  Quick start:
 #    1. (optionally) edit this file to change passwords / ports / DSN
@@ -22,7 +22,7 @@ services:
   micross-api:
     # ---- Build from this repository (no external pull required) -------------
     # The `build:` block makes `docker compose up` compile a fresh
-    # `ghcr.io/dukaworks/micross-api:latest` from ./Dockerfile. If you prefer to pull
+    # `ghcr.io/microsslinks/micross-api:latest` from ./Dockerfile. If you prefer to pull
     # a pre-built image, comment out the `build:` block and let the `image:`
     # line below resolve via the registry.
     build:
@@ -41,8 +41,8 @@ services:
     # Images are published to ghcr.io (no secrets needed on the GitHub side —
     # pushes use the auto-issued `${{ secrets.GITHUB_TOKEN }}`). To pull on the
     # VPS without authentication, make the GitHub package public at:
-    #   https://github.com/dukaworks/micross-api/pkgs/container/micross-api
-    image: ghcr.io/dukaworks/micross-api:${MICROSS_VERSION:-v0.37.1}
+    #   https://github.com/microsslinks/micross-api/pkgs/container/micross-api
+    image: ghcr.io/microsslinks/micross-api:${MICROSS_VERSION:-v0.37.1}
     container_name: micross-api
     restart: always
     command: --log-dir /app/logs

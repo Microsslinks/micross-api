@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 ![new-api](/web/public/logo.png)
 
@@ -22,8 +22,8 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/dukaworks/micross-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dukaworks/micross-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/microsslinks/micross-api/main/LICENSE">
+    <img src="https://img.shields.io/github/license/microsslinks/micross-api?color=brightgreen" alt="license">
   </a>
 </p>
 
@@ -140,7 +140,7 @@
 
 ```bash
 # Clone the project
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # Edit docker-compose.yml configuration
@@ -155,14 +155,14 @@ docker-compose up -d
 
 ```bash
 # Pull the latest image
-docker pull dukaworks/micross-api:latest
+docker pull microsslinks/micross-api:latest
 
 # Using SQLite (default)
 docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 
 # Using MySQL
 docker run --name micross-api -d --restart always \
@@ -170,7 +170,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 Tip:** `-v ./data:/data` will save data in the `data` folder of the current directory, you can also change it to an absolute path like `-v /your/custom/path:/data`
@@ -322,7 +322,7 @@ docker run --name micross-api -d --restart always \
 ## 🚢 Deployment
 
 > [!TIP]
-> **Latest Docker image:** `dukaworks/micross-api:latest`
+> **Latest Docker image:** `microsslinks/micross-api:latest`
 
 ### 📋 Deployment Requirements
 
@@ -376,7 +376,7 @@ docker run --name micross-api -d --restart always \
 
 ```bash
 # Clone the project
-git clone https://github.com/dukaworks/micross-api.git
+git clone https://github.com/microsslinks/micross-api.git
 cd micross-api
 
 # Edit configuration
@@ -397,7 +397,7 @@ docker run --name micross-api -d --restart always \
   -p 3000:3000 \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 **Using MySQL:**
@@ -407,7 +407,7 @@ docker run --name micross-api -d --restart always \
   -e SQL_DSN="root:123456@tcp(localhost:3306)/micross-api" \
   -e TZ=Asia/Shanghai \
   -v ./data:/data \
-  dukaworks/micross-api:latest
+  microsslinks/micross-api:latest
 ```
 
 > **💡 Path explanation:** 
@@ -501,7 +501,7 @@ Welcome all forms of contribution!
 
 If this project is helpful to you, welcome to give us a ⭐️ Star！
 
-**[Official Documentation](https://github.com/dukaworks/micross-api/blob/main/README.md)** • **[Issue Feedback](https://github.com/dukaworks/micross-api/issues)** • **[Latest Release](https://github.com/dukaworks/micross-api/releases)**
+**[Official Documentation](https://github.com/microsslinks/micross-api/blob/main/README.md)** • **[Issue Feedback](https://github.com/microsslinks/micross-api/issues)** • **[Latest Release](https://github.com/microsslinks/micross-api/releases)**
 
 <sub>Built with ❤️ by MicrossAPI / Microsslink 微观互联</sub>
 
